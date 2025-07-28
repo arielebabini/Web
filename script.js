@@ -1,5 +1,5 @@
 /**
- * CoWorkSpace - Versione Semplificata e Funzionante
+ * CoWorkSpace - Script completo con implementazione mappa Leaflet
  */
 
 // ===== VARIABILI GLOBALI =====
@@ -8,7 +8,24 @@ let isAuthenticated = false;
 let currentSpaces = [];
 let activeSection = 'home';
 
-// ===== DATI MOCK =====
+// ===== VARIABILI MAPPA =====
+let map = null;
+let markersLayer = null;
+let currentBasemap = 'osm';
+
+// ===== COORDINATE CITTÀ ITALIANE =====
+const cityCoordinates = {
+    'Milano': [45.4642, 9.1900],
+    'Roma': [41.9028, 12.4964],
+    'Torino': [45.0703, 7.6869],
+    'Bologna': [44.4949, 11.3426],
+    'Firenze': [43.7696, 11.2558],
+    'Napoli': [40.8518, 14.2681],
+    'Venezia': [45.4408, 12.3155],
+    'Genova': [44.4056, 8.9463]
+};
+
+// ===== DATI MOCK MIGLIORATI =====
 const mockSpaces = [
     {
         id: 1,
@@ -24,7 +41,8 @@ const mockSpaces = [
         amenities: ["wifi", "parking", "coffee", "printer"],
         image: "https://images.unsplash.com/photo-1497366216548-37526070297c?w=600",
         available: true,
-        featured: true
+        featured: true,
+        coordinates: [45.4642, 9.1900]
     },
     {
         id: 2,
@@ -40,7 +58,8 @@ const mockSpaces = [
         amenities: ["wifi", "coffee", "printer"],
         image: "https://images.unsplash.com/photo-1556761175-b413da4baf72?w=600",
         available: true,
-        featured: false
+        featured: false,
+        coordinates: [41.8902, 12.4696]
     },
     {
         id: 3,
@@ -56,7 +75,8 @@ const mockSpaces = [
         amenities: ["wifi", "parking", "printer", "projector"],
         image: "https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=600",
         available: false,
-        featured: true
+        featured: true,
+        coordinates: [45.0703, 7.6869]
     },
     {
         id: 4,
@@ -72,7 +92,42 @@ const mockSpaces = [
         amenities: ["wifi", "coffee", "kitchen"],
         image: "https://images.unsplash.com/photo-1556761175-4b46a572b786?w=600",
         available: true,
-        featured: false
+        featured: false,
+        coordinates: [44.4949, 11.3426]
+    },
+    {
+        id: 5,
+        name: "Firenze Art Coworking",
+        type: "hot-desk",
+        city: "Firenze",
+        address: "Piazza Santa Croce 16, Firenze",
+        price: 45,
+        capacity: 20,
+        rating: 4.7,
+        reviews: 98,
+        description: "Coworking creativo nel centro storico di Firenze, perfetto per artisti e designer.",
+        amenities: ["wifi", "coffee", "printer", "projector"],
+        image: "https://images.unsplash.com/photo-1524758631624-e2822e304c36?w=600",
+        available: true,
+        featured: true,
+        coordinates: [43.7696, 11.2558]
+    },
+    {
+        id: 6,
+        name: "Napoli Bay Office",
+        type: "private-office",
+        city: "Napoli",
+        address: "Via Chiaia 149, Napoli",
+        price: 65,
+        capacity: 8,
+        rating: 4.4,
+        reviews: 76,
+        description: "Ufficio privato con vista sul Golfo di Napoli, ambiente professionale e accogliente.",
+        amenities: ["wifi", "parking", "coffee"],
+        image: "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=600",
+        available: true,
+        featured: false,
+        coordinates: [40.8518, 14.2681]
     }
 ];
 
@@ -123,6 +178,18 @@ function getAmenityLabel(amenity) {
     return labels[amenity] || amenity;
 }
 
+function getAmenityIcon(amenity) {
+    const icons = {
+        'wifi': 'fas fa-wifi',
+        'parking': 'fas fa-car',
+        'coffee': 'fas fa-coffee',
+        'printer': 'fas fa-print',
+        'projector': 'fas fa-video',
+        'kitchen': 'fas fa-utensils'
+    };
+    return icons[amenity] || 'fas fa-check';
+}
+
 // ===== FUNZIONE PRINCIPALE NAVIGAZIONE =====
 function showSection(sectionName) {
     console.log('Mostrando sezione:', sectionName);
@@ -159,6 +226,10 @@ function showSection(sectionName) {
     } else if (sectionName === 'profile') {
         loadProfile();
     }
+
+    // Aggiorna navbar attiva
+    $('.navbar-nav .nav-link').removeClass('active');
+    $(`.navbar-nav .nav-link[onclick*="${sectionName}"]`).addClass('active');
 }
 
 // ===== GESTIONE SPAZI =====
@@ -209,7 +280,7 @@ function createSpaceCard(space) {
                 <p class="space-description text-muted mb-3">${space.description}</p>
                 <div class="amenities mb-3">
                     ${space.amenities.slice(0, 3).map(amenity =>
-        `<span class="amenity badge me-1">${getAmenityLabel(amenity)}</span>`
+        `<span class="amenity badge me-1"><i class="${getAmenityIcon(amenity)} me-1"></i>${getAmenityLabel(amenity)}</span>`
     ).join('')}
                     ${space.amenities.length > 3 ? `<span class="badge bg-secondary">+${space.amenities.length - 3}</span>` : ''}
                 </div>
@@ -270,6 +341,9 @@ function showSpaceDetail(spaceId) {
         <h6><i class="fas fa-map-marker-alt text-primary"></i> Posizione</h6>
         <p><strong>${space.address}</strong></p>
         <p>Città: ${space.city}</p>
+        <button class="btn btn-outline-primary btn-sm" onclick="showOnMap(${space.id})">
+            <i class="fas fa-map"></i> Mostra sulla Mappa
+        </button>
     `);
 
     $('#spaceDetailReviews').html(`
@@ -297,6 +371,34 @@ function showSpaceDetail(spaceId) {
     $('#spaceDetailModal').modal('show');
 }
 
+function showOnMap(spaceId) {
+    $('#spaceDetailModal').modal('hide');
+
+    setTimeout(() => {
+        showSection('spaces');
+        setTimeout(() => {
+            showMapView();
+            setTimeout(() => {
+                if (map && markersLayer) {
+                    const space = mockSpaces.find(s => s.id === spaceId);
+                    if (space && space.coordinates) {
+                        map.setView(space.coordinates, 15);
+
+                        // Trova e apri il popup del marker corrispondente
+                        markersLayer.eachLayer((marker) => {
+                            if (marker.options.spaceId === spaceId) {
+                                marker.openPopup();
+                            }
+                        });
+
+                        showNotification(`Spazio "${space.name}" localizzato sulla mappa`, 'success');
+                    }
+                }
+            }, 500);
+        }, 300);
+    }, 300);
+}
+
 function updateBookingPrice(space) {
     if (!space) return;
 
@@ -317,6 +419,398 @@ function updateBookingPrice(space) {
     $('#totalDays').text(daysDiff);
     $('#fees').text(formatPrice(fees));
     $('#totalPrice').text(formatPrice(totalPrice));
+}
+
+// ===== IMPLEMENTAZIONE MAPPA LEAFLET =====
+function initializeMap() {
+    console.log('Inizializzando mappa Leaflet...');
+
+    // Sostituisci il contenuto HTML esistente con una mappa reale
+    $('#mapContainer').html(`
+        <div class="map-view">
+            <div class="map-header">
+                <h4><i class="fas fa-map text-primary"></i> Mappa degli Spazi</h4>
+                <div class="map-controls">
+                    <button class="btn btn-sm btn-outline-primary" onclick="zoomToItaly()">
+                        <i class="fas fa-globe-europe"></i> Italia
+                    </button>
+                    <button class="btn btn-sm btn-outline-primary" onclick="toggleSatellite()">
+                        <i class="fas fa-satellite"></i> Satellite
+                    </button>
+                    <button class="btn btn-sm btn-outline-primary" onclick="locateUser()">
+                        <i class="fas fa-crosshairs"></i> Posizione
+                    </button>
+                </div>
+            </div>
+            <div id="leafletMap" style="height: 500px; width: 100%;"></div>
+            <div class="map-footer">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span><i class="fas fa-map-marker-alt text-primary"></i> ${currentSpaces.length} spazi sulla mappa</span>
+                    <div class="map-legend">
+                        <span class="legend-item">
+                            <span class="legend-dot available"></span> Disponibile
+                        </span>
+                        <span class="legend-item">
+                            <span class="legend-dot featured"></span> In Evidenza
+                        </span>
+                        <span class="legend-item">
+                            <span class="legend-dot busy"></span> Occupato
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `);
+
+    // Inizializza la mappa Leaflet
+    if (map) {
+        map.remove();
+    }
+
+    // Centra la mappa sull'Italia
+    map = L.map('leafletMap').setView([41.8719, 12.5674], 6);
+
+    // Aggiungi layer delle tile
+    const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    });
+
+    const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Tiles © Esri — Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+    });
+
+    // Layer di default
+    osmLayer.addTo(map);
+    currentBasemap = 'osm';
+
+    // Controllo per switchare tra layer
+    const baseMaps = {
+        "Mappa Stradale": osmLayer,
+        "Vista Satellite": satelliteLayer
+    };
+
+    const layerControl = L.control.layers(baseMaps).addTo(map);
+
+    // Inizializza il layer per i marker
+    markersLayer = L.layerGroup().addTo(map);
+
+    // Aggiungi i marker degli spazi
+    updateMapMarkers();
+
+    // Aggiungi controlli personalizzati
+    addCustomMapControls();
+
+    console.log('Mappa inizializzata con successo');
+}
+
+function updateMapMarkers() {
+    if (!markersLayer) return;
+
+    console.log('Aggiornando marker sulla mappa...');
+
+    // Pulisci i marker esistenti
+    markersLayer.clearLayers();
+
+    currentSpaces.forEach(space => {
+        const coords = space.coordinates || cityCoordinates[space.city];
+        if (!coords) return;
+
+        // Determina l'icona in base allo stato
+        let iconClass = 'fa-map-marker-alt';
+        let iconColor = '#667eea';
+
+        if (!space.available) {
+            iconColor = '#ef4444';
+        } else if (space.featured) {
+            iconColor = '#f093fb';
+            iconClass = 'fa-star';
+        }
+
+        // Crea icona personalizzata
+        const customIcon = L.divIcon({
+            html: `
+                <div class="custom-marker ${space.available ? 'available' : 'busy'} ${space.featured ? 'featured' : ''}">
+                    <i class="fas ${iconClass}"></i>
+                    <div class="marker-label">${formatPrice(space.price)}</div>
+                </div>
+            `,
+            className: 'custom-div-icon',
+            iconSize: [40, 50],
+            iconAnchor: [20, 50],
+            popupAnchor: [0, -50]
+        });
+
+        // Crea il marker
+        const marker = L.marker(coords, {
+            icon: customIcon,
+            spaceId: space.id
+        });
+
+        // Crea il popup
+        const popupContent = `
+            <div class="map-popup">
+                <div class="popup-header">
+                    <h6>${space.name}</h6>
+                    <span class="badge ${space.available ? 'bg-success' : 'bg-danger'}">
+                        ${space.available ? 'Disponibile' : 'Non Disponibile'}
+                    </span>
+                </div>
+                <div class="popup-body">
+                    <div class="popup-image" style="background-image: url('${space.image}')"></div>
+                    <p class="popup-address">
+                        <i class="fas fa-map-marker-alt text-primary"></i> ${space.address}
+                    </p>
+                    <p class="popup-description">${space.description}</p>
+                    <div class="popup-details">
+                        <div class="detail-item">
+                            <i class="fas fa-users text-muted"></i>
+                            <span>${space.capacity} persone</span>
+                        </div>
+                        <div class="detail-item">
+                            <i class="fas fa-star text-warning"></i>
+                            <span>${space.rating} (${space.reviews})</span>
+                        </div>
+                        <div class="detail-item">
+                            <i class="fas fa-euro-sign text-success"></i>
+                            <span><strong>${formatPrice(space.price)}/giorno</strong></span>
+                        </div>
+                    </div>
+                    <div class="popup-amenities">
+                        ${space.amenities.slice(0, 4).map(amenity =>
+            `<span class="amenity-tag"><i class="${getAmenityIcon(amenity)} me-1"></i>${getAmenityLabel(amenity)}</span>`
+        ).join('')}
+                    </div>
+                </div>
+                <div class="popup-footer">
+                    <button class="btn btn-primary btn-sm w-100" onclick="showSpaceDetail(${space.id})" 
+                            ${!space.available ? 'disabled' : ''}>
+                        ${space.available ? '<i class="fas fa-calendar-plus"></i> Dettagli e Prenota' : '<i class="fas fa-times"></i> Non Disponibile'}
+                    </button>
+                </div>
+            </div>
+        `;
+
+        marker.bindPopup(popupContent, {
+            maxWidth: 320,
+            className: 'custom-popup'
+        });
+
+        // Aggiungi tooltip
+        marker.bindTooltip(`${space.name} - ${formatPrice(space.price)}/giorno`, {
+            direction: 'top',
+            offset: [0, -50]
+        });
+
+        // Aggiungi eventi
+        marker.on('mouseover', function() {
+            this.openTooltip();
+        });
+
+        marker.on('click', function() {
+            // Centra la mappa sul marker
+            map.setView(coords, 15);
+        });
+
+        // Aggiungi il marker al layer
+        markersLayer.addLayer(marker);
+    });
+
+    // Se ci sono spazi, adatta la vista per mostrarli tutti
+    if (currentSpaces.length > 0 && markersLayer.getLayers().length > 0) {
+        const group = new L.featureGroup(markersLayer.getLayers());
+        try {
+            if (group.getBounds().isValid()) {
+                map.fitBounds(group.getBounds().pad(0.1));
+            }
+        } catch (e) {
+            console.log('Errore nel calcolo bounds:', e);
+        }
+    }
+
+    console.log(`${markersLayer.getLayers().length} marker aggiunti alla mappa`);
+}
+
+function addCustomMapControls() {
+    // Controllo per filtrare i marker
+    const filterControl = L.control({ position: 'topright' });
+
+    filterControl.onAdd = function(map) {
+        const div = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
+        div.innerHTML = `
+            <div class="map-filter-control">
+                <button class="map-filter-btn active" data-filter="all">
+                    <i class="fas fa-th"></i> Tutti
+                </button>
+                <button class="map-filter-btn" data-filter="available">
+                    <i class="fas fa-check-circle"></i> Disponibili
+                </button>
+                <button class="map-filter-btn" data-filter="featured">
+                    <i class="fas fa-star"></i> In Evidenza
+                </button>
+            </div>
+        `;
+
+        // Previeni la propagazione degli eventi
+        L.DomEvent.disableClickPropagation(div);
+
+        return div;
+    };
+
+    filterControl.addTo(map);
+
+    // Aggiungi event listener per i filtri (delegato)
+    $(document).off('click.mapFilter').on('click.mapFilter', '.map-filter-btn', function() {
+        $('.map-filter-btn').removeClass('active');
+        $(this).addClass('active');
+
+        const filter = $(this).data('filter');
+        filterMapSpaces(filter);
+    });
+}
+
+function filterMapSpaces(filter) {
+    let filteredSpaces = [...mockSpaces];
+
+    switch(filter) {
+        case 'available':
+            filteredSpaces = mockSpaces.filter(space => space.available);
+            break;
+        case 'featured':
+            filteredSpaces = mockSpaces.filter(space => space.featured);
+            break;
+        case 'all':
+        default:
+            filteredSpaces = [...mockSpaces];
+            break;
+    }
+
+    // Aggiorna temporaneamente currentSpaces per la mappa
+    const originalSpaces = [...currentSpaces];
+    currentSpaces = filteredSpaces;
+    updateMapMarkers();
+
+    // Ripristina currentSpaces originale (per non interferire con la griglia)
+    currentSpaces = originalSpaces;
+
+    showNotification(`Filtro applicato: ${filteredSpaces.length} spazi mostrati`, 'info');
+}
+
+// ===== FUNZIONI CONTROLLI MAPPA =====
+function zoomToItaly() {
+    if (map) {
+        map.setView([41.8719, 12.5674], 6);
+        showNotification('Vista centrata sull\'Italia', 'info');
+    }
+}
+
+function toggleSatellite() {
+    showNotification('Usa il controllo layer in alto a destra per cambiare vista', 'info');
+}
+
+function locateUser() {
+    if (!map) return;
+
+    if (navigator.geolocation) {
+        showNotification('Ricerca della tua posizione in corso...', 'info');
+
+        map.locate({
+            setView: true,
+            maxZoom: 13,
+            enableHighAccuracy: true,
+            timeout: 10000
+        });
+
+        map.on('locationfound', function(e) {
+            // Rimuovi marker precedenti della posizione utente
+            map.eachLayer(function(layer) {
+                if (layer.options && layer.options.isUserLocation) {
+                    map.removeLayer(layer);
+                }
+            });
+
+            // Aggiungi nuovo marker per la posizione utente
+            const userMarker = L.marker(e.latlng, {
+                isUserLocation: true
+            }).addTo(map);
+
+            userMarker.bindPopup('<div class="text-center"><i class="fas fa-user-circle text-primary fa-2x mb-2"></i><br><strong>La tua posizione</strong></div>').openPopup();
+
+            // Aggiungi cerchio di accuratezza
+            L.circle(e.latlng, {
+                radius: e.accuracy,
+                color: '#667eea',
+                fillColor: '#667eea',
+                fillOpacity: 0.1,
+                weight: 2
+            }).addTo(map);
+
+            showNotification('Posizione trovata!', 'success');
+        });
+
+        map.on('locationerror', function(e) {
+            console.error('Errore geolocalizzazione:', e);
+            showNotification('Impossibile trovare la tua posizione: ' + e.message, 'warning');
+        });
+    } else {
+        showNotification('Geolocalizzazione non supportata dal browser', 'warning');
+    }
+}
+
+// ===== AGGIORNA LE FUNZIONI ESISTENTI =====
+
+// Modifica la funzione showMapView esistente
+function showMapView() {
+    $('#spacesContainer').hide();
+    $('#mapContainer').show();
+    $('.view-toggle .btn').removeClass('active');
+    $('#mapViewBtn').addClass('active');
+
+    // Inizializza la mappa se non esiste
+    if (!map || $('#leafletMap').length === 0) {
+        setTimeout(() => {
+            initializeMap();
+        }, 100);
+    } else {
+        // Aggiorna solo i marker se la mappa esiste già
+        setTimeout(() => {
+            updateMapMarkers();
+            map.invalidateSize(); // Necessario quando si mostra/nasconde il container
+        }, 100);
+    }
+
+    showNotification('Vista mappa attivata', 'info');
+}
+
+function showGridView() {
+    $('#mapContainer').hide();
+    $('#spacesContainer').show();
+    $('.view-toggle .btn').removeClass('active');
+    $('#gridViewBtn').addClass('active');
+
+    showNotification('Vista griglia attivata', 'info');
+}
+
+// Modifica le funzioni di zoom esistenti per funzionare con Leaflet
+function zoomIn() {
+    if (map) {
+        map.zoomIn();
+        showNotification('Zoom avvicinato', 'info');
+    } else {
+        showNotification('Mappa non ancora caricata', 'warning');
+    }
+}
+
+function zoomOut() {
+    if (map) {
+        map.zoomOut();
+        showNotification('Zoom allontanato', 'info');
+    } else {
+        showNotification('Mappa non ancora caricata', 'warning');
+    }
+}
+
+function centerMap() {
+    zoomToItaly();
 }
 
 // ===== AUTENTICAZIONE =====
@@ -368,6 +862,7 @@ function loadProfile() {
     $('#profilePhone').val(currentUser.phone || '');
     $('#profileCompany').val(currentUser.company || '');
     $('#profileAccountType').val(currentUser.accountType || 'client');
+    $('#profileBirthDate').val(currentUser.birthDate || '');
 }
 
 function showProfile() {
@@ -402,17 +897,25 @@ function loadBookings() {
 
     const bookingsHtml = userBookings.map(booking => `
         <div class="col-md-6 mb-4">
-            <div class="card">
+            <div class="card booking-card">
                 <div class="card-header d-flex justify-content-between">
                     <h6 class="mb-0">${booking.spaceName}</h6>
-                    <span class="badge bg-success">Confermata</span>
+                    <span class="badge booking-status ${booking.status}">${booking.status === 'confirmed' ? 'Confermata' : 'Pending'}</span>
                 </div>
                 <div class="card-body">
-                    <p><strong>Data:</strong> ${booking.startDate}</p>
-                    <p><strong>Orario:</strong> ${booking.startTime} - ${booking.endTime}</p>
-                    <p><strong>Persone:</strong> ${booking.people}</p>
-                    <p><strong>Prezzo:</strong> ${formatPrice(booking.totalPrice)}</p>
-                    ${booking.notes ? `<p><strong>Note:</strong> ${booking.notes}</p>` : ''}
+                    <p><i class="fas fa-calendar me-2"></i><strong>Data:</strong> ${booking.startDate}</p>
+                    <p><i class="fas fa-clock me-2"></i><strong>Orario:</strong> ${booking.startTime} - ${booking.endTime}</p>
+                    <p><i class="fas fa-users me-2"></i><strong>Persone:</strong> ${booking.people}</p>
+                    <p><i class="fas fa-euro-sign me-2"></i><strong>Prezzo:</strong> ${formatPrice(booking.totalPrice)}</p>
+                    ${booking.notes ? `<p><i class="fas fa-sticky-note me-2"></i><strong>Note:</strong> ${booking.notes}</p>` : ''}
+                    <div class="mt-3">
+                        <button class="btn btn-outline-primary btn-sm me-2" onclick="modifyBooking(${booking.id})">
+                            <i class="fas fa-edit"></i> Modifica
+                        </button>
+                        <button class="btn btn-outline-danger btn-sm" onclick="cancelBooking(${booking.id})">
+                            <i class="fas fa-times"></i> Cancella
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -423,6 +926,21 @@ function loadBookings() {
 
 function showBookings() {
     showSection('bookings');
+}
+
+function modifyBooking(bookingId) {
+    showNotification('Funzionalità di modifica prenotazione in sviluppo', 'info');
+}
+
+function cancelBooking(bookingId) {
+    if (confirm('Sei sicuro di voler cancellare questa prenotazione?')) {
+        const bookingIndex = mockBookings.findIndex(b => b.id === bookingId);
+        if (bookingIndex !== -1) {
+            mockBookings.splice(bookingIndex, 1);
+            loadBookings();
+            showNotification('Prenotazione cancellata con successo', 'success');
+        }
+    }
 }
 
 // ===== DASHBOARD =====
@@ -448,7 +966,7 @@ function showDashboardTab(tabName) {
                 <div class="row">
                     <div class="col-md-3 mb-4">
                         <div class="stats-card text-center p-4">
-                            <div class="stats-icon bg-primary text-white rounded-circle mx-auto mb-3" style="width: 60px; height: 60px; line-height: 60px;">
+                            <div class="stats-icon bg-primary-gradient text-white rounded-circle mx-auto mb-3" style="width: 60px; height: 60px; line-height: 60px;">
                                 <i class="fas fa-calendar-check"></i>
                             </div>
                             <h4>15</h4>
@@ -483,6 +1001,21 @@ function showDashboardTab(tabName) {
                         </div>
                     </div>
                 </div>
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5><i class="fas fa-chart-line me-2"></i>Andamento Prenotazioni</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle"></i>
+                                    Grafici e statistiche dettagliate saranno disponibili nella versione completa.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             `);
             break;
         default:
@@ -494,117 +1027,6 @@ function showDashboardTab(tabName) {
                 </div>
             `);
     }
-}
-
-// ===== MAPPA =====
-function showMapView() {
-    $('#spacesContainer').hide();
-    $('#mapContainer').show();
-    $('.view-toggle .btn').removeClass('active');
-    $('#mapViewBtn').addClass('active');
-
-    if ($('#mapContainer').is(':empty')) {
-        initializeMap();
-    }
-
-    showNotification('Vista mappa attivata', 'info');
-}
-
-function showGridView() {
-    $('#mapContainer').hide();
-    $('#spacesContainer').show();
-    $('.view-toggle .btn').removeClass('active');
-    $('#gridViewBtn').addClass('active');
-
-    showNotification('Vista griglia attivata', 'info');
-}
-
-function initializeMap() {
-    $('#mapContainer').html(`
-        <div class="map-view">
-            <div class="map-header">
-                <h4><i class="fas fa-map text-primary"></i> Mappa degli Spazi</h4>
-                <div class="map-controls">
-                    <button class="btn btn-sm btn-outline-primary" onclick="zoomIn()">
-                        <i class="fas fa-plus"></i>
-                    </button>
-                    <button class="btn btn-sm btn-outline-primary" onclick="zoomOut()">
-                        <i class="fas fa-minus"></i>
-                    </button>
-                    <button class="btn btn-sm btn-outline-primary" onclick="centerMap()">
-                        <i class="fas fa-crosshairs"></i>
-                    </button>
-                </div>
-            </div>
-            <div class="map-container" id="mapDisplay">
-                <div class="map-background">
-                    <div class="map-grid"></div>
-                    <div id="mapPins" class="map-pins"></div>
-                </div>
-            </div>
-            <div class="map-footer">
-                <span>${currentSpaces.length} spazi sulla mappa</span>
-            </div>
-        </div>
-    `);
-
-    updateMapMarkers();
-}
-
-function updateMapMarkers() {
-    const pinsContainer = $('#mapPins');
-    if (pinsContainer.length === 0) return;
-
-    pinsContainer.empty();
-
-    const cityPositions = {
-        'Milano': { x: '45%', y: '30%' },
-        'Roma': { x: '50%', y: '55%' },
-        'Torino': { x: '35%', y: '25%' },
-        'Bologna': { x: '55%', y: '40%' },
-        'Firenze': { x: '52%', y: '45%' }
-    };
-
-    currentSpaces.forEach(space => {
-        const position = cityPositions[space.city] || { x: '50%', y: '50%' };
-        const markerClass = space.featured ? 'featured' : space.available ? 'available' : 'busy';
-
-        const marker = $(`
-            <div class="map-pin ${markerClass}" 
-                 style="left: ${position.x}; top: ${position.y};">
-                <div class="pin-icon">
-                    <i class="fas fa-map-marker-alt"></i>
-                </div>
-                <div class="pin-popup">
-                    <div class="pin-info">
-                        <h6>${space.name}</h6>
-                        <p class="mb-1">${space.city}</p>
-                        <p class="mb-1"><strong>${formatPrice(space.price)}/giorno</strong></p>
-                        <button class="btn btn-sm btn-primary w-100" onclick="showSpaceDetail(${space.id})">
-                            Dettagli
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `);
-
-        pinsContainer.append(marker);
-    });
-}
-
-function zoomIn() {
-    $('#mapDisplay').addClass('zoomed-in');
-    showNotification('Zoom avvicinato', 'info');
-}
-
-function zoomOut() {
-    $('#mapDisplay').removeClass('zoomed-in');
-    showNotification('Zoom allontanato', 'info');
-}
-
-function centerMap() {
-    $('#mapDisplay').removeClass('zoomed-in');
-    showNotification('Mappa centrata', 'info');
 }
 
 // ===== FILTRI =====
@@ -623,6 +1045,11 @@ function clearFilters() {
 
     currentSpaces = [...mockSpaces];
     loadSpaces();
+
+    // Aggiorna anche la mappa se visibile
+    if ($('#mapContainer').is(':visible') && map) {
+        updateMapMarkers();
+    }
 
     showNotification('Filtri cancellati', 'info');
 }
@@ -708,6 +1135,8 @@ $(document).ready(function() {
             name: name,
             surname: surname,
             email: email,
+            phone: $('#registerPhone').val(),
+            company: $('#registerCompany').val(),
             accountType: accountType
         };
         isAuthenticated = true;
@@ -721,6 +1150,18 @@ $(document).ready(function() {
 
     $('#quickSearchForm').on('submit', function(e) {
         e.preventDefault();
+        const city = $('#quickCity').val();
+        const spaceType = $('#quickSpaceType').val();
+
+        // Applica filtri dalla ricerca rapida
+        if (city || spaceType) {
+            currentSpaces = mockSpaces.filter(space => {
+                if (city && space.city !== city) return false;
+                if (spaceType && space.type !== spaceType) return false;
+                return true;
+            });
+        }
+
         showSection('spaces');
     });
 
@@ -766,6 +1207,7 @@ $(document).ready(function() {
         currentUser.email = $('#profileEmail').val();
         currentUser.phone = $('#profilePhone').val();
         currentUser.company = $('#profileCompany').val();
+        currentUser.birthDate = $('#profileBirthDate').val();
 
         localStorage.setItem('coworkspace_user', JSON.stringify(currentUser));
         updateAuthUI();
@@ -784,14 +1226,35 @@ $(document).ready(function() {
         const filter = $(this).data('filter');
         $(this).toggleClass('active');
 
-        if (filter === 'featured') {
-            currentSpaces = $(this).hasClass('active')
-                ? mockSpaces.filter(s => s.featured)
-                : [...mockSpaces];
-            loadSpaces();
-            if ($('#mapContainer').is(':visible')) {
-                updateMapMarkers();
+        let filteredSpaces = [...mockSpaces];
+
+        // Applica tutti i filtri attivi
+        $('.quick-filter-btn.active').each(function() {
+            const activeFilter = $(this).data('filter');
+            switch(activeFilter) {
+                case 'available':
+                    filteredSpaces = filteredSpaces.filter(s => s.available);
+                    break;
+                case 'featured':
+                    filteredSpaces = filteredSpaces.filter(s => s.featured);
+                    break;
+                case 'hot-desk':
+                    filteredSpaces = filteredSpaces.filter(s => s.type === 'hot-desk');
+                    break;
+                case 'meeting-room':
+                    filteredSpaces = filteredSpaces.filter(s => s.type === 'meeting-room');
+                    break;
             }
+        });
+
+        currentSpaces = filteredSpaces;
+        loadSpaces();
+
+        // Aggiorna la mappa se visibile
+        if ($('#mapContainer').is(':visible') && map) {
+            setTimeout(() => {
+                updateMapMarkers();
+            }, 100);
         }
     });
 
@@ -805,12 +1268,22 @@ $(document).ready(function() {
                 currentSpaces = mockSpaces.filter(space =>
                     space.name.toLowerCase().includes(searchTerm) ||
                     space.city.toLowerCase().includes(searchTerm) ||
-                    space.description.toLowerCase().includes(searchTerm)
+                    space.description.toLowerCase().includes(searchTerm) ||
+                    space.amenities.some(amenity =>
+                        getAmenityLabel(amenity).toLowerCase().includes(searchTerm)
+                    )
                 );
             } else {
                 currentSpaces = [...mockSpaces];
             }
             loadSpaces();
+
+            // Aggiorna la mappa se visibile
+            if ($('#mapContainer').is(':visible') && map) {
+                setTimeout(() => {
+                    updateMapMarkers();
+                }, 100);
+            }
         }, 300);
     });
 
@@ -822,24 +1295,95 @@ $(document).ready(function() {
         const spaceType = $('#quickSpaceType').val();
         const minPrice = parseInt($('#minPrice').val()) || 0;
         const maxPrice = parseInt($('#maxPrice').val()) || 999999;
+        const capacity = $('#filterCapacity').val();
         const onlyAvailable = $('#onlyAvailable').is(':checked');
+        const minRating = parseFloat($('#minRating').val()) || 0;
+
+        // Ottieni servizi selezionati
+        const selectedAmenities = [];
+        $('#filtersForm input[type="checkbox"]:checked').each(function() {
+            const value = $(this).val();
+            if (value && value !== 'on') {
+                selectedAmenities.push(value);
+            }
+        });
 
         currentSpaces = mockSpaces.filter(space => {
             if (city && space.city !== city) return false;
             if (spaceType && space.type !== spaceType) return false;
             if (space.price < minPrice || space.price > maxPrice) return false;
             if (onlyAvailable && !space.available) return false;
+            if (space.rating < minRating) return false;
+
+            // Filtra per capacità
+            if (capacity) {
+                const [min, max] = capacity.includes('-') ? capacity.split('-').map(Number) : [parseInt(capacity.replace('+', '')), Infinity];
+                if (space.capacity < min || (max !== Infinity && space.capacity > max)) return false;
+            }
+
+            // Filtra per servizi
+            if (selectedAmenities.length > 0) {
+                if (!selectedAmenities.every(amenity => space.amenities.includes(amenity))) return false;
+            }
+
             return true;
         });
 
         loadSpaces();
         $('#filtersModal').modal('hide');
-        showNotification('Filtri applicati con successo', 'success');
+        showNotification(`Filtri applicati: ${currentSpaces.length} spazi trovati`, 'success');
+
+        // Aggiorna la mappa se visibile
+        if ($('#mapContainer').is(':visible') && map) {
+            setTimeout(() => {
+                updateMapMarkers();
+            }, 100);
+        }
     });
 
     // Imposta data minima
     const today = new Date().toISOString().split('T')[0];
     $('input[type="date"]').attr('min', today);
 
-    console.log('Setup completato');
+    // Event listeners per filtri booking
+    $(document).on('click', '.booking-filters .btn-group .btn', function() {
+        $('.booking-filters .btn-group .btn').removeClass('active');
+        $(this).addClass('active');
+
+        const filter = $(this).data('filter');
+        // Implementa filtro prenotazioni se necessario
+        showNotification(`Filtro prenotazioni: ${filter}`, 'info');
+    });
+
+    // Load more spaces
+    $('#loadMoreSpaces').on('click', function() {
+        showNotification('Funzionalità "Carica Altri Spazi" in sviluppo', 'info');
+    });
+
+    console.log('Setup completato con mappa Leaflet');
 });
+
+// ===== FUNZIONI GLOBALI PER COMPATIBILITÀ =====
+window.showSection = showSection;
+window.showLogin = showLogin;
+window.showRegister = showRegister;
+window.switchToRegister = switchToRegister;
+window.switchToLogin = switchToLogin;
+window.logout = logout;
+window.showProfile = showProfile;
+window.showBookings = showBookings;
+window.showDashboard = showDashboard;
+window.showDashboardTab = showDashboardTab;
+window.cancelProfileEdit = cancelProfileEdit;
+window.showSpaceDetail = showSpaceDetail;
+window.showOnMap = showOnMap;
+window.showMapView = showMapView;
+window.showGridView = showGridView;
+window.showFilters = showFilters;
+window.clearFilters = clearFilters;
+window.zoomIn = zoomIn;
+window.zoomOut = zoomOut;
+window.centerMap = centerMap;
+window.zoomToItaly = zoomToItaly;
+window.toggleSatellite = toggleSatellite;
+window.locateUser = locateUser;

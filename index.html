@@ -11,10 +11,15 @@
 
     <!-- Bootstrap CSS -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+
     <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <!-- Custom CSS -->
     <link rel="stylesheet" href="styles.css">
+
+    <!-- Custom JavaScript -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/css/leaflet.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 </head>
 <body>
 <!-- Navigation -->
@@ -285,6 +290,28 @@
                 </div>
             </div>
 
+            <!-- Mission & Vision -->
+            <div class="row mt-5">
+                <div class="col-lg-6 mb-4">
+                    <div class="about-card h-100">
+                        <div class="about-icon">
+                            <i class="fas fa-bullseye"></i>
+                        </div>
+                        <h4>La Nostra Missione</h4>
+                        <p>Rendere il lavoro flessibile accessibile a tutti, creando una rete di spazi professionali che favoriscano produttività, creatività e networking tra professionisti e aziende.</p>
+                    </div>
+                </div>
+                <div class="col-lg-6 mb-4">
+                    <div class="about-card h-100">
+                        <div class="about-icon">
+                            <i class="fas fa-eye"></i>
+                        </div>
+                        <h4>La Nostra Visione</h4>
+                        <p>Diventare il punto di riferimento europeo per i workspace condivisi, promuovendo un nuovo modo di lavorare che unisca flessibilità, sostenibilità e innovazione.</p>
+                    </div>
+                </div>
+            </div>
+
             <!-- Stats Section -->
             <div class="stats-section mt-5">
                 <div class="row">
@@ -327,8 +354,67 @@
                 </div>
             </div>
 
+            <!-- Team Section -->
+            <div class="team-section mt-5">
+                <div class="row">
+                    <div class="col-12 text-center mb-5">
+                        <h3 class="section-title">Il Nostro Team</h3>
+                        <p class="section-subtitle">Le persone che rendono possibile CoWorkSpace</p>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-lg-4 col-md-6 mb-4">
+                        <div class="team-card">
+                            <div class="team-avatar">
+                                <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=300&h=300&fit=crop&crop=face" alt="Marco Rossi" class="img-fluid rounded-circle">
+                            </div>
+                            <h5>Marco Rossi</h5>
+                            <p class="team-role">CEO & Founder</p>
+                            <p class="team-bio">Esperto in tecnologia e workspace innovation con oltre 10 anni di esperienza nel settore.</p>
+                            <div class="team-social">
+                                <a href="#"><i class="fab fa-linkedin"></i></a>
+                                <a href="#"><i class="fab fa-twitter"></i></a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4 col-md-6 mb-4">
+                        <div class="team-card">
+                            <div class="team-avatar">
+                                <img src="https://images.unsplash.com/photo-1494790108755-2616b612b647?w=300&h=300&fit=crop&crop=face" alt="Sara Bianchi" class="img-fluid rounded-circle">
+                            </div>
+                            <h5>Sara Bianchi</h5>
+                            <p class="team-role">CTO</p>
+                            <p class="team-bio">Lead developer con passione per l'innovazione tecnologica e l'user experience.</p>
+                            <div class="team-social">
+                                <a href="#"><i class="fab fa-linkedin"></i></a>
+                                <a href="#"><i class="fab fa-github"></i></a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4 col-md-6 mb-4">
+                        <div class="team-card">
+                            <div class="team-avatar">
+                                <img src="https://images.unsplash.com/photo-1519244703995-f4e0f30006d5?w=300&h=300&fit=crop&crop=face" alt="Luca Verde" class="img-fluid rounded-circle">
+                            </div>
+                            <h5>Luca Verde</h5>
+                            <p class="team-role">Head of Operations</p>
+                            <p class="team-bio">Specialista in operations e customer success, garantisce la migliore esperienza utente.</p>
+                            <div class="team-social">
+                                <a href="#"><i class="fab fa-linkedin"></i></a>
+                                <a href="#"><i class="fab fa-twitter"></i></a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Features Section -->
             <div class="features-section mt-5">
+                <div class="row">
+                    <div class="col-12 text-center mb-5">
+                        <h3 class="section-title">Perché Scegliere CoWorkSpace</h3>
+                    </div>
+                </div>
                 <div class="row">
                     <div class="col-md-4 mb-4">
                         <div class="feature-card">
@@ -336,7 +422,7 @@
                                 <i class="fas fa-clock"></i>
                             </div>
                             <h4>Prenotazione Istantanea</h4>
-                            <p>Prenota il tuo spazio in pochi click, con conferma immediata e pagamento sicuro.</p>
+                            <p>Prenota il tuo spazio in pochi click, con conferma immediata e pagamento sicuro attraverso la nostra piattaforma intuitiva.</p>
                         </div>
                     </div>
                     <div class="col-md-4 mb-4">
@@ -345,7 +431,7 @@
                                 <i class="fas fa-shield-alt"></i>
                             </div>
                             <h4>Pagamenti Sicuri</h4>
-                            <p>Tutti i pagamenti sono protetti con crittografia SSL e sistemi di sicurezza avanzati.</p>
+                            <p>Tutti i pagamenti sono protetti con crittografia SSL e sistemi di sicurezza avanzati per garantire la massima protezione.</p>
                         </div>
                     </div>
                     <div class="col-md-4 mb-4">
@@ -354,7 +440,46 @@
                                 <i class="fas fa-headset"></i>
                             </div>
                             <h4>Supporto 24/7</h4>
-                            <p>Il nostro team di supporto è sempre disponibile per aiutarti con qualsiasi necessità.</p>
+                            <p>Il nostro team di supporto è sempre disponibile per aiutarti con qualsiasi necessità o domanda sui nostri servizi.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Values Section -->
+            <div class="values-section mt-5">
+                <div class="row">
+                    <div class="col-12 text-center mb-5">
+                        <h3 class="section-title">I Nostri Valori</h3>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-lg-3 col-md-6 mb-4">
+                        <div class="value-card">
+                            <i class="fas fa-handshake value-icon"></i>
+                            <h5>Fiducia</h5>
+                            <p>Costruiamo relazioni basate sulla trasparenza e l'affidabilità</p>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6 mb-4">
+                        <div class="value-card">
+                            <i class="fas fa-lightbulb value-icon"></i>
+                            <h5>Innovazione</h5>
+                            <p>Cerchiamo sempre nuove soluzioni per migliorare l'esperienza</p>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6 mb-4">
+                        <div class="value-card">
+                            <i class="fas fa-heart value-icon"></i>
+                            <h5>Passione</h5>
+                            <p>Mettiamo il cuore in tutto quello che facciamo</p>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6 mb-4">
+                        <div class="value-card">
+                            <i class="fas fa-leaf value-icon"></i>
+                            <h5>Sostenibilità</h5>
+                            <p>Promuoviamo spazi eco-friendly e pratiche sostenibili</p>
                         </div>
                     </div>
                 </div>
@@ -985,49 +1110,119 @@
         <div class="row">
             <div class="col-lg-3 col-md-6 mb-4">
                 <h5><i class="fas fa-building text-primary"></i> CoWorkSpace</h5>
-                <p class="text-muted">La piattaforma leader in Italia per la prenotazione di spazi di coworking professionali.</p>
-                <div class="social-links">
-                    <a href="#" class="text-white me-3"><i class="fab fa-facebook-f"></i></a>
-                    <a href="#" class="text-white me-3"><i class="fab fa-twitter"></i></a>
-                    <a href="#" class="text-white me-3"><i class="fab fa-linkedin-in"></i></a>
-                    <a href="#" class="text-white"><i class="fab fa-instagram"></i></a>
+                <p class="text-muted">La piattaforma leader in Italia per la prenotazione di spazi di coworking professionali. Trova il workspace perfetto per la tua produttività.</p>
+                <div class="social-links mt-4">
+                    <a href="#" class="text-white me-3" aria-label="Facebook">
+                        <i class="fab fa-facebook-f"></i>
+                    </a>
+                    <a href="#" class="text-white me-3" aria-label="Twitter">
+                        <i class="fab fa-twitter"></i>
+                    </a>
+                    <a href="#" class="text-white me-3" aria-label="LinkedIn">
+                        <i class="fab fa-linkedin-in"></i>
+                    </a>
+                    <a href="#" class="text-white" aria-label="Instagram">
+                        <i class="fab fa-instagram"></i>
+                    </a>
                 </div>
             </div>
             <div class="col-lg-3 col-md-6 mb-4">
                 <h6>Servizi</h6>
                 <ul class="list-unstyled">
-                    <li><a href="#" class="text-muted">Hot Desk</a></li>
-                    <li><a href="#" class="text-muted">Uffici Privati</a></li>
-                    <li><a href="#" class="text-muted">Sale Riunioni</a></li>
-                    <li><a href="#" class="text-muted">Spazi Eventi</a></li>
+                    <li class="mb-3"><a href="#" class="text-muted">
+                        <i class="fas fa-laptop me-2"></i>Hot Desk
+                    </a></li>
+                    <li class="mb-3"><a href="#" class="text-muted">
+                        <i class="fas fa-door-open me-2"></i>Uffici Privati
+                    </a></li>
+                    <li class="mb-3"><a href="#" class="text-muted">
+                        <i class="fas fa-users me-2"></i>Sale Riunioni
+                    </a></li>
+                    <li class="mb-3"><a href="#" class="text-muted">
+                        <i class="fas fa-calendar-alt me-2"></i>Spazi Eventi
+                    </a></li>
                 </ul>
             </div>
             <div class="col-lg-3 col-md-6 mb-4">
                 <h6>Azienda</h6>
                 <ul class="list-unstyled">
-                    <li><a href="#" class="text-muted" onclick="showSection('about')">Chi Siamo</a></li>
-                    <li><a href="#" class="text-muted">Lavora con Noi</a></li>
-                    <li><a href="#" class="text-muted">Partnership</a></li>
-                    <li><a href="#" class="text-muted">Press Kit</a></li>
+                    <li class="mb-3"><a href="#" class="text-muted" onclick="showSection('about')">
+                        <i class="fas fa-info-circle me-2"></i>Chi Siamo
+                    </a></li>
+                    <li class="mb-3"><a href="#" class="text-muted">
+                        <i class="fas fa-briefcase me-2"></i>Lavora con Noi
+                    </a></li>
+                    <li class="mb-3"><a href="#" class="text-muted">
+                        <i class="fas fa-handshake me-2"></i>Partnership
+                    </a></li>
+                    <li class="mb-3"><a href="#" class="text-muted">
+                        <i class="fas fa-newspaper me-2"></i>Press Kit
+                    </a></li>
                 </ul>
             </div>
             <div class="col-lg-3 col-md-6 mb-4">
                 <h6>Supporto</h6>
                 <ul class="list-unstyled">
-                    <li><a href="#" class="text-muted" onclick="showSection('support')">Centro Assistenza</a></li>
-                    <li><a href="#" class="text-muted">FAQ</a></li>
-                    <li><a href="#" class="text-muted">Termini di Servizio</a></li>
-                    <li><a href="#" class="text-muted">Privacy Policy</a></li>
+                    <li class="mb-3"><a href="#" class="text-muted" onclick="showSection('support')">
+                        <i class="fas fa-headset me-2"></i>Centro Assistenza
+                    </a></li>
+                    <li class="mb-3"><a href="#" class="text-muted">
+                        <i class="fas fa-question-circle me-2"></i>FAQ
+                    </a></li>
+                    <li class="mb-3"><a href="#" class="text-muted">
+                        <i class="fas fa-file-contract me-2"></i>Termini di Servizio
+                    </a></li>
+                    <li class="mb-3"><a href="#" class="text-muted">
+                        <i class="fas fa-shield-alt me-2"></i>Privacy Policy
+                    </a></li>
                 </ul>
             </div>
         </div>
-        <hr class="my-4">
+
+        <!-- Newsletter Subscription -->
+        <div class="row mt-4 pt-4 border-top border-secondary">
+            <div class="col-lg-6 mb-4">
+                <h6>📧 Resta aggiornato</h6>
+                <p class="text-muted mb-3">Ricevi le ultime novità sui nostri spazi e offerte esclusive</p>
+                <div class="input-group">
+                    <input type="email" class="form-control" placeholder="La tua email">
+                    <button class="btn btn-primary" type="button">
+                        <i class="fas fa-paper-plane"></i> Iscriviti
+                    </button>
+                </div>
+            </div>
+            <div class="col-lg-6 mb-4">
+                <h6>📍 Principali Città</h6>
+                <div class="row">
+                    <div class="col-6">
+                        <p class="text-muted mb-2"><i class="fas fa-map-marker-alt me-2"></i>Milano</p>
+                        <p class="text-muted mb-2"><i class="fas fa-map-marker-alt me-2"></i>Roma</p>
+                        <p class="text-muted mb-2"><i class="fas fa-map-marker-alt me-2"></i>Torino</p>
+                    </div>
+                    <div class="col-6">
+                        <p class="text-muted mb-2"><i class="fas fa-map-marker-alt me-2"></i>Bologna</p>
+                        <p class="text-muted mb-2"><i class="fas fa-map-marker-alt me-2"></i>Firenze</p>
+                        <p class="text-muted mb-2"><i class="fas fa-map-marker-alt me-2"></i>Napoli</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <hr class="my-4 border-secondary">
         <div class="row align-items-center">
             <div class="col-md-6">
-                <p class="mb-0 text-muted">&copy; 2024 CoWorkSpace. Tutti i diritti riservati.</p>
+                <p class="mb-0 text-muted">
+                    &copy; 2024 CoWorkSpace. Tutti i diritti riservati.
+                    <span class="mx-2">|</span>
+                    P.IVA: 12345678901
+                </p>
             </div>
-            <div class="col-md-6 text-end">
-                <p class="mb-0 text-muted">Made with <i class="fas fa-heart text-danger"></i> in Italy</p>
+            <div class="col-md-6 text-md-end">
+                <p class="mb-0 text-muted">
+                    Made with <i class="fas fa-heart text-danger"></i> in Italy
+                    <span class="mx-2">|</span>
+                    <i class="fas fa-shield-check text-success"></i> SSL Secured
+                </p>
             </div>
         </div>
     </div>
