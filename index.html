@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CoWorkSpace - Gestione Spazi Condivisi</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<!-- Navigation -->
+<nav class="navbar navbar-expand-lg navbar-light fixed-top">
+    <div class="container">
+        <a class="navbar-brand" href="#" onclick="showSection('home')">
+            <i class="fas fa-building"></i> CoWorkSpace
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="#" onclick="showSection('home')">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" onclick="showSection('spaces')">Spazi</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" onclick="showSection('about')">Chi Siamo</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" onclick="showSection('support')">Supporto</a>
+                </li>
+            </ul>
+            <div class="navbar-nav">
+                <div id="authButtons">
+                    <button class="btn btn-outline-primary me-2" onclick="showLogin()">
+                        <i class="fas fa-sign-in-alt"></i> Accedi
+                    </button>
+                    <button class="btn btn-primary" onclick="showRegister()">
+                        <i class="fas fa-user-plus"></i> Registrati
+                    </button>
+                </div>
+                <div id="userMenu" style="display: none;">
+                    <div class="dropdown">
+                        <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user"></i> <span id="userName"></span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="#" onclick="showProfile()">
+                                <i class="fas fa-user-circle"></i> Profilo
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" onclick="showBookings()">
+                                <i class="fas fa-calendar-check"></i> Le Mie Prenotazioni
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" onclick="showDashboard()">
+                                <i class="fas fa-tachometer-alt"></i> Dashboard
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" onclick="logout()">
+                                <i class="fas fa-sign-out-alt"></i> Logout
+                            </a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- Main Content Container -->
+<div id="mainContent">
+
+    <!-- Home Section -->
+    <section id="homeSection" class="hero-section">
+        <div class="hero-background"></div>
+        <div class="container">
+            <div class="row align-items-center min-vh-100">
+                <div class="col-lg-6">
+                    <div class="hero-content">
+                        <div class="hero-badge mb-4">
+                            <i class="fas fa-star"></i>
+                            Piattaforma #1 per Coworking in Italia
+                        </div>
+                        <h1 class="hero-title">
+                            Trova il tuo
+                            <span class="gradient-text">spazio ideale</span>
+                            per lavorare
+                        </h1>
+                        <p class="hero-subtitle">
+                            Prenota spazi di coworking professionali in tutta Italia.
+                            Postazioni flessibili, sale riunioni e uffici privati per
+                            massimizzare la tua produttività.
+                        </p>
+                        <div class="hero-actions">
+                            <button class="btn btn-primary btn-lg me-3" onclick="showSection('spaces')">
+                                <i class="fas fa-search"></i> Esplora Spazi
+                            </button>
+                            <button class="btn btn-outline-primary btn-lg" onclick="showRegister()">
+                                <i class="fas fa-play"></i> Guarda Demo
+                            </button>
+                        </div>
+                        <div class="hero-stats mt-5">
+                            <div class="row">
+                                <div class="col-4 text-center">
+                                    <div class="stat-number">500+</div>
+                                    <div class="stat-label">Spazi</div>
+                                </div>
+                                <div class="col-4 text-center">
+                                    <div class="stat-number">50+</div>
+                                    <div class="stat-label">Città</div>
+                                </div>
+                                <div class="col-4 text-center">
+                                    <div class="stat-number">10k+</div>
+                                    <div class="stat-label">Utenti</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="search-container">
+                        <div class="search-header">
+                            <h3><i class="fas fa-map-marker-alt text-primary"></i> Cerca Spazi</h3>
+                            <p class="text-muted">Trova il workspace perfetto per te</p>
+                        </div>
+                        <form id="quickSearchForm">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Città</label>
+                                    <select class="form-control" id="quickCity">
+                                        <option value="">Seleziona città</option>
+                                        <option value="Milano">Milano</option>
+                                        <option value="Roma">Roma</option>
+                                        <option value="Torino">Torino</option>
+                                        <option value="Napoli">Napoli</option>
+                                        <option value="Bologna">Bologna</option>
+                                        <option value="Firenze">Firenze</option>
+                                        <option value="Venezia">Venezia</option>
+                                        <option value="Genova">Genova</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Tipo di Spazio</label>
+                                    <select class="form-control" id="quickSpaceType">
+                                        <option value="">Tutti i tipi</option>
+                                        <option value="hot-desk">Hot Desk</option>
+                                        <option value="private-office">Ufficio Privato</option>
+                                        <option value="meeting-room">Sala Riunioni</option>
+                                        <option value="event-space">Spazio Eventi</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Data</label>
+                                    <input type="date" class="form-control" id="quickDate">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Persone</label>
+                                    <select class="form-control" id="quickCapacity">
+                                        <option value="">Qualsiasi</option>
+                                        <option value="1-5">1-5 persone</option>
+                                        <option value="6-10">6-10 persone</option>
+                                        <option value="11-20">11-20 persone</option>
+                                        <option value="20+">20+ persone</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100 btn-lg">
+                                <i class="fas fa-search"></i> Cerca Spazi Disponibili
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Spaces Section -->
+    <section id="spacesSection" class="section-padding" style="display: none;">
+        <div class="container">
+            <!-- Search and Filters Bar -->
+            <div class="search-filters-bar">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <div class="search-input-group">
+                            <i class="fas fa-search"></i>
+                            <input type="text" class="form-control" id="searchSpaces"
+                                   placeholder="Cerca per nome, città o servizi...">
+                        </div>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <button class="btn btn-outline-primary me-2" onclick="showFilters()">
+                            <i class="fas fa-filter"></i> Filtri
+                        </button>
+                        <select class="form-select d-inline-block w-auto" id="sortSpaces">
+                            <option value="relevance">Rilevanza</option>
+                            <option value="rating">Migliore Valutazione</option>
+                            <option value="price-low">Prezzo: Basso → Alto</option>
+                            <option value="price-high">Prezzo: Alto → Basso</option>
+                            <option value="distance">Distanza</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Header with View Toggle -->
+            <div class="results-header">
+                <div class="d-flex justify-content-between align-items-center flex-wrap">
+                    <div class="mb-2 mb-md-0">
+                        <h2><i class="fas fa-building text-primary"></i> Spazi Disponibili</h2>
+                        <p class="results-count" id="resultsCount">Caricamento spazi...</p>
+                    </div>
+                    <div class="view-toggle">
+                        <button class="btn btn-view-toggle active" id="gridViewBtn" onclick="showGridView()">
+                            <i class="fas fa-th-large"></i> Griglia
+                        </button>
+                        <button class="btn btn-view-toggle" id="mapViewBtn" onclick="showMapView()">
+                            <i class="fas fa-map"></i> Mappa
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Filters -->
+            <div class="quick-filters">
+                <span class="filter-label">Filtri rapidi:</span>
+                <button class="quick-filter-btn" data-filter="available">
+                    <i class="fas fa-check-circle"></i> Disponibili Ora
+                </button>
+                <button class="quick-filter-btn" data-filter="featured">
+                    <i class="fas fa-star"></i> In Evidenza
+                </button>
+                <button class="quick-filter-btn" data-filter="hot-desk">
+                    <i class="fas fa-laptop"></i> Hot Desk
+                </button>
+                <button class="quick-filter-btn" data-filter="meeting-room">
+                    <i class="fas fa-users"></i> Sale Riunioni
+                </button>
+            </div>
+
+            <!-- Spaces Grid -->
+            <div id="spacesContainer" class="spaces-grid">
+                <!-- Spaces will be loaded here by JavaScript -->
+            </div>
+
+            <!-- Map Container -->
+            <div id="mapContainer" style="display: none;">
+                <!-- Map will be loaded here by JavaScript -->
+            </div>
+
+            <!-- Load More Button -->
+            <div class="text-center mt-5">
+                <button class="btn btn-outline-primary btn-lg" id="loadMoreSpaces">
+                    <i class="fas fa-plus"></i> Carica Altri Spazi
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="aboutSection" class="section-padding" style="display: none;">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-8 mx-auto text-center">
+                    <h2 class="section-title">Chi Siamo</h2>
+                    <p class="section-subtitle">
+                        CoWorkSpace è la piattaforma leader in Italia per la prenotazione
+                        di spazi di coworking professionali.
+                    </p>
+                    <p class="lead">
+                        Fondata nel 2024, la nostra missione è rendere accessibile e flessibile
+                        il lavoro moderno, offrendo una rete di spazi di alta qualità in tutte
+                        le principali città italiane.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Stats Section -->
+            <div class="stats-section mt-5">
+                <div class="row">
+                    <div class="col-md-3 mb-4">
+                        <div class="stats-card">
+                            <div class="stats-icon bg-primary-gradient">
+                                <i class="fas fa-building"></i>
+                            </div>
+                            <h3 class="stats-number">500+</h3>
+                            <p class="stats-label">Spazi Disponibili</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-4">
+                        <div class="stats-card">
+                            <div class="stats-icon bg-success-gradient">
+                                <i class="fas fa-map-marker-alt"></i>
+                            </div>
+                            <h3 class="stats-number">50+</h3>
+                            <p class="stats-label">Città Coperte</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-4">
+                        <div class="stats-card">
+                            <div class="stats-icon bg-warning-gradient">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <h3 class="stats-number">10,000+</h3>
+                            <p class="stats-label">Utenti Attivi</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-4">
+                        <div class="stats-card">
+                            <div class="stats-icon bg-info-gradient">
+                                <i class="fas fa-calendar-check"></i>
+                            </div>
+                            <h3 class="stats-number">50,000+</h3>
+                            <p class="stats-label">Prenotazioni</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Features Section -->
+            <div class="features-section mt-5">
+                <div class="row">
+                    <div class="col-md-4 mb-4">
+                        <div class="feature-card">
+                            <div class="feature-icon">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <h4>Prenotazione Istantanea</h4>
+                            <p>Prenota il tuo spazio in pochi click, con conferma immediata e pagamento sicuro.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-4">
+                        <div class="feature-card">
+                            <div class="feature-icon">
+                                <i class="fas fa-shield-alt"></i>
+                            </div>
+                            <h4>Pagamenti Sicuri</h4>
+                            <p>Tutti i pagamenti sono protetti con crittografia SSL e sistemi di sicurezza avanzati.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-4">
+                        <div class="feature-card">
+                            <div class="feature-icon">
+                                <i class="fas fa-headset"></i>
+                            </div>
+                            <h4>Supporto 24/7</h4>
+                            <p>Il nostro team di supporto è sempre disponibile per aiutarti con qualsiasi necessità.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Profile Section -->
+    <section id="profileSection" class="section-padding" style="display: none;">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-8 mx-auto">
+                    <div class="profile-container">
+                        <div class="profile-header">
+                            <h3><i class="fas fa-user-circle text-primary"></i> Il Mio Profilo</h3>
+                            <p class="text-muted">Gestisci le tue informazioni personali</p>
+                        </div>
+                        <form id="profileForm">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Nome</label>
+                                    <input type="text" class="form-control" id="profileName" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Cognome</label>
+                                    <input type="text" class="form-control" id="profileSurname" required>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control" id="profileEmail" required>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Telefono</label>
+                                    <input type="tel" class="form-control" id="profilePhone">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Data di Nascita</label>
+                                    <input type="date" class="form-control" id="profileBirthDate">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Azienda</label>
+                                <input type="text" class="form-control" id="profileCompany">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Tipo di Account</label>
+                                <select class="form-control" id="profileAccountType">
+                                    <option value="client">Cliente</option>
+                                    <option value="manager">Gestore</option>
+                                    <option value="admin">Amministratore</option>
+                                </select>
+                            </div>
+                            <div class="profile-actions">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> Salva Modifiche
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary ms-2" onclick="cancelProfileEdit()">
+                                    <i class="fas fa-times"></i> Annulla
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Bookings Section -->
+    <section id="bookingsSection" class="section-padding" style="display: none;">
+        <div class="container">
+            <div class="bookings-header">
+                <h2><i class="fas fa-calendar-check text-primary"></i> Le Mie Prenotazioni</h2>
+                <p class="text-muted">Gestisci e monitora le tue prenotazioni</p>
+            </div>
+
+            <!-- Booking Filters -->
+            <div class="booking-filters">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-outline-primary active" data-filter="all">
+                                Tutte
+                            </button>
+                            <button type="button" class="btn btn-outline-primary" data-filter="upcoming">
+                                Prossime
+                            </button>
+                            <button type="button" class="btn btn-outline-primary" data-filter="past">
+                                Passate
+                            </button>
+                            <button type="button" class="btn btn-outline-primary" data-filter="cancelled">
+                                Cancellate
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <select class="form-select d-inline-block w-auto" id="sortBookings">
+                            <option value="date-desc">Data: Più Recente</option>
+                            <option value="date-asc">Data: Meno Recente</option>
+                            <option value="price-high">Prezzo: Alto → Basso</option>
+                            <option value="price-low">Prezzo: Basso → Alto</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div id="bookingsContainer" class="bookings-grid">
+                <!-- Bookings will be loaded here by JavaScript -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Dashboard Section -->
+    <section id="dashboardSection" style="display: none;">
+        <div class="dashboard-container">
+            <div class="row g-0">
+                <div class="col-md-3">
+                    <div class="dashboard-sidebar">
+                        <div class="sidebar-header">
+                            <h4><i class="fas fa-tachometer-alt"></i> Dashboard</h4>
+                            <p class="text-muted" id="dashboardUserRole">Gestore</p>
+                        </div>
+                        <ul class="sidebar-menu">
+                            <li>
+                                <a href="#" onclick="showDashboardTab('overview')" class="active">
+                                    <i class="fas fa-chart-line"></i> Panoramica
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" onclick="showDashboardTab('spaces')">
+                                    <i class="fas fa-building"></i> Gestione Spazi
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" onclick="showDashboardTab('bookings')">
+                                    <i class="fas fa-calendar"></i> Prenotazioni
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" onclick="showDashboardTab('analytics')">
+                                    <i class="fas fa-chart-bar"></i> Analytics
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" onclick="showDashboardTab('users')">
+                                    <i class="fas fa-users"></i> Utenti
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" onclick="showDashboardTab('settings')">
+                                    <i class="fas fa-cog"></i> Impostazioni
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-md-9">
+                    <div class="dashboard-content">
+                        <!-- Dashboard tabs content will be loaded here -->
+                        <div id="dashboardTabsContent">
+                            <!-- Content loaded by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Support Section -->
+    <section id="supportSection" class="section-padding" style="display: none;">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-8 mx-auto text-center">
+                    <h2 class="section-title">Centro Assistenza</h2>
+                    <p class="section-subtitle">
+                        Hai bisogno di aiuto? Siamo qui per supportarti
+                    </p>
+                </div>
+            </div>
+
+            <!-- Support Options -->
+            <div class="support-options mt-5">
+                <div class="row">
+                    <div class="col-md-4 mb-4">
+                        <div class="support-card">
+                            <div class="support-icon">
+                                <i class="fas fa-question-circle"></i>
+                            </div>
+                            <h4>FAQ</h4>
+                            <p>Trova risposte alle domande più frequenti sui nostri servizi.</p>
+                            <button class="btn btn-outline-primary">Consulta FAQ</button>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-4">
+                        <div class="support-card">
+                            <div class="support-icon">
+                                <i class="fas fa-envelope"></i>
+                            </div>
+                            <h4>Contattaci</h4>
+                            <p>Invia una richiesta di supporto e ti risponderemo entro 24 ore.</p>
+                            <button class="btn btn-outline-primary">Invia Messaggio</button>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-4">
+                        <div class="support-card">
+                            <div class="support-icon">
+                                <i class="fas fa-phone"></i>
+                            </div>
+                            <h4>Chiama</h4>
+                            <p>Parla direttamente con un nostro operatore dal lunedì al venerdì.</p>
+                            <button class="btn btn-outline-primary">+39 02 1234567</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+<!-- Modals -->
+
+<!-- Login Modal -->
+<div class="modal fade" id="loginModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-sign-in-alt text-primary"></i> Accedi al tuo Account
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="loginForm">
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control" id="loginEmail" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Password</label>
+                        <input type="password" class="form-control" id="loginPassword" required>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="rememberMe">
+                        <label class="form-check-label" for="rememberMe">Ricordami</label>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-sign-in-alt"></i> Accedi
+                    </button>
+                </form>
+                <div class="text-center mt-3">
+                    <a href="#" class="text-primary">Password dimenticata?</a>
+                </div>
+                <hr>
+                <div class="text-center">
+                    <p class="mb-0">Non hai un account?
+                        <a href="#" onclick="switchToRegister()" class="text-primary">Registrati ora</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Register Modal -->
+<div class="modal fade" id="registerModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-plus text-primary"></i> Crea il tuo Account
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="registerForm">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Nome</label>
+                            <input type="text" class="form-control" id="registerName" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Cognome</label>
+                            <input type="text" class="form-control" id="registerSurname" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control" id="registerEmail" required>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Password</label>
+                            <input type="password" class="form-control" id="registerPassword" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Conferma Password</label>
+                            <input type="password" class="form-control" id="confirmPassword" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Telefono</label>
+                        <input type="tel" class="form-control" id="registerPhone">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Azienda (opzionale)</label>
+                        <input type="text" class="form-control" id="registerCompany">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Tipo di Account</label>
+                        <select class="form-control" id="registerAccountType" required>
+                            <option value="">Seleziona tipo</option>
+                            <option value="client">Cliente - Prenoto spazi per lavorare</option>
+                            <option value="manager">Gestore - Offro spazi in affitto</option>
+                        </select>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="acceptTerms" required>
+                        <label class="form-check-label" for="acceptTerms">
+                            Accetto i <a href="#" class="text-primary">termini e condizioni</a>
+                            e l'<a href="#" class="text-primary">informativa privacy</a>
+                        </label>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-user-plus"></i> Registrati
+                    </button>
+                </form>
+                <hr>
+                <div class="text-center">
+                    <p class="mb-0">Hai già un account?
+                        <a href="#" onclick="switchToLogin()" class="text-primary">Accedi ora</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Space Detail Modal -->
+<div class="modal fade" id="spaceDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="spaceDetailTitle">Dettagli Spazio</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <!-- Space Images -->
+                        <div id="spaceDetailImages" class="space-images mb-4">
+                            <!-- Images carousel will be loaded here -->
+                        </div>
+
+                        <!-- Space Info -->
+                        <div class="space-detail-info">
+                            <div id="spaceDetailDescription" class="mb-4">
+                                <!-- Description will be loaded here -->
+                            </div>
+
+                            <div id="spaceDetailAmenities" class="mb-4">
+                                <h6><i class="fas fa-list-ul text-primary"></i> Servizi Inclusi</h6>
+                                <div class="amenities-list">
+                                    <!-- Amenities will be loaded here -->
+                                </div>
+                            </div>
+
+                            <div id="spaceDetailLocation" class="mb-4">
+                                <h6><i class="fas fa-map-marker-alt text-primary"></i> Posizione</h6>
+                                <!-- Location info will be loaded here -->
+                            </div>
+
+                            <div id="spaceDetailReviews">
+                                <h6><i class="fas fa-star text-primary"></i> Recensioni</h6>
+                                <!-- Reviews will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="booking-sidebar">
+                            <div class="booking-form">
+                                <h5><i class="fas fa-calendar-plus text-primary"></i> Prenota Ora</h5>
+                                <form id="bookingForm">
+                                    <div class="mb-3">
+                                        <label class="form-label">Data Inizio</label>
+                                        <input type="date" class="form-control" id="bookingStartDate" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Data Fine</label>
+                                        <input type="date" class="form-control" id="bookingEndDate" required>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-6 mb-3">
+                                            <label class="form-label">Ora Inizio</label>
+                                            <select class="form-control" id="bookingStartTime" required>
+                                                <option value="">Seleziona</option>
+                                                <option value="08:00">08:00</option>
+                                                <option value="09:00">09:00</option>
+                                                <option value="10:00">10:00</option>
+                                                <option value="11:00">11:00</option>
+                                                <option value="12:00">12:00</option>
+                                                <option value="13:00">13:00</option>
+                                                <option value="14:00">14:00</option>
+                                                <option value="15:00">15:00</option>
+                                                <option value="16:00">16:00</option>
+                                                <option value="17:00">17:00</option>
+                                                <option value="18:00">18:00</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-6 mb-3">
+                                            <label class="form-label">Ora Fine</label>
+                                            <select class="form-control" id="bookingEndTime" required>
+                                                <option value="">Seleziona</option>
+                                                <option value="09:00">09:00</option>
+                                                <option value="10:00">10:00</option>
+                                                <option value="11:00">11:00</option>
+                                                <option value="12:00">12:00</option>
+                                                <option value="13:00">13:00</option>
+                                                <option value="14:00">14:00</option>
+                                                <option value="15:00">15:00</option>
+                                                <option value="16:00">16:00</option>
+                                                <option value="17:00">17:00</option>
+                                                <option value="18:00">18:00</option>
+                                                <option value="19:00">19:00</option>
+                                                <option value="20:00">20:00</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Numero Persone</label>
+                                        <select class="form-control" id="bookingPeople" required>
+                                            <option value="">Seleziona</option>
+                                            <option value="1">1 persona</option>
+                                            <option value="2">2 persone</option>
+                                            <option value="3">3 persone</option>
+                                            <option value="4">4 persone</option>
+                                            <option value="5">5 persone</option>
+                                            <option value="6-10">6-10 persone</option>
+                                            <option value="11-20">11-20 persone</option>
+                                            <option value="20+">20+ persone</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Note Aggiuntive</label>
+                                        <textarea class="form-control" id="bookingNotes" rows="3"
+                                                  placeholder="Richieste speciali o informazioni aggiuntive..."></textarea>
+                                    </div>
+
+                                    <!-- Price Summary -->
+                                    <div class="price-summary">
+                                        <div class="price-breakdown">
+                                            <div class="d-flex justify-content-between">
+                                                <span>Prezzo base:</span>
+                                                <span id="basePrice">€0</span>
+                                            </div>
+                                            <div class="d-flex justify-content-between">
+                                                <span>Giorni:</span>
+                                                <span id="totalDays">0</span>
+                                            </div>
+                                            <div class="d-flex justify-content-between">
+                                                <span>Commissioni:</span>
+                                                <span id="fees">€0</span>
+                                            </div>
+                                            <hr>
+                                            <div class="d-flex justify-content-between fw-bold">
+                                                <span>Totale:</span>
+                                                <span id="totalPrice">€0</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <button type="submit" class="btn btn-primary w-100 btn-lg mt-3">
+                                        <i class="fas fa-credit-card"></i> Prenota e Paga
+                                    </button>
+
+                                    <div class="booking-guarantee mt-3">
+                                        <small class="text-muted">
+                                            <i class="fas fa-shield-alt text-success"></i>
+                                            Cancellazione gratuita fino a 24h prima
+                                        </small>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters Modal -->
+<div class="modal fade" id="filtersModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-filter text-primary"></i> Filtri Ricerca
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="filtersForm">
+                    <div class="mb-4">
+                        <label class="form-label">Fascia di Prezzo (€/giorno)</label>
+                        <div class="row">
+                            <div class="col-6">
+                                <input type="number" class="form-control" id="minPrice" placeholder="Min" min="0">
+                            </div>
+                            <div class="col-6">
+                                <input type="number" class="form-control" id="maxPrice" placeholder="Max" min="0">
+                            </div>
+                        </div>
+                        <div class="price-range-display mt-2">
+                            <small class="text-muted">Range prezzo medio: €25 - €150/giorno</small>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label">Capacità</label>
+                        <select class="form-control" id="filterCapacity">
+                            <option value="">Qualsiasi capacità</option>
+                            <option value="1-5">1-5 persone</option>
+                            <option value="6-10">6-10 persone</option>
+                            <option value="11-20">11-20 persone</option>
+                            <option value="20+">20+ persone</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label">Servizi Richiesti</label>
+                        <div class="amenities-filter">
+                            <div class="row">
+                                <div class="col-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="filterWifi" value="wifi">
+                                        <label class="form-check-label" for="filterWifi">
+                                            <i class="fas fa-wifi"></i> WiFi
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="filterParking" value="parking">
+                                        <label class="form-check-label" for="filterParking">
+                                            <i class="fas fa-car"></i> Parcheggio
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="filterCoffee" value="coffee">
+                                        <label class="form-check-label" for="filterCoffee">
+                                            <i class="fas fa-coffee"></i> Caffè
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="filterPrinter" value="printer">
+                                        <label class="form-check-label" for="filterPrinter">
+                                            <i class="fas fa-print"></i> Stampante
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="filterProjector" value="projector">
+                                        <label class="form-check-label" for="filterProjector">
+                                            <i class="fas fa-video"></i> Proiettore
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="filterKitchen" value="kitchen">
+                                        <label class="form-check-label" for="filterKitchen">
+                                            <i class="fas fa-utensils"></i> Cucina
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label">Disponibilità</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="onlyAvailable">
+                            <label class="form-check-label" for="onlyAvailable">
+                                Mostra solo spazi disponibili oggi
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label">Valutazione Minima</label>
+                        <select class="form-control" id="minRating">
+                            <option value="">Qualsiasi valutazione</option>
+                            <option value="4.5">4.5+ stelle</option>
+                            <option value="4.0">4.0+ stelle</option>
+                            <option value="3.5">3.5+ stelle</option>
+                            <option value="3.0">3.0+ stelle</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-actions">
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-outline-secondary flex-fill" onclick="clearFilters()">
+                                <i class="fas fa-times"></i> Cancella Tutto
+                            </button>
+                            <button type="submit" class="btn btn-primary flex-fill">
+                                <i class="fas fa-filter"></i> Applica Filtri
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Notification Container -->
+<div id="notificationContainer" class="notification-container"></div>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay" class="loading-overlay" style="display: none;">
+    <div class="loading-spinner">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Caricamento...</span>
+        </div>
+        <p class="mt-3">Caricamento in corso...</p>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.min.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
