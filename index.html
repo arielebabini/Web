@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CoWorkSpace - Gestione Spazi Condivisi</title>
 
+    <!-- Meta Tags -->
+    <meta name="description" content="Piattaforma per la prenotazione di spazi di coworking in Italia">
+    <meta name="keywords" content="coworking, spazi, uffici, prenotazioni, lavoro">
+
     <!-- Bootstrap CSS -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
@@ -75,7 +79,6 @@
 
 <!-- Main Content Container -->
 <div id="mainContent">
-
     <!-- Home Section -->
     <section id="homeSection" class="hero-section">
         <div class="hero-background"></div>
@@ -511,7 +514,6 @@
                 </div>
                 <div class="col-md-9">
                     <div class="dashboard-content">
-                        <!-- Dashboard tabs content will be loaded here -->
                         <div id="dashboardTabsContent">
                             <!-- Content loaded by JavaScript -->
                         </div>
@@ -575,14 +577,14 @@
 <!-- Modals -->
 
 <!-- Login Modal -->
-<div class="modal fade" id="loginModal" tabindex="-1">
+<div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">
+                <h5 class="modal-title" id="loginModalLabel">
                     <i class="fas fa-sign-in-alt text-primary"></i> Accedi al tuo Account
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <form id="loginForm">
@@ -617,14 +619,14 @@
 </div>
 
 <!-- Register Modal -->
-<div class="modal fade" id="registerModal" tabindex="-1">
+<div class="modal fade" id="registerModal" tabindex="-1" aria-labelledby="registerModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">
+                <h5 class="modal-title" id="registerModalLabel">
                     <i class="fas fa-user-plus text-primary"></i> Crea il tuo Account
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <form id="registerForm">
@@ -691,19 +693,19 @@
 </div>
 
 <!-- Space Detail Modal -->
-<div class="modal fade" id="spaceDetailModal" tabindex="-1">
+<div class="modal fade" id="spaceDetailModal" tabindex="-1" aria-labelledby="spaceDetailModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="spaceDetailTitle">Dettagli Spazio</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <div class="row">
                     <div class="col-md-8">
                         <!-- Space Images -->
                         <div id="spaceDetailImages" class="space-images mb-4">
-                            <!-- Images carousel will be loaded here -->
+                            <!-- Images will be loaded here -->
                         </div>
 
                         <!-- Space Info -->
@@ -720,12 +722,10 @@
                             </div>
 
                             <div id="spaceDetailLocation" class="mb-4">
-                                <h6><i class="fas fa-map-marker-alt text-primary"></i> Posizione</h6>
                                 <!-- Location info will be loaded here -->
                             </div>
 
                             <div id="spaceDetailReviews">
-                                <h6><i class="fas fa-star text-primary"></i> Recensioni</h6>
                                 <!-- Reviews will be loaded here -->
                             </div>
                         </div>
@@ -844,14 +844,14 @@
 </div>
 
 <!-- Filters Modal -->
-<div class="modal fade" id="filtersModal" tabindex="-1">
+<div class="modal fade" id="filtersModal" tabindex="-1" aria-labelledby="filtersModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">
+                <h5 class="modal-title" id="filtersModalLabel">
                     <i class="fas fa-filter text-primary"></i> Filtri Ricerca
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <form id="filtersForm">
@@ -979,9 +979,131 @@
     </div>
 </div>
 
+<!-- Footer -->
+<footer class="bg-dark text-white py-5 mt-5">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-3 col-md-6 mb-4">
+                <h5><i class="fas fa-building text-primary"></i> CoWorkSpace</h5>
+                <p class="text-muted">La piattaforma leader in Italia per la prenotazione di spazi di coworking professionali.</p>
+                <div class="social-links">
+                    <a href="#" class="text-white me-3"><i class="fab fa-facebook-f"></i></a>
+                    <a href="#" class="text-white me-3"><i class="fab fa-twitter"></i></a>
+                    <a href="#" class="text-white me-3"><i class="fab fa-linkedin-in"></i></a>
+                    <a href="#" class="text-white"><i class="fab fa-instagram"></i></a>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-4">
+                <h6>Servizi</h6>
+                <ul class="list-unstyled">
+                    <li><a href="#" class="text-muted">Hot Desk</a></li>
+                    <li><a href="#" class="text-muted">Uffici Privati</a></li>
+                    <li><a href="#" class="text-muted">Sale Riunioni</a></li>
+                    <li><a href="#" class="text-muted">Spazi Eventi</a></li>
+                </ul>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-4">
+                <h6>Azienda</h6>
+                <ul class="list-unstyled">
+                    <li><a href="#" class="text-muted" onclick="showSection('about')">Chi Siamo</a></li>
+                    <li><a href="#" class="text-muted">Lavora con Noi</a></li>
+                    <li><a href="#" class="text-muted">Partnership</a></li>
+                    <li><a href="#" class="text-muted">Press Kit</a></li>
+                </ul>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-4">
+                <h6>Supporto</h6>
+                <ul class="list-unstyled">
+                    <li><a href="#" class="text-muted" onclick="showSection('support')">Centro Assistenza</a></li>
+                    <li><a href="#" class="text-muted">FAQ</a></li>
+                    <li><a href="#" class="text-muted">Termini di Servizio</a></li>
+                    <li><a href="#" class="text-muted">Privacy Policy</a></li>
+                </ul>
+            </div>
+        </div>
+        <hr class="my-4">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <p class="mb-0 text-muted">&copy; 2024 CoWorkSpace. Tutti i diritti riservati.</p>
+            </div>
+            <div class="col-md-6 text-end">
+                <p class="mb-0 text-muted">Made with <i class="fas fa-heart text-danger"></i> in Italy</p>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<!-- Cookie Banner -->
+<div id="cookieBanner" class="cookie-banner" style="display: none;">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <p class="mb-0">
+                    <i class="fas fa-cookie-bite text-warning me-2"></i>
+                    Utilizziamo cookie per migliorare la tua esperienza. Continuando accetti la nostra
+                    <a href="#" class="text-primary">Cookie Policy</a>.
+                </p>
+            </div>
+            <div class="col-md-4 text-end">
+                <button class="btn btn-sm btn-outline-light me-2" onclick="declineCookies()">Rifiuta</button>
+                <button class="btn btn-sm btn-primary" onclick="acceptCookies()">Accetta</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Back to Top Button -->
+<button id="backToTop" class="back-to-top" style="display: none;" onclick="scrollToTop()">
+    <i class="fas fa-chevron-up"></i>
+</button>
+
 <!-- Scripts -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.min.js"></script>
 <script src="script.js"></script>
+
+<!-- Additional Script for Cookie Banner and Back to Top -->
+<script>
+    // Cookie Banner Management
+    function showCookieBanner() {
+        if (!localStorage.getItem('cookiesAccepted')) {
+            $('#cookieBanner').fadeIn();
+        }
+    }
+
+    function acceptCookies() {
+        localStorage.setItem('cookiesAccepted', 'true');
+        $('#cookieBanner').fadeOut();
+    }
+
+    function declineCookies() {
+        localStorage.setItem('cookiesAccepted', 'false');
+        $('#cookieBanner').fadeOut();
+    }
+
+    // Back to Top Button
+    function scrollToTop() {
+        $('html, body').animate({scrollTop: 0}, 800);
+    }
+
+    // Show/Hide Back to Top Button
+    $(window).scroll(function() {
+        if ($(this).scrollTop() > 100) {
+            $('#backToTop').fadeIn();
+        } else {
+            $('#backToTop').fadeOut();
+        }
+    });
+
+    // Show cookie banner on page load
+    $(document).ready(function() {
+        setTimeout(showCookieBanner, 2000);
+    });
+
+    // Add global functions to window
+    window.acceptCookies = acceptCookies;
+    window.declineCookies = declineCookies;
+    window.scrollToTop = scrollToTop;
+</script>
 </body>
 </html>
