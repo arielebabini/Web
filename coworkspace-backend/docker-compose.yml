@@ -1,0 +1,110 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: coworkspace_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: coworkspace
+      POSTGRES_USER: coworkspace_user
+      POSTGRES_PASSWORD: coworkspace_password
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d
+    networks:
+      - coworkspace_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U coworkspace_user -d coworkspace"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis per sessioni e cache
+  redis:
+    image: redis:7-alpine
+    container_name: coworkspace_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - coworkspace_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # API Node.js/Express
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: coworkspace_api
+    restart: unless-stopped
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: coworkspace
+      DB_USER: coworkspace_user
+      DB_PASSWORD: coworkspace_password
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+      STRIPE_SECRET_KEY: sk_test_your_stripe_secret_key
+      EMAIL_SERVICE: gmail
+      EMAIL_USER: your-email@gmail.com
+      EMAIL_PASSWORD: your-app-password
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./api:/app
+      - /app/node_modules
+    networks:
+      - coworkspace_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Nginx (per produzione)
+  nginx:
+    image: nginx:alpine
+    container_name: coworkspace_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    networks:
+      - coworkspace_network
+    depends_on:
+      - api
+    profiles:
+      - production
+
+# Volumi persistenti
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+# Network custom
+networks:
+  coworkspace_network:
+    driver: bridge
