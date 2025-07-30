@@ -1,5 +1,5 @@
 /**
- * CoWorkSpace - Script completo con implementazione mappa Leaflet
+ * CoWorkSpace - JavaScript Vanilla
  */
 
 // ===== VARIABILI GLOBALI =====
@@ -7,25 +7,10 @@ let currentUser = null;
 let isAuthenticated = false;
 let currentSpaces = [];
 let activeSection = 'home';
+let mapZoomLevel = 1;
+let selectedCity = null;
 
-// ===== VARIABILI MAPPA =====
-let map = null;
-let markersLayer = null;
-let currentBasemap = 'osm';
-
-// ===== COORDINATE CITTÀ ITALIANE =====
-const cityCoordinates = {
-    'Milano': [45.4642, 9.1900],
-    'Roma': [41.9028, 12.4964],
-    'Torino': [45.0703, 7.6869],
-    'Bologna': [44.4949, 11.3426],
-    'Firenze': [43.7696, 11.2558],
-    'Napoli': [40.8518, 14.2681],
-    'Venezia': [45.4408, 12.3155],
-    'Genova': [44.4056, 8.9463]
-};
-
-// ===== DATI MOCK MIGLIORATI =====
+// ===== DATI MOCK =====
 const mockSpaces = [
     {
         id: 1,
@@ -42,10 +27,27 @@ const mockSpaces = [
         image: "https://images.unsplash.com/photo-1497366216548-37526070297c?w=600",
         available: true,
         featured: true,
-        coordinates: [45.4642, 9.1900]
+        coordinates: { x: 320, y: 200 }
     },
     {
         id: 2,
+        name: "Milano Creative Space",
+        type: "hot-desk",
+        city: "Milano",
+        address: "Via Navigli 45, Milano",
+        price: 45,
+        capacity: 20,
+        rating: 4.5,
+        reviews: 98,
+        description: "Spazio creativo nei Navigli, perfetto per freelancer e startup.",
+        amenities: ["wifi", "coffee", "kitchen"],
+        image: "https://images.unsplash.com/photo-1556761175-b413da4baf72?w=600",
+        available: true,
+        featured: false,
+        coordinates: { x: 325, y: 205 }
+    },
+    {
+        id: 3,
         name: "Roma Creative Space",
         type: "hot-desk",
         city: "Roma",
@@ -59,10 +61,10 @@ const mockSpaces = [
         image: "https://images.unsplash.com/photo-1556761175-b413da4baf72?w=600",
         available: true,
         featured: false,
-        coordinates: [41.8902, 12.4696]
+        coordinates: { x: 380, y: 500 }
     },
     {
-        id: 3,
+        id: 4,
         name: "Torino Executive Meeting",
         type: "meeting-room",
         city: "Torino",
@@ -76,10 +78,10 @@ const mockSpaces = [
         image: "https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=600",
         available: false,
         featured: true,
-        coordinates: [45.0703, 7.6869]
+        coordinates: { x: 280, y: 180 }
     },
     {
-        id: 4,
+        id: 5,
         name: "Bologna Open Workspace",
         type: "hot-desk",
         city: "Bologna",
@@ -93,41 +95,7 @@ const mockSpaces = [
         image: "https://images.unsplash.com/photo-1556761175-4b46a572b786?w=600",
         available: true,
         featured: false,
-        coordinates: [44.4949, 11.3426]
-    },
-    {
-        id: 5,
-        name: "Firenze Art Coworking",
-        type: "hot-desk",
-        city: "Firenze",
-        address: "Piazza Santa Croce 16, Firenze",
-        price: 45,
-        capacity: 20,
-        rating: 4.7,
-        reviews: 98,
-        description: "Coworking creativo nel centro storico di Firenze, perfetto per artisti e designer.",
-        amenities: ["wifi", "coffee", "printer", "projector"],
-        image: "https://images.unsplash.com/photo-1524758631624-e2822e304c36?w=600",
-        available: true,
-        featured: true,
-        coordinates: [43.7696, 11.2558]
-    },
-    {
-        id: 6,
-        name: "Napoli Bay Office",
-        type: "private-office",
-        city: "Napoli",
-        address: "Via Chiaia 149, Napoli",
-        price: 65,
-        capacity: 8,
-        rating: 4.4,
-        reviews: 76,
-        description: "Ufficio privato con vista sul Golfo di Napoli, ambiente professionale e accogliente.",
-        amenities: ["wifi", "parking", "coffee"],
-        image: "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=600",
-        available: true,
-        featured: false,
-        coordinates: [40.8518, 14.2681]
+        coordinates: { x: 360, y: 320 }
     }
 ];
 
@@ -135,9 +103,12 @@ const mockBookings = [];
 
 // ===== FUNZIONI UTILITY =====
 function showNotification(message, type = 'info') {
-    const container = $('#notificationContainer');
-    if (container.length === 0) {
-        $('body').append('<div id="notificationContainer" class="notification-container"></div>');
+    const container = document.getElementById('notificationContainer');
+    if (!container) {
+        const newContainer = document.createElement('div');
+        newContainer.id = 'notificationContainer';
+        newContainer.className = 'notification-container';
+        document.body.appendChild(newContainer);
     }
 
     const iconClass = {
@@ -147,18 +118,20 @@ function showNotification(message, type = 'info') {
         'info': 'fas fa-info-circle'
     }[type] || 'fas fa-info-circle';
 
-    const notification = $(`
-        <div class="notification alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show" role="alert">
-            <i class="${iconClass} me-2"></i>
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    `);
+    const notification = document.createElement('div');
+    notification.className = `notification alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show`;
+    notification.innerHTML = `
+        <i class="${iconClass} me-2"></i>
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
 
-    $('#notificationContainer').append(notification);
+    document.getElementById('notificationContainer').appendChild(notification);
 
     setTimeout(() => {
-        notification.alert('close');
+        if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+        }
     }, 4000);
 }
 
@@ -178,27 +151,21 @@ function getAmenityLabel(amenity) {
     return labels[amenity] || amenity;
 }
 
-function getAmenityIcon(amenity) {
-    const icons = {
-        'wifi': 'fas fa-wifi',
-        'parking': 'fas fa-car',
-        'coffee': 'fas fa-coffee',
-        'printer': 'fas fa-print',
-        'projector': 'fas fa-video',
-        'kitchen': 'fas fa-utensils'
-    };
-    return icons[amenity] || 'fas fa-check';
-}
-
 // ===== FUNZIONE PRINCIPALE NAVIGAZIONE =====
 function showSection(sectionName) {
     console.log('Mostrando sezione:', sectionName);
 
     // Nascondi tutte le sezioni
-    $('section[id$="Section"]').hide();
+    const sections = document.querySelectorAll('section[id$="Section"]');
+    sections.forEach(section => {
+        section.style.display = 'none';
+    });
 
     // Mostra la sezione richiesta
-    $('#' + sectionName + 'Section').show();
+    const targetSection = document.getElementById(sectionName + 'Section');
+    if (targetSection) {
+        targetSection.style.display = 'block';
+    }
 
     activeSection = sectionName;
 
@@ -226,17 +193,13 @@ function showSection(sectionName) {
     } else if (sectionName === 'profile') {
         loadProfile();
     }
-
-    // Aggiorna navbar attiva
-    $('.navbar-nav .nav-link').removeClass('active');
-    $(`.navbar-nav .nav-link[onclick*="${sectionName}"]`).addClass('active');
 }
 
 // ===== GESTIONE SPAZI =====
 function loadSpaces() {
     console.log('Caricando spazi...');
-    const container = $('#spacesContainer');
-    container.empty();
+    const container = document.getElementById('spacesContainer');
+    container.innerHTML = '';
 
     if (currentSpaces.length === 0) {
         currentSpaces = [...mockSpaces];
@@ -244,10 +207,10 @@ function loadSpaces() {
 
     currentSpaces.forEach(space => {
         const spaceCard = createSpaceCard(space);
-        container.append(spaceCard);
+        container.appendChild(spaceCard);
     });
 
-    $('#resultsCount').text(currentSpaces.length + ' spazi trovati');
+    document.getElementById('resultsCount').textContent = currentSpaces.length + ' spazi trovati';
 }
 
 function createSpaceCard(space) {
@@ -255,50 +218,52 @@ function createSpaceCard(space) {
     const availabilityText = space.available ? 'Disponibile' : 'Non Disponibile';
     const featuredBadge = space.featured ? '<div class="space-badge featured">In Evidenza</div>' : '';
 
-    return $(`
-        <div class="space-card">
-            <div class="space-image" style="background-image: url('${space.image}');">
-                ${featuredBadge}
-                <div class="availability-badge ${availabilityClass}">
-                    <i class="fas fa-${space.available ? 'check-circle' : 'times-circle'}"></i>
-                    ${availabilityText}
-                </div>
-            </div>
-            <div class="space-info">
-                <div class="d-flex justify-content-between align-items-start mb-2">
-                    <h5 class="space-title">${space.name}</h5>
-                    <div class="rating">
-                        <i class="fas fa-star text-warning"></i>
-                        <span class="fw-bold">${space.rating}</span>
-                        <small class="text-muted ms-1">(${space.reviews})</small>
-                    </div>
-                </div>
-                <div class="space-location mb-2">
-                    <i class="fas fa-map-marker-alt text-primary"></i>
-                    <span class="ms-1">${space.address}</span>
-                </div>
-                <p class="space-description text-muted mb-3">${space.description}</p>
-                <div class="amenities mb-3">
-                    ${space.amenities.slice(0, 3).map(amenity =>
-        `<span class="amenity badge me-1"><i class="${getAmenityIcon(amenity)} me-1"></i>${getAmenityLabel(amenity)}</span>`
-    ).join('')}
-                    ${space.amenities.length > 3 ? `<span class="badge bg-secondary">+${space.amenities.length - 3}</span>` : ''}
-                </div>
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <div class="space-price">
-                        <strong class="text-primary fs-4">${formatPrice(space.price)}<small class="fs-6 text-muted">/giorno</small></strong>
-                    </div>
-                    <div class="space-capacity text-muted">
-                        <i class="fas fa-users me-1"></i>${space.capacity} persone
-                    </div>
-                </div>
-                <button class="btn btn-primary w-100 btn-lg" onclick="showSpaceDetail(${space.id})" 
-                        ${!space.available ? 'disabled' : ''}>
-                    ${space.available ? '<i class="fas fa-calendar-plus me-2"></i>Prenota Ora' : '<i class="fas fa-times me-2"></i>Non Disponibile'}
-                </button>
+    const cardElement = document.createElement('div');
+    cardElement.className = 'space-card';
+    cardElement.innerHTML = `
+        <div class="space-image" style="background-image: url('${space.image}');">
+            ${featuredBadge}
+            <div class="availability-badge ${availabilityClass}">
+                <i class="fas fa-${space.available ? 'check-circle' : 'times-circle'}"></i>
+                ${availabilityText}
             </div>
         </div>
-    `);
+        <div class="space-info">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <h5 class="space-title">${space.name}</h5>
+                <div class="rating">
+                    <i class="fas fa-star text-warning"></i>
+                    <span class="fw-bold">${space.rating}</span>
+                    <small class="text-muted ms-1">(${space.reviews})</small>
+                </div>
+            </div>
+            <div class="space-location mb-2">
+                <i class="fas fa-map-marker-alt text-primary"></i>
+                <span class="ms-1">${space.address}</span>
+            </div>
+            <p class="space-description text-muted mb-3">${space.description}</p>
+            <div class="amenities mb-3">
+                ${space.amenities.slice(0, 3).map(amenity =>
+        `<span class="amenity badge me-1">${getAmenityLabel(amenity)}</span>`
+    ).join('')}
+                ${space.amenities.length > 3 ? `<span class="badge bg-secondary">+${space.amenities.length - 3}</span>` : ''}
+            </div>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="space-price">
+                    <strong class="text-primary fs-4">${formatPrice(space.price)}<small class="fs-6 text-muted">/giorno</small></strong>
+                </div>
+                <div class="space-capacity text-muted">
+                    <i class="fas fa-users me-1"></i>${space.capacity} persone
+                </div>
+            </div>
+            <button class="btn btn-primary w-100 btn-lg" onclick="showSpaceDetail(${space.id})" 
+                    ${!space.available ? 'disabled' : ''}>
+                ${space.available ? '<i class="fas fa-calendar-plus me-2"></i>Prenota Ora' : '<i class="fas fa-times me-2"></i>Non Disponibile'}
+            </button>
+        </div>
+    `;
+
+    return cardElement;
 }
 
 function showSpaceDetail(spaceId) {
@@ -308,15 +273,16 @@ function showSpaceDetail(spaceId) {
         return;
     }
 
-    $('#spaceDetailModal').data('space-id', spaceId);
-    $('#spaceDetailTitle').text(space.name);
+    const modal = document.getElementById('spaceDetailModal');
+    modal.setAttribute('data-space-id', spaceId);
+    document.getElementById('spaceDetailTitle').textContent = space.name;
 
-    $('#spaceDetailImages').html(`
+    document.getElementById('spaceDetailImages').innerHTML = `
         <img src="${space.image}" class="img-fluid rounded" alt="${space.name}" 
              style="width: 100%; height: 300px; object-fit: cover;">
-    `);
+    `;
 
-    $('#spaceDetailDescription').html(`
+    document.getElementById('spaceDetailDescription').innerHTML = `
         <h6><i class="fas fa-info-circle text-primary"></i> Descrizione</h6>
         <p>${space.description}</p>
         <div class="row mt-3">
@@ -324,9 +290,9 @@ function showSpaceDetail(spaceId) {
             <div class="col-md-4"><strong>Prezzo:</strong> ${formatPrice(space.price)}/giorno</div>
             <div class="col-md-4"><strong>Rating:</strong> ${space.rating} ⭐ (${space.reviews} recensioni)</div>
         </div>
-    `);
+    `;
 
-    $('#spaceDetailAmenities .amenities-list').html(
+    document.querySelector('#spaceDetailAmenities .amenities-list').innerHTML =
         `<div class="row">` +
         space.amenities.map(amenity => `
             <div class="col-md-6 mb-2">
@@ -334,19 +300,15 @@ function showSpaceDetail(spaceId) {
                 <span class="ms-2">${getAmenityLabel(amenity)}</span>
             </div>
         `).join('') +
-        `</div>`
-    );
+        `</div>`;
 
-    $('#spaceDetailLocation').html(`
+    document.getElementById('spaceDetailLocation').innerHTML = `
         <h6><i class="fas fa-map-marker-alt text-primary"></i> Posizione</h6>
         <p><strong>${space.address}</strong></p>
         <p>Città: ${space.city}</p>
-        <button class="btn btn-outline-primary btn-sm" onclick="showOnMap(${space.id})">
-            <i class="fas fa-map"></i> Mostra sulla Mappa
-        </button>
-    `);
+    `;
 
-    $('#spaceDetailReviews').html(`
+    document.getElementById('spaceDetailReviews').innerHTML = `
         <h6><i class="fas fa-star text-primary"></i> Recensioni</h6>
         <div class="d-flex align-items-center mb-3">
             <span class="fs-4 me-2">${space.rating}</span>
@@ -361,49 +323,23 @@ function showSpaceDetail(spaceId) {
             <i class="fas fa-info-circle"></i>
             Le recensioni dettagliate saranno disponibili nella versione completa della piattaforma.
         </div>
-    `);
+    `;
 
     const today = new Date().toISOString().split('T')[0];
-    $('#bookingStartDate').val(today);
-    $('#bookingEndDate').val(today);
+    document.getElementById('bookingStartDate').value = today;
+    document.getElementById('bookingEndDate').value = today;
     updateBookingPrice(space);
 
-    $('#spaceDetailModal').modal('show');
-}
-
-function showOnMap(spaceId) {
-    $('#spaceDetailModal').modal('hide');
-
-    setTimeout(() => {
-        showSection('spaces');
-        setTimeout(() => {
-            showMapView();
-            setTimeout(() => {
-                if (map && markersLayer) {
-                    const space = mockSpaces.find(s => s.id === spaceId);
-                    if (space && space.coordinates) {
-                        map.setView(space.coordinates, 15);
-
-                        // Trova e apri il popup del marker corrispondente
-                        markersLayer.eachLayer((marker) => {
-                            if (marker.options.spaceId === spaceId) {
-                                marker.openPopup();
-                            }
-                        });
-
-                        showNotification(`Spazio "${space.name}" localizzato sulla mappa`, 'success');
-                    }
-                }
-            }, 500);
-        }, 300);
-    }, 300);
+    // Mostra il modal usando Bootstrap
+    const bsModal = new bootstrap.Modal(modal);
+    bsModal.show();
 }
 
 function updateBookingPrice(space) {
     if (!space) return;
 
-    const startDate = $('#bookingStartDate').val();
-    const endDate = $('#bookingEndDate').val();
+    const startDate = document.getElementById('bookingStartDate').value;
+    const endDate = document.getElementById('bookingEndDate').value;
 
     if (!startDate || !endDate) return;
 
@@ -415,421 +351,161 @@ function updateBookingPrice(space) {
     const fees = Math.round(basePrice * 0.1);
     const totalPrice = basePrice + fees;
 
-    $('#basePrice').text(formatPrice(space.price));
-    $('#totalDays').text(daysDiff);
-    $('#fees').text(formatPrice(fees));
-    $('#totalPrice').text(formatPrice(totalPrice));
+    document.getElementById('basePrice').textContent = formatPrice(space.price);
+    document.getElementById('totalDays').textContent = daysDiff;
+    document.getElementById('fees').textContent = formatPrice(fees);
+    document.getElementById('totalPrice').textContent = formatPrice(totalPrice);
 }
 
-// ===== IMPLEMENTAZIONE MAPPA LEAFLET =====
-function initializeMap() {
-    console.log('Inizializzando mappa Leaflet...');
-
-    // Sostituisci il contenuto HTML esistente con una mappa reale
-    $('#mapContainer').html(`
-        <div class="map-view">
-            <div class="map-header">
-                <h4><i class="fas fa-map text-primary"></i> Mappa degli Spazi</h4>
-                <div class="map-controls">
-                    <button class="btn btn-sm btn-outline-primary" onclick="zoomToItaly()">
-                        <i class="fas fa-globe-europe"></i> Italia
-                    </button>
-                    <button class="btn btn-sm btn-outline-primary" onclick="toggleSatellite()">
-                        <i class="fas fa-satellite"></i> Satellite
-                    </button>
-                    <button class="btn btn-sm btn-outline-primary" onclick="locateUser()">
-                        <i class="fas fa-crosshairs"></i> Posizione
-                    </button>
-                </div>
-            </div>
-            <div id="leafletMap" style="height: 500px; width: 100%;"></div>
-            <div class="map-footer">
-                <div class="d-flex justify-content-between align-items-center">
-                    <span><i class="fas fa-map-marker-alt text-primary"></i> ${currentSpaces.length} spazi sulla mappa</span>
-                    <div class="map-legend">
-                        <span class="legend-item">
-                            <span class="legend-dot available"></span> Disponibile
-                        </span>
-                        <span class="legend-item">
-                            <span class="legend-dot featured"></span> In Evidenza
-                        </span>
-                        <span class="legend-item">
-                            <span class="legend-dot busy"></span> Occupato
-                        </span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `);
-
-    // Inizializza la mappa Leaflet
-    if (map) {
-        map.remove();
-    }
-
-    // Centra la mappa sull'Italia
-    map = L.map('leafletMap').setView([41.8719, 12.5674], 6);
-
-    // Aggiungi layer delle tile
-    const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    });
-
-    const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-        attribution: 'Tiles © Esri — Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
-    });
-
-    // Layer di default
-    osmLayer.addTo(map);
-    currentBasemap = 'osm';
-
-    // Controllo per switchare tra layer
-    const baseMaps = {
-        "Mappa Stradale": osmLayer,
-        "Vista Satellite": satelliteLayer
-    };
-
-    const layerControl = L.control.layers(baseMaps).addTo(map);
-
-    // Inizializza il layer per i marker
-    markersLayer = L.layerGroup().addTo(map);
-
-    // Aggiungi i marker degli spazi
-    updateMapMarkers();
-
-    // Aggiungi controlli personalizzati
-    addCustomMapControls();
-
-    console.log('Mappa inizializzata con successo');
-}
-
-function updateMapMarkers() {
-    if (!markersLayer) return;
-
-    console.log('Aggiornando marker sulla mappa...');
-
-    // Pulisci i marker esistenti
-    markersLayer.clearLayers();
-
-    currentSpaces.forEach(space => {
-        const coords = space.coordinates || cityCoordinates[space.city];
-        if (!coords) return;
-
-        // Determina l'icona in base allo stato
-        let iconClass = 'fa-map-marker-alt';
-        let iconColor = '#667eea';
-
-        if (!space.available) {
-            iconColor = '#ef4444';
-        } else if (space.featured) {
-            iconColor = '#f093fb';
-            iconClass = 'fa-star';
-        }
-
-        // Crea icona personalizzata
-        const customIcon = L.divIcon({
-            html: `
-                <div class="custom-marker ${space.available ? 'available' : 'busy'} ${space.featured ? 'featured' : ''}">
-                    <i class="fas ${iconClass}"></i>
-                    <div class="marker-label">${formatPrice(space.price)}</div>
-                </div>
-            `,
-            className: 'custom-div-icon',
-            iconSize: [40, 50],
-            iconAnchor: [20, 50],
-            popupAnchor: [0, -50]
-        });
-
-        // Crea il marker
-        const marker = L.marker(coords, {
-            icon: customIcon,
-            spaceId: space.id
-        });
-
-        // Crea il popup
-        const popupContent = `
-            <div class="map-popup">
-                <div class="popup-header">
-                    <h6>${space.name}</h6>
-                    <span class="badge ${space.available ? 'bg-success' : 'bg-danger'}">
-                        ${space.available ? 'Disponibile' : 'Non Disponibile'}
-                    </span>
-                </div>
-                <div class="popup-body">
-                    <div class="popup-image" style="background-image: url('${space.image}')"></div>
-                    <p class="popup-address">
-                        <i class="fas fa-map-marker-alt text-primary"></i> ${space.address}
-                    </p>
-                    <p class="popup-description">${space.description}</p>
-                    <div class="popup-details">
-                        <div class="detail-item">
-                            <i class="fas fa-users text-muted"></i>
-                            <span>${space.capacity} persone</span>
-                        </div>
-                        <div class="detail-item">
-                            <i class="fas fa-star text-warning"></i>
-                            <span>${space.rating} (${space.reviews})</span>
-                        </div>
-                        <div class="detail-item">
-                            <i class="fas fa-euro-sign text-success"></i>
-                            <span><strong>${formatPrice(space.price)}/giorno</strong></span>
-                        </div>
-                    </div>
-                    <div class="popup-amenities">
-                        ${space.amenities.slice(0, 4).map(amenity =>
-            `<span class="amenity-tag"><i class="${getAmenityIcon(amenity)} me-1"></i>${getAmenityLabel(amenity)}</span>`
-        ).join('')}
-                    </div>
-                </div>
-                <div class="popup-footer">
-                    <button class="btn btn-primary btn-sm w-100" onclick="showSpaceDetail(${space.id})" 
-                            ${!space.available ? 'disabled' : ''}>
-                        ${space.available ? '<i class="fas fa-calendar-plus"></i> Dettagli e Prenota' : '<i class="fas fa-times"></i> Non Disponibile'}
-                    </button>
-                </div>
-            </div>
-        `;
-
-        marker.bindPopup(popupContent, {
-            maxWidth: 320,
-            className: 'custom-popup'
-        });
-
-        // Aggiungi tooltip
-        marker.bindTooltip(`${space.name} - ${formatPrice(space.price)}/giorno`, {
-            direction: 'top',
-            offset: [0, -50]
-        });
-
-        // Aggiungi eventi
-        marker.on('mouseover', function() {
-            this.openTooltip();
-        });
-
-        marker.on('click', function() {
-            // Centra la mappa sul marker
-            map.setView(coords, 15);
-        });
-
-        // Aggiungi il marker al layer
-        markersLayer.addLayer(marker);
-    });
-
-    // Se ci sono spazi, adatta la vista per mostrarli tutti
-    if (currentSpaces.length > 0 && markersLayer.getLayers().length > 0) {
-        const group = new L.featureGroup(markersLayer.getLayers());
-        try {
-            if (group.getBounds().isValid()) {
-                map.fitBounds(group.getBounds().pad(0.1));
-            }
-        } catch (e) {
-            console.log('Errore nel calcolo bounds:', e);
-        }
-    }
-
-    console.log(`${markersLayer.getLayers().length} marker aggiunti alla mappa`);
-}
-
-function addCustomMapControls() {
-    // Controllo per filtrare i marker
-    const filterControl = L.control({ position: 'topright' });
-
-    filterControl.onAdd = function(map) {
-        const div = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
-        div.innerHTML = `
-            <div class="map-filter-control">
-                <button class="map-filter-btn active" data-filter="all">
-                    <i class="fas fa-th"></i> Tutti
-                </button>
-                <button class="map-filter-btn" data-filter="available">
-                    <i class="fas fa-check-circle"></i> Disponibili
-                </button>
-                <button class="map-filter-btn" data-filter="featured">
-                    <i class="fas fa-star"></i> In Evidenza
-                </button>
-            </div>
-        `;
-
-        // Previeni la propagazione degli eventi
-        L.DomEvent.disableClickPropagation(div);
-
-        return div;
-    };
-
-    filterControl.addTo(map);
-
-    // Aggiungi event listener per i filtri (delegato)
-    $(document).off('click.mapFilter').on('click.mapFilter', '.map-filter-btn', function() {
-        $('.map-filter-btn').removeClass('active');
-        $(this).addClass('active');
-
-        const filter = $(this).data('filter');
-        filterMapSpaces(filter);
-    });
-}
-
-function filterMapSpaces(filter) {
-    let filteredSpaces = [...mockSpaces];
-
-    switch(filter) {
-        case 'available':
-            filteredSpaces = mockSpaces.filter(space => space.available);
-            break;
-        case 'featured':
-            filteredSpaces = mockSpaces.filter(space => space.featured);
-            break;
-        case 'all':
-        default:
-            filteredSpaces = [...mockSpaces];
-            break;
-    }
-
-    // Aggiorna temporaneamente currentSpaces per la mappa
-    const originalSpaces = [...currentSpaces];
-    currentSpaces = filteredSpaces;
-    updateMapMarkers();
-
-    // Ripristina currentSpaces originale (per non interferire con la griglia)
-    currentSpaces = originalSpaces;
-
-    showNotification(`Filtro applicato: ${filteredSpaces.length} spazi mostrati`, 'info');
-}
-
-// ===== FUNZIONI CONTROLLI MAPPA =====
-function zoomToItaly() {
-    if (map) {
-        map.setView([41.8719, 12.5674], 6);
-        showNotification('Vista centrata sull\'Italia', 'info');
-    }
-}
-
-function toggleSatellite() {
-    showNotification('Usa il controllo layer in alto a destra per cambiare vista', 'info');
-}
-
-function locateUser() {
-    if (!map) return;
-
-    if (navigator.geolocation) {
-        showNotification('Ricerca della tua posizione in corso...', 'info');
-
-        map.locate({
-            setView: true,
-            maxZoom: 13,
-            enableHighAccuracy: true,
-            timeout: 10000
-        });
-
-        map.on('locationfound', function(e) {
-            // Rimuovi marker precedenti della posizione utente
-            map.eachLayer(function(layer) {
-                if (layer.options && layer.options.isUserLocation) {
-                    map.removeLayer(layer);
-                }
-            });
-
-            // Aggiungi nuovo marker per la posizione utente
-            const userMarker = L.marker(e.latlng, {
-                isUserLocation: true
-            }).addTo(map);
-
-            userMarker.bindPopup('<div class="text-center"><i class="fas fa-user-circle text-primary fa-2x mb-2"></i><br><strong>La tua posizione</strong></div>').openPopup();
-
-            // Aggiungi cerchio di accuratezza
-            L.circle(e.latlng, {
-                radius: e.accuracy,
-                color: '#667eea',
-                fillColor: '#667eea',
-                fillOpacity: 0.1,
-                weight: 2
-            }).addTo(map);
-
-            showNotification('Posizione trovata!', 'success');
-        });
-
-        map.on('locationerror', function(e) {
-            console.error('Errore geolocalizzazione:', e);
-            showNotification('Impossibile trovare la tua posizione: ' + e.message, 'warning');
-        });
-    } else {
-        showNotification('Geolocalizzazione non supportata dal browser', 'warning');
-    }
-}
-
-// ===== AGGIORNA LE FUNZIONI ESISTENTI =====
-
-// Modifica la funzione showMapView esistente
+// ===== MAPPA CUSTOM =====
 function showMapView() {
-    $('#spacesContainer').hide();
-    $('#mapContainer').show();
-    $('.view-toggle .btn').removeClass('active');
-    $('#mapViewBtn').addClass('active');
+    document.getElementById('spacesContainer').style.display = 'none';
+    document.getElementById('mapContainer').style.display = 'block';
 
-    // Inizializza la mappa se non esiste
-    if (!map || $('#leafletMap').length === 0) {
-        setTimeout(() => {
-            initializeMap();
-        }, 100);
-    } else {
-        // Aggiorna solo i marker se la mappa esiste già
-        setTimeout(() => {
-            updateMapMarkers();
-            map.invalidateSize(); // Necessario quando si mostra/nasconde il container
-        }, 100);
-    }
+    document.querySelectorAll('.view-toggle .btn').forEach(btn => btn.classList.remove('active'));
+    document.getElementById('mapViewBtn').classList.add('active');
 
+    initializeCustomMap();
     showNotification('Vista mappa attivata', 'info');
 }
 
 function showGridView() {
-    $('#mapContainer').hide();
-    $('#spacesContainer').show();
-    $('.view-toggle .btn').removeClass('active');
-    $('#gridViewBtn').addClass('active');
+    document.getElementById('mapContainer').style.display = 'none';
+    document.getElementById('spacesContainer').style.display = 'block';
+
+    document.querySelectorAll('.view-toggle .btn').forEach(btn => btn.classList.remove('active'));
+    document.getElementById('gridViewBtn').classList.add('active');
 
     showNotification('Vista griglia attivata', 'info');
 }
 
-// Modifica le funzioni di zoom esistenti per funzionare con Leaflet
-function zoomIn() {
-    if (map) {
-        map.zoomIn();
-        showNotification('Zoom avvicinato', 'info');
-    } else {
-        showNotification('Mappa non ancora caricata', 'warning');
+function initializeCustomMap() {
+    updateMapMarkers();
+    setupMapInteractions();
+}
+
+function updateMapMarkers() {
+    // Aggiorna il contatore degli spazi sulla mappa
+    document.getElementById('mapSpaceCount').textContent = `${currentSpaces.length} spazi sulla mappa`;
+
+    // Setup degli event listeners per i marker delle città
+    const cityMarkers = document.querySelectorAll('.city-marker');
+    cityMarkers.forEach(marker => {
+        marker.addEventListener('click', function(e) {
+            const cityName = this.getAttribute('data-city');
+            const spaceCount = this.getAttribute('data-count');
+            showCityPopup(e, cityName, spaceCount);
+        });
+
+        marker.addEventListener('mouseenter', function() {
+            this.style.transform = 'scale(1.5)';
+            this.style.filter = 'brightness(1.2)';
+        });
+
+        marker.addEventListener('mouseleave', function() {
+            this.style.transform = 'scale(1)';
+            this.style.filter = 'brightness(1)';
+        });
+    });
+}
+
+function showCityPopup(event, cityName, spaceCount) {
+    const popup = document.getElementById('cityPopup');
+    const citySpaces = currentSpaces.filter(space => space.city === cityName);
+
+    document.getElementById('popupCityName').textContent = cityName;
+    document.getElementById('popupSpaceCount').textContent = `${citySpaces.length} spazi disponibili`;
+
+    // Posiziona il popup vicino al marker
+    const rect = event.target.getBoundingClientRect();
+    const mapRect = document.getElementById('italyMap').getBoundingClientRect();
+
+    popup.style.left = (rect.left - mapRect.left + 20) + 'px';
+    popup.style.top = (rect.top - mapRect.top - 80) + 'px';
+    popup.style.display = 'block';
+
+    selectedCity = cityName;
+
+    // Nascondi il popup dopo 3 secondi
+    setTimeout(() => {
+        popup.style.display = 'none';
+    }, 3000);
+}
+
+function filterByCity() {
+    if (selectedCity) {
+        currentSpaces = mockSpaces.filter(space => space.city === selectedCity);
+        showGridView();
+        loadSpaces();
+        document.getElementById('cityPopup').style.display = 'none';
+        showNotification(`Filtrati spazi per ${selectedCity}`, 'success');
     }
+}
+
+function setupMapInteractions() {
+    const italyMap = document.getElementById('italyMap');
+
+    // Click fuori dal popup per nasconderlo
+    italyMap.addEventListener('click', function(e) {
+        if (!e.target.classList.contains('city-marker')) {
+            document.getElementById('cityPopup').style.display = 'none';
+        }
+    });
+}
+
+function zoomIn() {
+    mapZoomLevel = Math.min(mapZoomLevel + 0.2, 2);
+    updateMapZoom();
+    showNotification('Zoom avvicinato', 'info');
 }
 
 function zoomOut() {
-    if (map) {
-        map.zoomOut();
-        showNotification('Zoom allontanato', 'info');
-    } else {
-        showNotification('Mappa non ancora caricata', 'warning');
-    }
+    mapZoomLevel = Math.max(mapZoomLevel - 0.2, 0.8);
+    updateMapZoom();
+    showNotification('Zoom allontanato', 'info');
 }
 
 function centerMap() {
-    zoomToItaly();
+    mapZoomLevel = 1;
+    updateMapZoom();
+    showNotification('Mappa centrata', 'info');
+}
+
+function updateMapZoom() {
+    const mapSvg = document.querySelector('.italy-svg');
+    if (mapSvg) {
+        mapSvg.style.transform = `scale(${mapZoomLevel})`;
+        mapSvg.style.transition = 'transform 0.3s ease';
+    }
 }
 
 // ===== AUTENTICAZIONE =====
 function showLogin() {
-    $('#loginModal').modal('show');
+    const modal = new bootstrap.Modal(document.getElementById('loginModal'));
+    modal.show();
 }
 
 function showRegister() {
-    $('#registerModal').modal('show');
+    const modal = new bootstrap.Modal(document.getElementById('registerModal'));
+    modal.show();
 }
 
 function switchToRegister() {
-    $('#loginModal').modal('hide');
-    setTimeout(() => $('#registerModal').modal('show'), 300);
+    const loginModal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
+    loginModal.hide();
+    setTimeout(() => {
+        const registerModal = new bootstrap.Modal(document.getElementById('registerModal'));
+        registerModal.show();
+    }, 300);
 }
 
 function switchToLogin() {
-    $('#registerModal').modal('hide');
-    setTimeout(() => $('#loginModal').modal('show'), 300);
+    const registerModal = bootstrap.Modal.getInstance(document.getElementById('registerModal'));
+    registerModal.hide();
+    setTimeout(() => {
+        const loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
+        loginModal.show();
+    }, 300);
 }
 
 function logout() {
@@ -842,13 +518,17 @@ function logout() {
 }
 
 function updateAuthUI() {
+    const authButtons = document.getElementById('authButtons');
+    const userMenu = document.getElementById('userMenu');
+    const userName = document.getElementById('userName');
+
     if (isAuthenticated && currentUser) {
-        $('#authButtons').hide();
-        $('#userMenu').show();
-        $('#userName').text(currentUser.name + ' ' + currentUser.surname);
+        authButtons.style.display = 'none';
+        userMenu.style.display = 'block';
+        userName.textContent = currentUser.name + ' ' + currentUser.surname;
     } else {
-        $('#authButtons').show();
-        $('#userMenu').hide();
+        authButtons.style.display = 'block';
+        userMenu.style.display = 'none';
     }
 }
 
@@ -856,13 +536,12 @@ function updateAuthUI() {
 function loadProfile() {
     if (!currentUser) return;
 
-    $('#profileName').val(currentUser.name || '');
-    $('#profileSurname').val(currentUser.surname || '');
-    $('#profileEmail').val(currentUser.email || '');
-    $('#profilePhone').val(currentUser.phone || '');
-    $('#profileCompany').val(currentUser.company || '');
-    $('#profileAccountType').val(currentUser.accountType || 'client');
-    $('#profileBirthDate').val(currentUser.birthDate || '');
+    document.getElementById('profileName').value = currentUser.name || '';
+    document.getElementById('profileSurname').value = currentUser.surname || '';
+    document.getElementById('profileEmail').value = currentUser.email || '';
+    document.getElementById('profilePhone').value = currentUser.phone || '';
+    document.getElementById('profileCompany').value = currentUser.company || '';
+    document.getElementById('profileAccountType').value = currentUser.accountType || 'client';
 }
 
 function showProfile() {
@@ -878,11 +557,11 @@ function cancelProfileEdit() {
 function loadBookings() {
     if (!currentUser) return;
 
-    const container = $('#bookingsContainer');
+    const container = document.getElementById('bookingsContainer');
     const userBookings = mockBookings.filter(b => b.userId === currentUser.id);
 
     if (userBookings.length === 0) {
-        container.html(`
+        container.innerHTML = `
             <div class="text-center py-5">
                 <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
                 <h4>Nessuna prenotazione trovata</h4>
@@ -891,56 +570,33 @@ function loadBookings() {
                     <i class="fas fa-search"></i> Esplora Spazi
                 </button>
             </div>
-        `);
+        `;
         return;
     }
 
     const bookingsHtml = userBookings.map(booking => `
         <div class="col-md-6 mb-4">
-            <div class="card booking-card">
+            <div class="card">
                 <div class="card-header d-flex justify-content-between">
                     <h6 class="mb-0">${booking.spaceName}</h6>
-                    <span class="badge booking-status ${booking.status}">${booking.status === 'confirmed' ? 'Confermata' : 'Pending'}</span>
+                    <span class="badge bg-success">Confermata</span>
                 </div>
                 <div class="card-body">
-                    <p><i class="fas fa-calendar me-2"></i><strong>Data:</strong> ${booking.startDate}</p>
-                    <p><i class="fas fa-clock me-2"></i><strong>Orario:</strong> ${booking.startTime} - ${booking.endTime}</p>
-                    <p><i class="fas fa-users me-2"></i><strong>Persone:</strong> ${booking.people}</p>
-                    <p><i class="fas fa-euro-sign me-2"></i><strong>Prezzo:</strong> ${formatPrice(booking.totalPrice)}</p>
-                    ${booking.notes ? `<p><i class="fas fa-sticky-note me-2"></i><strong>Note:</strong> ${booking.notes}</p>` : ''}
-                    <div class="mt-3">
-                        <button class="btn btn-outline-primary btn-sm me-2" onclick="modifyBooking(${booking.id})">
-                            <i class="fas fa-edit"></i> Modifica
-                        </button>
-                        <button class="btn btn-outline-danger btn-sm" onclick="cancelBooking(${booking.id})">
-                            <i class="fas fa-times"></i> Cancella
-                        </button>
-                    </div>
+                    <p><strong>Data:</strong> ${booking.startDate}</p>
+                    <p><strong>Orario:</strong> ${booking.startTime} - ${booking.endTime}</p>
+                    <p><strong>Persone:</strong> ${booking.people}</p>
+                    <p><strong>Prezzo:</strong> ${formatPrice(booking.totalPrice)}</p>
+                    ${booking.notes ? `<p><strong>Note:</strong> ${booking.notes}</p>` : ''}
                 </div>
             </div>
         </div>
     `).join('');
 
-    container.html('<div class="row">' + bookingsHtml + '</div>');
+    container.innerHTML = '<div class="row">' + bookingsHtml + '</div>';
 }
 
 function showBookings() {
     showSection('bookings');
-}
-
-function modifyBooking(bookingId) {
-    showNotification('Funzionalità di modifica prenotazione in sviluppo', 'info');
-}
-
-function cancelBooking(bookingId) {
-    if (confirm('Sei sicuro di voler cancellare questa prenotazione?')) {
-        const bookingIndex = mockBookings.findIndex(b => b.id === bookingId);
-        if (bookingIndex !== -1) {
-            mockBookings.splice(bookingIndex, 1);
-            loadBookings();
-            showNotification('Prenotazione cancellata con successo', 'success');
-        }
-    }
 }
 
 // ===== DASHBOARD =====
@@ -954,19 +610,20 @@ function showDashboard() {
 }
 
 function showDashboardTab(tabName) {
-    $('.sidebar-menu a').removeClass('active');
-    $(`.sidebar-menu a[onclick*="${tabName}"]`).addClass('active');
+    document.querySelectorAll('.sidebar-menu a').forEach(link => link.classList.remove('active'));
+    const activeLink = document.querySelector(`.sidebar-menu a[onclick*="${tabName}"]`);
+    if (activeLink) activeLink.classList.add('active');
 
-    const content = $('#dashboardTabsContent');
+    const content = document.getElementById('dashboardTabsContent');
 
     switch(tabName) {
         case 'overview':
-            content.html(`
+            content.innerHTML = `
                 <h3 class="mb-4">Panoramica</h3>
                 <div class="row">
                     <div class="col-md-3 mb-4">
                         <div class="stats-card text-center p-4">
-                            <div class="stats-icon bg-primary-gradient text-white rounded-circle mx-auto mb-3" style="width: 60px; height: 60px; line-height: 60px;">
+                            <div class="stats-icon bg-primary text-white rounded-circle mx-auto mb-3" style="width: 60px; height: 60px; line-height: 60px;">
                                 <i class="fas fa-calendar-check"></i>
                             </div>
                             <h4>15</h4>
@@ -1001,61 +658,115 @@ function showDashboardTab(tabName) {
                         </div>
                     </div>
                 </div>
-                <div class="row">
-                    <div class="col-12">
-                        <div class="card">
-                            <div class="card-header">
-                                <h5><i class="fas fa-chart-line me-2"></i>Andamento Prenotazioni</h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="alert alert-info">
-                                    <i class="fas fa-info-circle"></i>
-                                    Grafici e statistiche dettagliate saranno disponibili nella versione completa.
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `);
+            `;
             break;
         default:
-            content.html(`
+            content.innerHTML = `
                 <h3 class="mb-4">${tabName.charAt(0).toUpperCase() + tabName.slice(1)}</h3>
                 <div class="alert alert-info">
                     <i class="fas fa-info-circle"></i>
                     Sezione ${tabName} in sviluppo per questa demo.
                 </div>
-            `);
+            `;
     }
 }
 
 // ===== FILTRI =====
 function showFilters() {
-    $('#filtersModal').modal('show');
+    const modal = new bootstrap.Modal(document.getElementById('filtersModal'));
+    modal.show();
 }
 
 function clearFilters() {
-    $('#filtersForm')[0]?.reset();
-    $('#quickCity').val('');
-    $('#quickSpaceType').val('');
-    $('#quickCapacity').val('');
-    $('#searchSpaces').val('');
+    const form = document.getElementById('filtersForm');
+    if (form) form.reset();
 
-    $('.quick-filter-btn').removeClass('active');
+    document.getElementById('quickCity').value = '';
+    document.getElementById('quickSpaceType').value = '';
+    document.getElementById('quickCapacity').value = '';
+    document.getElementById('searchSpaces').value = '';
+
+    document.querySelectorAll('.quick-filter-btn').forEach(btn => btn.classList.remove('active'));
 
     currentSpaces = [...mockSpaces];
     loadSpaces();
 
-    // Aggiorna anche la mappa se visibile
-    if ($('#mapContainer').is(':visible') && map) {
-        updateMapMarkers();
-    }
-
     showNotification('Filtri cancellati', 'info');
 }
 
+// ===== RICERCA E FILTRI =====
+function setupSearch() {
+    let searchTimeout;
+    const searchInput = document.getElementById('searchSpaces');
+
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                const searchTerm = this.value.toLowerCase();
+                if (searchTerm) {
+                    currentSpaces = mockSpaces.filter(space =>
+                        space.name.toLowerCase().includes(searchTerm) ||
+                        space.city.toLowerCase().includes(searchTerm) ||
+                        space.description.toLowerCase().includes(searchTerm)
+                    );
+                } else {
+                    currentSpaces = [...mockSpaces];
+                }
+                loadSpaces();
+                if (document.getElementById('mapContainer').style.display !== 'none') {
+                    updateMapMarkers();
+                }
+            }, 300);
+        });
+    }
+}
+
+function setupQuickFilters() {
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('quick-filter-btn')) {
+            const filter = e.target.getAttribute('data-filter');
+            e.target.classList.toggle('active');
+
+            if (filter === 'featured') {
+                currentSpaces = e.target.classList.contains('active')
+                    ? mockSpaces.filter(s => s.featured)
+                    : [...mockSpaces];
+                loadSpaces();
+                if (document.getElementById('mapContainer').style.display !== 'none') {
+                    updateMapMarkers();
+                }
+            } else if (filter === 'available') {
+                currentSpaces = e.target.classList.contains('active')
+                    ? mockSpaces.filter(s => s.available)
+                    : [...mockSpaces];
+                loadSpaces();
+                if (document.getElementById('mapContainer').style.display !== 'none') {
+                    updateMapMarkers();
+                }
+            } else if (filter === 'hot-desk') {
+                currentSpaces = e.target.classList.contains('active')
+                    ? mockSpaces.filter(s => s.type === 'hot-desk')
+                    : [...mockSpaces];
+                loadSpaces();
+                if (document.getElementById('mapContainer').style.display !== 'none') {
+                    updateMapMarkers();
+                }
+            } else if (filter === 'meeting-room') {
+                currentSpaces = e.target.classList.contains('active')
+                    ? mockSpaces.filter(s => s.type === 'meeting-room')
+                    : [...mockSpaces];
+                loadSpaces();
+                if (document.getElementById('mapContainer').style.display !== 'none') {
+                    updateMapMarkers();
+                }
+            }
+        }
+    });
+}
+
 // ===== INIZIALIZZAZIONE =====
-$(document).ready(function() {
+document.addEventListener('DOMContentLoaded', function() {
     console.log('CoWorkSpace inizializzato');
 
     // Inizializza spazi
@@ -1074,316 +785,208 @@ $(document).ready(function() {
     }
 
     // Setup form handlers
-    $('#loginForm').on('submit', function(e) {
-        e.preventDefault();
-        const email = $('#loginEmail').val();
-        const password = $('#loginPassword').val();
+    const loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+        loginForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
 
-        if (!email || !password) {
-            showNotification('Inserisci email e password', 'warning');
-            return;
-        }
+            if (!email || !password) {
+                showNotification('Inserisci email e password', 'warning');
+                return;
+            }
 
-        currentUser = {
-            id: 1,
-            name: "Mario",
-            surname: "Rossi",
-            email: email,
-            accountType: email.includes('manager') ? 'manager' : 'client'
-        };
-        isAuthenticated = true;
+            currentUser = {
+                id: 1,
+                name: "Mario",
+                surname: "Rossi",
+                email: email,
+                accountType: email.includes('manager') ? 'manager' : 'client'
+            };
+            isAuthenticated = true;
 
-        if ($('#rememberMe').is(':checked')) {
+            if (document.getElementById('rememberMe').checked) {
+                localStorage.setItem('coworkspace_user', JSON.stringify(currentUser));
+            }
+
+            const loginModal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
+            loginModal.hide();
+
+            updateAuthUI();
+            showNotification('Login effettuato con successo', 'success');
+
+            if (currentUser.accountType === 'manager') {
+                showSection('dashboard');
+            }
+        });
+    }
+
+    const registerForm = document.getElementById('registerForm');
+    if (registerForm) {
+        registerForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const name = document.getElementById('registerName').value;
+            const surname = document.getElementById('registerSurname').value;
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const accountType = document.getElementById('registerAccountType').value;
+
+            if (!name || !surname || !email || !password || !accountType) {
+                showNotification('Compila tutti i campi obbligatori', 'warning');
+                return;
+            }
+
+            if (password !== confirmPassword) {
+                showNotification('Le password non coincidono', 'error');
+                return;
+            }
+
+            if (!document.getElementById('acceptTerms').checked) {
+                showNotification('Devi accettare i termini e condizioni', 'warning');
+                return;
+            }
+
+            currentUser = {
+                id: Date.now(),
+                name: name,
+                surname: surname,
+                email: email,
+                accountType: accountType
+            };
+            isAuthenticated = true;
+
             localStorage.setItem('coworkspace_user', JSON.stringify(currentUser));
-        }
 
-        $('#loginModal').modal('hide');
-        updateAuthUI();
-        showNotification('Login effettuato con successo', 'success');
+            const registerModal = bootstrap.Modal.getInstance(document.getElementById('registerModal'));
+            registerModal.hide();
 
-        if (currentUser.accountType === 'manager') {
-            showSection('dashboard');
-        }
-    });
+            updateAuthUI();
+            showNotification('Registrazione completata con successo', 'success');
+        });
+    }
 
-    $('#registerForm').on('submit', function(e) {
-        e.preventDefault();
-        const name = $('#registerName').val();
-        const surname = $('#registerSurname').val();
-        const email = $('#registerEmail').val();
-        const password = $('#registerPassword').val();
-        const confirmPassword = $('#confirmPassword').val();
-        const accountType = $('#registerAccountType').val();
+    const quickSearchForm = document.getElementById('quickSearchForm');
+    if (quickSearchForm) {
+        quickSearchForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            showSection('spaces');
+        });
+    }
 
-        if (!name || !surname || !email || !password || !accountType) {
-            showNotification('Compila tutti i campi obbligatori', 'warning');
-            return;
-        }
+    const bookingForm = document.getElementById('bookingForm');
+    if (bookingForm) {
+        bookingForm.addEventListener('submit', function(e) {
+            e.preventDefault();
 
-        if (password !== confirmPassword) {
-            showNotification('Le password non coincidono', 'error');
-            return;
-        }
+            if (!isAuthenticated) {
+                showNotification('Devi effettuare il login per prenotare', 'warning');
+                const spaceModal = bootstrap.Modal.getInstance(document.getElementById('spaceDetailModal'));
+                spaceModal.hide();
+                setTimeout(() => showLogin(), 300);
+                return;
+            }
 
-        if (!$('#acceptTerms').is(':checked')) {
-            showNotification('Devi accettare i termini e condizioni', 'warning');
-            return;
-        }
+            const spaceId = parseInt(document.getElementById('spaceDetailModal').getAttribute('data-space-id'));
+            const booking = {
+                id: Date.now(),
+                spaceId: spaceId,
+                userId: currentUser.id,
+                spaceName: document.getElementById('spaceDetailTitle').textContent,
+                startDate: document.getElementById('bookingStartDate').value,
+                endDate: document.getElementById('bookingEndDate').value,
+                startTime: document.getElementById('bookingStartTime').value,
+                endTime: document.getElementById('bookingEndTime').value,
+                people: document.getElementById('bookingPeople').value,
+                notes: document.getElementById('bookingNotes').value,
+                totalPrice: parseFloat(document.getElementById('totalPrice').textContent.replace('€', '')),
+                status: 'confirmed'
+            };
 
-        currentUser = {
-            id: Date.now(),
-            name: name,
-            surname: surname,
-            email: email,
-            phone: $('#registerPhone').val(),
-            company: $('#registerCompany').val(),
-            accountType: accountType
-        };
-        isAuthenticated = true;
+            mockBookings.push(booking);
 
-        localStorage.setItem('coworkspace_user', JSON.stringify(currentUser));
+            const spaceModal = bootstrap.Modal.getInstance(document.getElementById('spaceDetailModal'));
+            spaceModal.hide();
 
-        $('#registerModal').modal('hide');
-        updateAuthUI();
-        showNotification('Registrazione completata con successo', 'success');
-    });
+            showNotification('Prenotazione effettuata con successo!', 'success');
 
-    $('#quickSearchForm').on('submit', function(e) {
-        e.preventDefault();
-        const city = $('#quickCity').val();
-        const spaceType = $('#quickSpaceType').val();
+            setTimeout(() => showSection('bookings'), 1000);
+        });
+    }
 
-        // Applica filtri dalla ricerca rapida
-        if (city || spaceType) {
+    const profileForm = document.getElementById('profileForm');
+    if (profileForm) {
+        profileForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            currentUser.name = document.getElementById('profileName').value;
+            currentUser.surname = document.getElementById('profileSurname').value;
+            currentUser.email = document.getElementById('profileEmail').value;
+            currentUser.phone = document.getElementById('profilePhone').value;
+            currentUser.company = document.getElementById('profileCompany').value;
+
+            localStorage.setItem('coworkspace_user', JSON.stringify(currentUser));
+            updateAuthUI();
+            showNotification('Profilo aggiornato con successo', 'success');
+        });
+    }
+
+    // Update prezzo quando cambiano le date
+    const startDateInput = document.getElementById('bookingStartDate');
+    const endDateInput = document.getElementById('bookingEndDate');
+
+    if (startDateInput && endDateInput) {
+        [startDateInput, endDateInput].forEach(input => {
+            input.addEventListener('change', function() {
+                const spaceId = parseInt(document.getElementById('spaceDetailModal').getAttribute('data-space-id'));
+                const space = mockSpaces.find(s => s.id === spaceId);
+                if (space) updateBookingPrice(space);
+            });
+        });
+    }
+
+    // Filters form
+    const filtersForm = document.getElementById('filtersForm');
+    if (filtersForm) {
+        filtersForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const city = document.getElementById('quickCity').value;
+            const spaceType = document.getElementById('quickSpaceType').value;
+            const minPrice = parseInt(document.getElementById('minPrice').value) || 0;
+            const maxPrice = parseInt(document.getElementById('maxPrice').value) || 999999;
+            const onlyAvailable = document.getElementById('onlyAvailable').checked;
+
             currentSpaces = mockSpaces.filter(space => {
                 if (city && space.city !== city) return false;
                 if (spaceType && space.type !== spaceType) return false;
+                if (space.price < minPrice || space.price > maxPrice) return false;
+                if (onlyAvailable && !space.available) return false;
                 return true;
             });
-        }
 
-        showSection('spaces');
-    });
-
-    $('#bookingForm').on('submit', function(e) {
-        e.preventDefault();
-
-        if (!isAuthenticated) {
-            showNotification('Devi effettuare il login per prenotare', 'warning');
-            $('#spaceDetailModal').modal('hide');
-            setTimeout(() => showLogin(), 300);
-            return;
-        }
-
-        const spaceId = parseInt($('#spaceDetailModal').data('space-id'));
-        const booking = {
-            id: Date.now(),
-            spaceId: spaceId,
-            userId: currentUser.id,
-            spaceName: $('#spaceDetailTitle').text(),
-            startDate: $('#bookingStartDate').val(),
-            endDate: $('#bookingEndDate').val(),
-            startTime: $('#bookingStartTime').val(),
-            endTime: $('#bookingEndTime').val(),
-            people: $('#bookingPeople').val(),
-            notes: $('#bookingNotes').val(),
-            totalPrice: parseFloat($('#totalPrice').text().replace('€', '')),
-            status: 'confirmed'
-        };
-
-        mockBookings.push(booking);
-
-        $('#spaceDetailModal').modal('hide');
-        showNotification('Prenotazione effettuata con successo!', 'success');
-
-        setTimeout(() => showSection('bookings'), 1000);
-    });
-
-    $('#profileForm').on('submit', function(e) {
-        e.preventDefault();
-
-        currentUser.name = $('#profileName').val();
-        currentUser.surname = $('#profileSurname').val();
-        currentUser.email = $('#profileEmail').val();
-        currentUser.phone = $('#profilePhone').val();
-        currentUser.company = $('#profileCompany').val();
-        currentUser.birthDate = $('#profileBirthDate').val();
-
-        localStorage.setItem('coworkspace_user', JSON.stringify(currentUser));
-        updateAuthUI();
-        showNotification('Profilo aggiornato con successo', 'success');
-    });
-
-    // Update prezzo quando cambiano le date
-    $('#bookingStartDate, #bookingEndDate').on('change', function() {
-        const spaceId = parseInt($('#spaceDetailModal').data('space-id'));
-        const space = mockSpaces.find(s => s.id === spaceId);
-        if (space) updateBookingPrice(space);
-    });
-
-    // Quick filters
-    $(document).on('click', '.quick-filter-btn', function() {
-        const filter = $(this).data('filter');
-        $(this).toggleClass('active');
-
-        let filteredSpaces = [...mockSpaces];
-
-        // Applica tutti i filtri attivi
-        $('.quick-filter-btn.active').each(function() {
-            const activeFilter = $(this).data('filter');
-            switch(activeFilter) {
-                case 'available':
-                    filteredSpaces = filteredSpaces.filter(s => s.available);
-                    break;
-                case 'featured':
-                    filteredSpaces = filteredSpaces.filter(s => s.featured);
-                    break;
-                case 'hot-desk':
-                    filteredSpaces = filteredSpaces.filter(s => s.type === 'hot-desk');
-                    break;
-                case 'meeting-room':
-                    filteredSpaces = filteredSpaces.filter(s => s.type === 'meeting-room');
-                    break;
-            }
-        });
-
-        currentSpaces = filteredSpaces;
-        loadSpaces();
-
-        // Aggiorna la mappa se visibile
-        if ($('#mapContainer').is(':visible') && map) {
-            setTimeout(() => {
-                updateMapMarkers();
-            }, 100);
-        }
-    });
-
-    // Search with debounce
-    let searchTimeout;
-    $('#searchSpaces').on('input', function() {
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(() => {
-            const searchTerm = $(this).val().toLowerCase();
-            if (searchTerm) {
-                currentSpaces = mockSpaces.filter(space =>
-                    space.name.toLowerCase().includes(searchTerm) ||
-                    space.city.toLowerCase().includes(searchTerm) ||
-                    space.description.toLowerCase().includes(searchTerm) ||
-                    space.amenities.some(amenity =>
-                        getAmenityLabel(amenity).toLowerCase().includes(searchTerm)
-                    )
-                );
-            } else {
-                currentSpaces = [...mockSpaces];
-            }
             loadSpaces();
 
-            // Aggiorna la mappa se visibile
-            if ($('#mapContainer').is(':visible') && map) {
-                setTimeout(() => {
-                    updateMapMarkers();
-                }, 100);
-            }
-        }, 300);
-    });
+            const filtersModal = bootstrap.Modal.getInstance(document.getElementById('filtersModal'));
+            filtersModal.hide();
 
-    // Filters form
-    $('#filtersForm').on('submit', function(e) {
-        e.preventDefault();
-
-        const city = $('#quickCity').val();
-        const spaceType = $('#quickSpaceType').val();
-        const minPrice = parseInt($('#minPrice').val()) || 0;
-        const maxPrice = parseInt($('#maxPrice').val()) || 999999;
-        const capacity = $('#filterCapacity').val();
-        const onlyAvailable = $('#onlyAvailable').is(':checked');
-        const minRating = parseFloat($('#minRating').val()) || 0;
-
-        // Ottieni servizi selezionati
-        const selectedAmenities = [];
-        $('#filtersForm input[type="checkbox"]:checked').each(function() {
-            const value = $(this).val();
-            if (value && value !== 'on') {
-                selectedAmenities.push(value);
-            }
+            showNotification('Filtri applicati con successo', 'success');
         });
-
-        currentSpaces = mockSpaces.filter(space => {
-            if (city && space.city !== city) return false;
-            if (spaceType && space.type !== spaceType) return false;
-            if (space.price < minPrice || space.price > maxPrice) return false;
-            if (onlyAvailable && !space.available) return false;
-            if (space.rating < minRating) return false;
-
-            // Filtra per capacità
-            if (capacity) {
-                const [min, max] = capacity.includes('-') ? capacity.split('-').map(Number) : [parseInt(capacity.replace('+', '')), Infinity];
-                if (space.capacity < min || (max !== Infinity && space.capacity > max)) return false;
-            }
-
-            // Filtra per servizi
-            if (selectedAmenities.length > 0) {
-                if (!selectedAmenities.every(amenity => space.amenities.includes(amenity))) return false;
-            }
-
-            return true;
-        });
-
-        loadSpaces();
-        $('#filtersModal').modal('hide');
-        showNotification(`Filtri applicati: ${currentSpaces.length} spazi trovati`, 'success');
-
-        // Aggiorna la mappa se visibile
-        if ($('#mapContainer').is(':visible') && map) {
-            setTimeout(() => {
-                updateMapMarkers();
-            }, 100);
-        }
-    });
+    }
 
     // Imposta data minima
     const today = new Date().toISOString().split('T')[0];
-    $('input[type="date"]').attr('min', today);
-
-    // Event listeners per filtri booking
-    $(document).on('click', '.booking-filters .btn-group .btn', function() {
-        $('.booking-filters .btn-group .btn').removeClass('active');
-        $(this).addClass('active');
-
-        const filter = $(this).data('filter');
-        // Implementa filtro prenotazioni se necessario
-        showNotification(`Filtro prenotazioni: ${filter}`, 'info');
+    document.querySelectorAll('input[type="date"]').forEach(input => {
+        input.setAttribute('min', today);
     });
 
-    // Load more spaces
-    $('#loadMoreSpaces').on('click', function() {
-        showNotification('Funzionalità "Carica Altri Spazi" in sviluppo', 'info');
-    });
+    // Setup search e quick filters
+    setupSearch();
+    setupQuickFilters();
 
-    console.log('Setup completato con mappa Leaflet');
+    // Setup iniziale UI
+    updateAuthUI();
+
+    console.log('Setup completato');
 });
-
-// ===== FUNZIONI GLOBALI PER COMPATIBILITÀ =====
-window.showSection = showSection;
-window.showLogin = showLogin;
-window.showRegister = showRegister;
-window.switchToRegister = switchToRegister;
-window.switchToLogin = switchToLogin;
-window.logout = logout;
-window.showProfile = showProfile;
-window.showBookings = showBookings;
-window.showDashboard = showDashboard;
-window.showDashboardTab = showDashboardTab;
-window.cancelProfileEdit = cancelProfileEdit;
-window.showSpaceDetail = showSpaceDetail;
-window.showOnMap = showOnMap;
-window.showMapView = showMapView;
-window.showGridView = showGridView;
-window.showFilters = showFilters;
-window.clearFilters = clearFilters;
-window.zoomIn = zoomIn;
-window.zoomOut = zoomOut;
-window.centerMap = centerMap;
-window.zoomToItaly = zoomToItaly;
-window.toggleSatellite = toggleSatellite;
-window.locateUser = locateUser;

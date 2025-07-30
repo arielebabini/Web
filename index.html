@@ -11,16 +11,12 @@
 
     <!-- Bootstrap CSS -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
-
     <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <!-- Custom CSS -->
     <link rel="stylesheet" href="styles.css">
-
-    <!-- Custom JavaScript -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/css/leaflet.min.css" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 </head>
+
 <body>
 <!-- Navigation -->
 <nav class="navbar navbar-expand-lg navbar-light fixed-top">
@@ -260,7 +256,69 @@
 
             <!-- Map Container -->
             <div id="mapContainer" style="display: none;">
-                <!-- Map will be loaded here by JavaScript -->
+                <div class="italy-map-container">
+                    <div class="map-header">
+                        <h4><i class="fas fa-map text-primary"></i> Mappa degli Spazi</h4>
+                        <div class="map-controls">
+                            <button class="btn btn-sm btn-outline-primary" onclick="zoomIn()">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-primary" onclick="zoomOut()">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-primary" onclick="centerMap()">
+                                <i class="fas fa-crosshairs"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="italy-map" id="italyMap">
+                        <svg viewBox="0 0 800 1000" class="italy-svg">
+                            <!-- Forma stilizzata dell'Italia -->
+                            <path d="M300 100 Q350 80 400 100 Q450 90 500 120 Q520 150 510 200 Q500 250 480 300 Q460 350 450 400 Q440 450 430 500 Q420 550 410 600 Q400 650 390 700 Q380 750 370 800 Q360 850 350 900 L340 900 Q330 850 320 800 Q310 750 300 700 Q290 650 280 600 Q270 550 260 500 Q250 450 240 400 Q230 350 220 300 Q210 250 220 200 Q230 150 250 120 Q270 100 300 100 Z"
+                                  fill="#e8f2ff" stroke="#667eea" stroke-width="2"/>
+
+                            <!-- Marker per Milano -->
+                            <circle cx="320" cy="200" r="8" fill="#667eea" class="city-marker" data-city="Milano" data-count="2">
+                                <animate attributeName="r" values="8;12;8" dur="2s" repeatCount="indefinite"/>
+                            </circle>
+
+                            <!-- Marker per Roma -->
+                            <circle cx="380" cy="500" r="8" fill="#667eea" class="city-marker" data-city="Roma" data-count="1">
+                                <animate attributeName="r" values="8;12;8" dur="2s" repeatCount="indefinite"/>
+                            </circle>
+
+                            <!-- Marker per Torino -->
+                            <circle cx="280" cy="180" r="8" fill="#667eea" class="city-marker" data-city="Torino" data-count="1">
+                                <animate attributeName="r" values="8;12;8" dur="2s" repeatCount="indefinite"/>
+                            </circle>
+
+                            <!-- Marker per Bologna -->
+                            <circle cx="360" cy="320" r="8" fill="#667eea" class="city-marker" data-city="Bologna" data-count="1">
+                                <animate attributeName="r" values="8;12;8" dur="2s" repeatCount="indefinite"/>
+                            </circle>
+
+                            <!-- Labels delle città -->
+                            <text x="330" y="195" fill="#1f2937" font-size="14" font-weight="bold">Milano</text>
+                            <text x="390" y="495" fill="#1f2937" font-size="14" font-weight="bold">Roma</text>
+                            <text x="290" y="175" fill="#1f2937" font-size="14" font-weight="bold">Torino</text>
+                            <text x="370" y="315" fill="#1f2937" font-size="14" font-weight="bold">Bologna</text>
+                        </svg>
+
+                        <!-- Popup per i dettagli delle città -->
+                        <div id="cityPopup" class="city-popup" style="display: none;">
+                            <div class="popup-content">
+                                <h5 id="popupCityName"></h5>
+                                <p id="popupSpaceCount"></p>
+                                <button class="btn btn-sm btn-primary" onclick="filterByCity()">
+                                    Vedi Spazi
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="map-footer">
+                        <span id="mapSpaceCount">4 spazi sulla mappa</span>
+                    </div>
+                </div>
             </div>
 
             <!-- Load More Button -->
@@ -1262,43 +1320,39 @@
     // Cookie Banner Management
     function showCookieBanner() {
         if (!localStorage.getItem('cookiesAccepted')) {
-            $('#cookieBanner').fadeIn();
+            document.getElementById('cookieBanner').style.display = 'block';
         }
     }
 
     function acceptCookies() {
         localStorage.setItem('cookiesAccepted', 'true');
-        $('#cookieBanner').fadeOut();
+        document.getElementById('cookieBanner').style.display = 'none';
     }
 
     function declineCookies() {
         localStorage.setItem('cookiesAccepted', 'false');
-        $('#cookieBanner').fadeOut();
+        document.getElementById('cookieBanner').style.display = 'none';
     }
 
     // Back to Top Button
     function scrollToTop() {
-        $('html, body').animate({scrollTop: 0}, 800);
+        window.scrollTo({top: 0, behavior: 'smooth'});
     }
 
     // Show/Hide Back to Top Button
-    $(window).scroll(function() {
-        if ($(this).scrollTop() > 100) {
-            $('#backToTop').fadeIn();
+    window.addEventListener('scroll', function() {
+        const backToTop = document.getElementById('backToTop');
+        if (window.scrollY > 100) {
+            backToTop.style.display = 'block';
         } else {
-            $('#backToTop').fadeOut();
+            backToTop.style.display = 'none';
         }
     });
 
     // Show cookie banner on page load
-    $(document).ready(function() {
+    document.addEventListener('DOMContentLoaded', function() {
         setTimeout(showCookieBanner, 2000);
     });
-
-    // Add global functions to window
-    window.acceptCookies = acceptCookies;
-    window.declineCookies = declineCookies;
-    window.scrollToTop = scrollToTop;
 </script>
 </body>
 </html>
