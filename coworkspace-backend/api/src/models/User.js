@@ -1,85 +1,37 @@
-// src/models/User.js - Modello User COMPLETO
-const bcrypt = require('bcryptjs');
-const { v4: uuidv4 } = require('uuid');
-const crypto = require('crypto');
-const db = require('../config/database');
+const { query } = require('../config/database');
 const logger = require('../utils/logger');
 
 class User {
-    constructor(userData) {
-        this.id = userData.id;
-        this.email = userData.email;
-        this.passwordHash = userData.password_hash || userData.passwordHash;
-        this.firstName = userData.first_name || userData.firstName;
-        this.lastName = userData.last_name || userData.lastName;
-        this.phone = userData.phone;
-        this.company = userData.company;
-        this.role = userData.role || 'client';
-        this.status = userData.status || 'active';
-        this.emailVerified = userData.email_verified || userData.emailVerified || false;
-        this.profileImage = userData.profile_image || userData.profileImage;
-        this.createdAt = userData.created_at || userData.createdAt;
-        this.updatedAt = userData.updated_at || userData.updatedAt;
-        this.lastLogin = userData.last_login || userData.lastLogin;
-        this.resetToken = userData.reset_token || userData.resetToken;
-        this.resetTokenExpires = userData.reset_token_expires || userData.resetTokenExpires;
-        this.emailVerificationToken = userData.verification_token || userData.emailVerificationToken;
-    }
-
     /**
      * Crea un nuovo utente
      * @param {Object} userData - Dati dell'utente
-     * @returns {Promise<User>} Nuovo utente creato
+     * @returns {Promise<Object>} Utente creato
      */
     static async create(userData) {
+        const {
+            email,
+            password_hash,
+            first_name,
+            last_name,
+            phone,
+            company,
+            role = 'client',
+            status = 'active'
+        } = userData;
+
         try {
-            const {
-                email,
-                password,
-                firstName,
-                lastName,
-                phone = null,
-                company = null,
-                role = 'client'
-            } = userData;
-
-            // Hash password
-            const saltRounds = parseInt(process.env.BCRYPT_ROUNDS) || 12;
-            const passwordHash = await bcrypt.hash(password, saltRounds);
-
-            // Genera token di verifica email
-            const emailVerificationToken = crypto.randomBytes(32).toString('hex');
-
-            const query = `
+            const result = await query(`
                 INSERT INTO users (
-                    id, email, password_hash, first_name, last_name,
-                    phone, company, role, email_verified, verification_token,
-                    created_at, updated_at
-                ) VALUES (
-                             $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW()
-                         ) RETURNING *
-            `;
+                    email, password_hash, first_name, last_name,
+                    phone, company, role, status
+                )
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                    RETURNING id, email, first_name, last_name, phone, 
+                         company, role, status, email_verified, 
+                         created_at, updated_at
+            `, [email, password_hash, first_name, last_name, phone, company, role, status]);
 
-            const userId = uuidv4();
-            const values = [
-                userId,
-                email.toLowerCase(),
-                passwordHash,
-                firstName,
-                lastName,
-                phone,
-                company,
-                role,
-                false, // email_verified
-                emailVerificationToken
-            ];
-
-            const result = await db.query(query, values);
-            const user = new User(result.rows[0]);
-
-            logger.info(`User created: ${user.email} (${user.id})`);
-            return user;
-
+            return result.rows[0];
         } catch (error) {
             logger.error('Error creating user:', error);
             throw error;
@@ -89,18 +41,19 @@ class User {
     /**
      * Trova utente per email
      * @param {string} email - Email dell'utente
-     * @returns {Promise<User|null>} Utente trovato o null
+     * @returns {Promise<Object|null>} Utente trovato
      */
     static async findByEmail(email) {
         try {
-            const query = 'SELECT * FROM users WHERE email = $1';
-            const result = await db.query(query, [email.toLowerCase()]);
+            const result = await query(`
+                SELECT id, email, password_hash, first_name, last_name,
+                       phone, company, role, status, email_verified,
+                       profile_image, created_at, updated_at, last_login
+                FROM users
+                WHERE email = $1 AND status != 'suspended'
+            `, [email]);
 
-            if (result.rows.length === 0) {
-                return null;
-            }
-
-            return new User(result.rows[0]);
+            return result.rows[0] || null;
         } catch (error) {
             logger.error('Error finding user by email:', error);
             throw error;
@@ -109,70 +62,22 @@ class User {
 
     /**
      * Trova utente per ID
-     * @param {string} id - ID dell'utente
-     * @returns {Promise<User|null>} Utente trovato o null
+     * @param {string} userId - ID dell'utente
+     * @returns {Promise<Object|null>} Utente trovato
      */
-    static async findById(id) {
+    static async findById(userId) {
         try {
-            const query = 'SELECT * FROM users WHERE id = $1';
-            const result = await db.query(query, [id]);
+            const result = await query(`
+                SELECT id, email, first_name, last_name, phone,
+                       company, role, status, email_verified,
+                       profile_image, created_at, updated_at, last_login
+                FROM users
+                WHERE id = $1
+            `, [userId]);
 
-            if (result.rows.length === 0) {
-                return null;
-            }
-
-            return new User(result.rows[0]);
+            return result.rows[0] || null;
         } catch (error) {
             logger.error('Error finding user by ID:', error);
-            throw error;
-        }
-    }
-
-    /**
-     * Trova utente per token di reset password
-     * @param {string} token - Token di reset
-     * @returns {Promise<User|null>} Utente trovato o null
-     */
-    static async findByResetToken(token) {
-        try {
-            const query = `
-                SELECT * FROM users
-                WHERE reset_token = $1
-                  AND reset_token_expires > NOW()
-            `;
-            const result = await db.query(query, [token]);
-
-            if (result.rows.length === 0) {
-                return null;
-            }
-
-            return new User(result.rows[0]);
-        } catch (error) {
-            logger.error('Error finding user by reset token:', error);
-            throw error;
-        }
-    }
-
-    /**
-     * Trova utente per token di verifica email
-     * @param {string} token - Token di verifica
-     * @returns {Promise<User|null>} Utente trovato o null
-     */
-    static async findByVerificationToken(token) {
-        try {
-            const query = `
-                SELECT * FROM users
-                WHERE verification_token = $1
-            `;
-            const result = await db.query(query, [token]);
-
-            if (result.rows.length === 0) {
-                return null;
-            }
-
-            return new User(result.rows[0]);
-        } catch (error) {
-            logger.error('Error finding user by verification token:', error);
             throw error;
         }
     }
@@ -181,50 +86,40 @@ class User {
      * Aggiorna profilo utente
      * @param {string} userId - ID dell'utente
      * @param {Object} updateData - Dati da aggiornare
-     * @returns {Promise<User>} Utente aggiornato
+     * @returns {Promise<Object>} Utente aggiornato
      */
     static async updateProfile(userId, updateData) {
+        const allowedFields = ['first_name', 'last_name', 'phone', 'company', 'profile_image'];
+        const updates = [];
+        const values = [];
+        let paramIndex = 1;
+
+        // Costruisce query dinamica solo per campi consentiti
+        Object.keys(updateData).forEach(key => {
+            if (allowedFields.includes(key) && updateData[key] !== undefined) {
+                updates.push(`${key} = $${paramIndex}`);
+                values.push(updateData[key]);
+                paramIndex++;
+            }
+        });
+
+        if (updates.length === 0) {
+            throw new Error('No valid fields to update');
+        }
+
+        values.push(userId);
+
         try {
-            const allowedFields = ['first_name', 'last_name', 'phone', 'company', 'profile_image'];
-            const updates = [];
-            const values = [];
-            let paramIndex = 1;
-
-            // Costruisce dinamicamente la query di update
-            Object.entries(updateData).forEach(([key, value]) => {
-                // Converti camelCase a snake_case per il database
-                const dbField = key.replace(/([A-Z])/g, '_$1').toLowerCase();
-
-                if (allowedFields.includes(dbField)) {
-                    updates.push(`${dbField} = ${paramIndex++}`);
-                    values.push(value);
-                }
-            });
-
-            if (updates.length === 0) {
-                throw new Error('No valid fields to update');
-            }
-
-            updates.push(`updated_at = NOW()`);
-            values.push(userId); // Per la WHERE clause
-
-            const query = `
+            const result = await query(`
                 UPDATE users
-                SET ${updates.join(', ')}
-                WHERE id = ${paramIndex}
-                    RETURNING *
-            `;
+                SET ${updates.join(', ')}, updated_at = CURRENT_TIMESTAMP
+                WHERE id = $${paramIndex}
+                    RETURNING id, email, first_name, last_name, phone, 
+                         company, role, status, email_verified,
+                         profile_image, created_at, updated_at
+            `, values);
 
-            const result = await db.query(query, values);
-
-            if (result.rows.length === 0) {
-                throw new Error('User not found');
-            }
-
-            const updatedUser = new User(result.rows[0]);
-            logger.info(`User profile updated: ${updatedUser.email}`);
-
-            return updatedUser;
+            return result.rows[0];
         } catch (error) {
             logger.error('Error updating user profile:', error);
             throw error;
@@ -232,159 +127,63 @@ class User {
     }
 
     /**
-     * Aggiorna password utente
+     * Aggiorna ruolo utente (solo admin)
      * @param {string} userId - ID dell'utente
-     * @param {string} newPassword - Nuova password
-     * @returns {Promise<boolean>} True se aggiornata con successo
+     * @param {string} newRole - Nuovo ruolo
+     * @returns {Promise<Object>} Utente aggiornato
      */
-    static async updatePassword(userId, newPassword) {
+    static async updateRole(userId, newRole) {
+        const validRoles = ['client', 'manager', 'admin'];
+
+        if (!validRoles.includes(newRole)) {
+            throw new Error('Invalid role');
+        }
+
         try {
-            const saltRounds = parseInt(process.env.BCRYPT_ROUNDS) || 12;
-            const passwordHash = await bcrypt.hash(newPassword, saltRounds);
-
-            const query = `
+            const result = await query(`
                 UPDATE users
-                SET password_hash = $1,
-                    reset_token = NULL,
-                    reset_token_expires = NULL,
-                    updated_at = NOW()
-                WHERE id = $2 AND status != 'deleted'
-                RETURNING id
-            `;
-
-            const result = await db.query(query, [passwordHash, userId]);
+                SET role = $1, updated_at = CURRENT_TIMESTAMP
+                WHERE id = $2
+                    RETURNING id, email, first_name, last_name, role, status
+            `, [newRole, userId]);
 
             if (result.rows.length === 0) {
-                throw new Error('User not found or deleted');
+                throw new Error('User not found');
             }
 
-            logger.info(`Password updated for user: ${userId}`);
-            return true;
+            return result.rows[0];
         } catch (error) {
-            logger.error('Error updating password:', error);
+            logger.error('Error updating user role:', error);
             throw error;
         }
     }
 
     /**
-     * Genera token per reset password
-     * @param {string} email - Email dell'utente
-     * @returns {Promise<string|null>} Token generato o null se utente non trovato
-     */
-    static async generateResetToken(email) {
-        try {
-            const resetToken = crypto.randomBytes(32).toString('hex');
-            const resetTokenExpires = new Date();
-            resetTokenExpires.setHours(resetTokenExpires.getHours() + 1); // Scade tra 1 ora
-
-            const query = `
-                UPDATE users
-                SET reset_token = $1,
-                    reset_token_expires = $2,
-                    updated_at = NOW()
-                WHERE email = $3 AND status != 'deleted'
-                RETURNING id, email
-            `;
-
-            const result = await db.query(query, [resetToken, resetTokenExpires, email.toLowerCase()]);
-
-            if (result.rows.length === 0) {
-                return null;
-            }
-
-            logger.info(`Reset token generated for: ${email}`);
-            return resetToken;
-        } catch (error) {
-            logger.error('Error generating reset token:', error);
-            throw error;
-        }
-    }
-
-    /**
-     * Verifica email utente
-     * @param {string} token - Token di verifica
-     * @returns {Promise<User|null>} Utente verificato o null
-     */
-    static async verifyEmail(token) {
-        try {
-            const query = `
-                UPDATE users
-                SET email_verified = true,
-                    verification_token = NULL,
-                    updated_at = NOW()
-                WHERE verification_token = $1 AND status != 'deleted'
-                RETURNING *
-            `;
-
-            const result = await db.query(query, [token]);
-
-            if (result.rows.length === 0) {
-                return null;
-            }
-
-            const user = new User(result.rows[0]);
-            logger.info(`Email verified for user: ${user.email}`);
-
-            return user;
-        } catch (error) {
-            logger.error('Error verifying email:', error);
-            throw error;
-        }
-    }
-
-    /**
-     * Aggiorna ultimo login
+     * Aggiorna status utente
      * @param {string} userId - ID dell'utente
-     * @returns {Promise<boolean>} True se aggiornato con successo
+     * @param {string} newStatus - Nuovo status
+     * @returns {Promise<Object>} Utente aggiornato
      */
-    static async updateLastLogin(userId) {
-        try {
-            const query = `
-                UPDATE users
-                SET last_login = NOW(), updated_at = NOW()
-                WHERE id = $1
-                    RETURNING id
-            `;
+    static async updateStatus(userId, newStatus) {
+        const validStatuses = ['active', 'inactive', 'suspended'];
 
-            const result = await db.query(query, [userId]);
-            return result.rows.length > 0;
-        } catch (error) {
-            logger.error('Error updating last login:', error);
-            throw error;
+        if (!validStatuses.includes(newStatus)) {
+            throw new Error('Invalid status');
         }
-    }
 
-    /**
-     * Aggiorna status utente (solo admin)
-     * @param {string} userId - ID dell'utente
-     * @param {string} status - Nuovo status
-     * @returns {Promise<User>} Utente aggiornato
-     */
-    static async updateStatus(userId, status) {
         try {
-            const validStatuses = ['active', 'inactive', 'suspended'];
-
-            if (!validStatuses.includes(status)) {
-                throw new Error('Invalid status');
-            }
-
-            const query = `
+            const result = await query(`
                 UPDATE users
-                SET status = $1, updated_at = NOW()
-                WHERE id = $2 AND status != 'deleted'
-                RETURNING *
-            `;
-
-            const result = await db.query(query, [status, userId]);
+                SET status = $1, updated_at = CURRENT_TIMESTAMP
+                WHERE id = $2
+                    RETURNING id, email, first_name, last_name, role, status
+            `, [newStatus, userId]);
 
             if (result.rows.length === 0) {
-                throw new Error('User not found or deleted');
+                throw new Error('User not found');
             }
 
-            const user = new User(result.rows[0]);
-            logger.info(`User status updated: ${user.email} -> ${status}`);
-
-            return user;
+            return result.rows[0];
         } catch (error) {
             logger.error('Error updating user status:', error);
             throw error;
@@ -392,29 +191,153 @@ class User {
     }
 
     /**
-     * Soft delete utente
+     * Lista utenti con filtri e paginazione
+     * @param {Object} options - Opzioni di ricerca
+     * @returns {Promise<Object>} Lista utenti paginata
+     */
+    static async findAll(options = {}) {
+        const {
+            page = 1,
+            limit = 20,
+            role,
+            status,
+            search,
+            sortBy = 'created_at',
+            sortOrder = 'DESC'
+        } = options;
+
+        const offset = (page - 1) * limit;
+        const conditions = [];
+        const values = [];
+        let paramIndex = 1;
+
+        // Filtri
+        if (role) {
+            conditions.push(`role = $${paramIndex}`);
+            values.push(role);
+            paramIndex++;
+        }
+
+        if (status) {
+            conditions.push(`status = $${paramIndex}`);
+            values.push(status);
+            paramIndex++;
+        }
+
+        if (search) {
+            conditions.push(`(
+                first_name ILIKE $${paramIndex} OR 
+                last_name ILIKE $${paramIndex} OR 
+                email ILIKE $${paramIndex} OR
+                company ILIKE $${paramIndex}
+            )`);
+            values.push(`%${search}%`);
+            paramIndex++;
+        }
+
+        const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+        // Validazione sortBy per sicurezza
+        const validSortFields = ['created_at', 'updated_at', 'first_name', 'last_name', 'email', 'role'];
+        const sortField = validSortFields.includes(sortBy) ? sortBy : 'created_at';
+        const sortDirection = sortOrder.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+
+        try {
+            // Query principale
+            const result = await query(`
+                SELECT id, email, first_name, last_name, phone,
+                       company, role, status, email_verified,
+                       profile_image, created_at, updated_at, last_login
+                FROM users
+                         ${whereClause}
+                ORDER BY ${sortField} ${sortDirection}
+                LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+            `, [...values, limit, offset]);
+
+            // Query per conteggio totale
+            const countResult = await query(`
+                SELECT COUNT(*) as total
+                FROM users
+                         ${whereClause}
+            `, values);
+
+            const total = parseInt(countResult.rows[0].total);
+            const totalPages = Math.ceil(total / limit);
+
+            return {
+                users: result.rows,
+                pagination: {
+                    page,
+                    limit,
+                    total,
+                    totalPages,
+                    hasNext: page < totalPages,
+                    hasPrev: page > 1
+                }
+            };
+        } catch (error) {
+            logger.error('Error fetching users:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Aggiorna ultimo login
      * @param {string} userId - ID dell'utente
-     * @returns {Promise<boolean>} True se eliminato con successo
+     * @returns {Promise<void>}
+     */
+    static async updateLastLogin(userId) {
+        try {
+            await query(`
+                UPDATE users
+                SET last_login = CURRENT_TIMESTAMP
+                WHERE id = $1
+            `, [userId]);
+        } catch (error) {
+            logger.error('Error updating last login:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Verifica email utente
+     * @param {string} userId - ID dell'utente
+     * @returns {Promise<Object>} Utente aggiornato
+     */
+    static async verifyEmail(userId) {
+        try {
+            const result = await query(`
+                UPDATE users
+                SET email_verified = TRUE,
+                    verification_token = NULL,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = $1
+                    RETURNING id, email, email_verified
+            `, [userId]);
+
+            return result.rows[0];
+        } catch (error) {
+            logger.error('Error verifying email:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Elimina utente (soft delete)
+     * @param {string} userId - ID dell'utente
+     * @returns {Promise<boolean>} Successo operazione
      */
     static async softDelete(userId) {
         try {
-            const query = `
+            const result = await query(`
                 UPDATE users
-                SET status = 'deleted',
-                    email = email || '_deleted_' || EXTRACT(EPOCH FROM NOW())::TEXT,
-                    updated_at = NOW()
-                WHERE id = $1 AND status != 'deleted'
-                    RETURNING id
-            `;
+                SET status = 'inactive',
+                    email = CONCAT(email, '_deleted_', extract(epoch from now())),
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = $1
+            `, [userId]);
 
-            const result = await db.query(query, [userId]);
-
-            if (result.rows.length === 0) {
-                throw new Error('User not found or already deleted');
-            }
-
-            logger.info(`User soft deleted: ${userId}`);
-            return true;
+            return result.rowCount > 0;
         } catch (error) {
             logger.error('Error soft deleting user:', error);
             throw error;
@@ -422,138 +345,42 @@ class User {
     }
 
     /**
-     * Lista utenti con filtri e paginazione
-     * @param {Object} options - Opzioni di query
-     * @returns {Promise<Object>} Risultati paginati
-     */
-    static async findAll(options = {}) {
-        try {
-            const {
-                page = 1,
-                limit = 10,
-                role,
-                status,
-                search,
-                sortBy = 'created_at',
-                sortOrder = 'DESC'
-            } = options;
-
-            // Costruisce filtri
-            const filters = {};
-            if (role) filters.role = role;
-            if (status) filters.status = status;
-            if (search) {
-                // Per ricerca, usa una query più complessa
-            }
-
-            const { whereClause, params, nextParamIndex } = db.buildWhereClause(filters);
-            const { limitClause, offset, limit: safeLimit } = db.buildPagination(page, limit);
-
-            // Query per il conteggio totale
-            let countQuery = 'SELECT COUNT(*) as total FROM users';
-            if (search) {
-                countQuery += ` WHERE (first_name ILIKE $${nextParamIndex} OR last_name ILIKE $${nextParamIndex + 1} OR email ILIKE $${nextParamIndex + 2}) AND status != 'deleted'`;
-                params.push(`%${search}%`, `%${search}%`, `%${search}%`);
-            } else if (whereClause) {
-                countQuery += ` ${whereClause} AND status != 'deleted'`;
-            } else {
-                countQuery += ` WHERE status != 'deleted'`;
-            }
-
-            // Query per i dati
-            let dataQuery = `
-                SELECT id, email, first_name, last_name, phone, company,
-                       role, status, email_verified, profile_image,
-                       created_at, updated_at, last_login
-                FROM users
-            `;
-
-            if (search) {
-                dataQuery += ` WHERE (first_name ILIKE $${nextParamIndex} OR last_name ILIKE $${nextParamIndex + 1} OR email ILIKE $${nextParamIndex + 2}) AND status != 'deleted'`;
-            } else if (whereClause) {
-                dataQuery += ` ${whereClause} AND status != 'deleted'`;
-            } else {
-                dataQuery += ` WHERE status != 'deleted'`;
-            }
-
-            dataQuery += ` ORDER BY ${sortBy} ${sortOrder} ${limitClause}`;
-
-            // Esegue le query
-            const [countResult, dataResult] = await Promise.all([
-                db.query(countQuery, search ? params.slice(0, -3).concat([`%${search}%`, `%${search}%`, `%${search}%`]) : params),
-                db.query(dataQuery, search ? params.slice(0, -3).concat([`%${search}%`, `%${search}%`, `%${search}%`]) : params)
-            ]);
-
-            const total = parseInt(countResult.rows[0].total);
-            const users = dataResult.rows.map(row => new User(row));
-
-            return {
-                users,
-                pagination: {
-                    page: parseInt(page),
-                    limit: safeLimit,
-                    total,
-                    pages: Math.ceil(total / safeLimit),
-                    hasNext: offset + safeLimit < total,
-                    hasPrev: page > 1
-                }
-            };
-        } catch (error) {
-            logger.error('Error finding users:', error);
-            throw error;
-        }
-    }
-
-    /**
-     * Verifica password
-     * @param {string} password - Password da verificare
-     * @returns {Promise<boolean>} True se la password è corretta
-     */
-    async verifyPassword(password) {
-        try {
-            return await bcrypt.compare(password, this.passwordHash);
-        } catch (error) {
-            logger.error('Error verifying password:', error);
-            return false;
-        }
-    }
-
-    /**
-     * Converte utente in formato JSON sicuro (senza password)
-     * @returns {Object} Dati utente sicuri
-     */
-    toJSON() {
-        const user = { ...this };
-        delete user.passwordHash;
-        delete user.resetToken;
-        delete user.resetTokenExpires;
-        delete user.emailVerificationToken;
-        return user;
-    }
-
-    /**
-     * Statistiche utenti (per admin)
+     * Statistiche utenti
      * @returns {Promise<Object>} Statistiche
      */
     static async getStats() {
         try {
-            const query = `
+            const result = await query(`
                 SELECT
-                    COUNT(*) as total,
-                    COUNT(*) FILTER (WHERE role = 'client') as clients,
-                    COUNT(*) FILTER (WHERE role = 'manager') as managers,
-                    COUNT(*) FILTER (WHERE role = 'admin') as admins,
-                    COUNT(*) FILTER (WHERE status = 'active') as active,
-                    COUNT(*) FILTER (WHERE status = 'inactive') as inactive,
-                    COUNT(*) FILTER (WHERE status = 'suspended') as suspended,
-                    COUNT(*) FILTER (WHERE email_verified = true) as verified,
-                    COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '30 days') as new_this_month
+                    role,
+                    status,
+                    COUNT(*) as count
                 FROM users
-                WHERE status != 'deleted'
-            `;
+                GROUP BY ROLLUP(role, status)
+                ORDER BY role, status
+            `);
 
-            const result = await db.query(query);
-            return result.rows[0];
+            const stats = {
+                total: 0,
+                byRole: {},
+                byStatus: {},
+                active: 0
+            };
+
+            result.rows.forEach(row => {
+                if (!row.role && !row.status) {
+                    stats.total = parseInt(row.count);
+                } else if (row.role && !row.status) {
+                    stats.byRole[row.role] = parseInt(row.count);
+                } else if (!row.role && row.status) {
+                    stats.byStatus[row.status] = parseInt(row.count);
+                    if (row.status === 'active') {
+                        stats.active = parseInt(row.count);
+                    }
+                }
+            });
+
+            return stats;
         } catch (error) {
             logger.error('Error getting user stats:', error);
             throw error;

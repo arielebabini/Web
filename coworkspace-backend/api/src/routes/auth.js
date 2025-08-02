@@ -1,245 +1,244 @@
-// src/routes/auth.js - Route di autenticazione FUNZIONANTI
+// src/routes/auth.js - Authentication routes CORRETTO
 const express = require('express');
+const router = express.Router();
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { body, validationResult } = require('express-validator');
+const rateLimit = require('express-rate-limit');
+
+// Import locali
 const User = require('../models/User');
 const logger = require('../utils/logger');
 const emailService = require('../services/emailService');
+const { requireAuth } = require('../middleware/auth');
 
-const router = express.Router();
-
-/**
- * GET /api/auth/test
- * Test route per verificare che l'API funzioni
- */
-router.get('/test', (req, res) => {
-    res.json({
-        success: true,
-        message: 'Auth routes working!',
-        timestamp: new Date().toISOString()
-    });
+// Rate limiting per autenticazione
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minuti
+    max: 5, // massimo 5 tentativi per IP
+    message: {
+        success: false,
+        message: 'Troppi tentativi di login. Riprova tra 15 minuti.',
+        error: { type: 'RATE_LIMIT_EXCEEDED' }
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
 });
 
+// Validatori per input
+const registerValidation = [
+    body('email')
+        .isEmail()
+        .normalizeEmail()
+        .withMessage('Email non valida'),
+    body('password')
+        .isLength({ min: 8 })
+        .withMessage('La password deve contenere almeno 8 caratteri')
+        .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+        .withMessage('La password deve contenere almeno una lettera minuscola, una maiuscola e un numero'),
+    body('firstName')
+        .trim()
+        .isLength({ min: 2, max: 50 })
+        .withMessage('Il nome deve essere tra 2 e 50 caratteri'),
+    body('lastName')
+        .trim()
+        .isLength({ min: 2, max: 50 })
+        .withMessage('Il cognome deve essere tra 2 e 50 caratteri')
+];
+
+const loginValidation = [
+    body('email')
+        .isEmail()
+        .normalizeEmail()
+        .withMessage('Email non valida'),
+    body('password')
+        .notEmpty()
+        .withMessage('Password richiesta')
+];
+
+// Helper per generare JWT - ✅ CORRETTO: usa "id" nel payload
+const generateTokens = (user) => {
+    const payload = {
+        id: user.id,      // ✅ MANTIENI "id" (non "userId")
+        email: user.email,
+        role: user.role,
+        status: user.status
+    };
+
+    const accessToken = jwt.sign(payload, process.env.JWT_SECRET, {
+        expiresIn: process.env.JWT_EXPIRES_IN || '24h'
+    });
+
+    const refreshToken = jwt.sign(
+        { id: user.id, type: 'refresh' }, // ✅ MANTIENI "id" (non "userId")
+        process.env.JWT_SECRET,
+        { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d' }
+    );
+
+    return { accessToken, refreshToken };
+};
+
 /**
- * POST /api/auth/register
- * Registrazione nuovo utente
+ * @route   POST /api/auth/register
+ * @desc    Registra un nuovo utente
+ * @access  Public
  */
-router.post('/register', async (req, res) => {
+router.post('/register', registerValidation, async (req, res) => {
     try {
+        // Validazione input
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({
+                success: false,
+                message: 'Dati di registrazione non validi',
+                errors: errors.array()
+            });
+        }
+
         const { email, password, firstName, lastName, phone, company } = req.body;
 
-        // Validazione campi obbligatori
-        if (!email || !password || !firstName || !lastName) {
-            return res.status(400).json({
-                success: false,
-                message: 'Email, password, firstName e lastName sono obbligatori'
-            });
-        }
-
-        // Validazione formato email (basic)
-        if (!email.includes('@') || !email.includes('.')) {
-            return res.status(400).json({
-                success: false,
-                message: 'Formato email non valido'
-            });
-        }
-
-        // Validazione password
-        if (password.length < 8) {
-            return res.status(400).json({
-                success: false,
-                message: 'La password deve essere di almeno 8 caratteri'
-            });
-        }
-
-        // Validazione password robusta
-        if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)) {
-            return res.status(400).json({
-                success: false,
-                message: 'La password deve contenere almeno una lettera minuscola, una maiuscola e un numero'
-            });
-        }
-
-        // Controlla se l'utente esiste già
+        // Verifica se l'utente esiste già
         const existingUser = await User.findByEmail(email);
         if (existingUser) {
-            return res.status(409).json({
+            return res.status(400).json({
                 success: false,
-                message: 'Un utente con questa email è già registrato'
+                message: 'Email già registrata'
             });
         }
 
-        // Crea nuovo utente
+        // Hash password
+        const saltRounds = parseInt(process.env.BCRYPT_ROUNDS) || 12;
+        const passwordHash = await bcrypt.hash(password, saltRounds);
+
+        // Crea utente
         const userData = {
-            email: email.toLowerCase(),
-            password,
-            firstName,
-            lastName,
+            email,
+            password_hash: passwordHash,
+            first_name: firstName,
+            last_name: lastName,
             phone: phone || null,
             company: company || null,
-            role: 'client'
+            role: 'client', // Default role
+            status: 'active',
+            email_verified: false
         };
 
         const user = await User.create(userData);
 
-        // Genera token JWT
-        const accessToken = jwt.sign(
-            { userId: user.id, role: user.role },
-            process.env.JWT_SECRET || 'fallback-secret-key',
-            { expiresIn: '24h' }
-        );
+        // Genera tokens
+        const tokens = generateTokens(user);
 
-        const refreshToken = jwt.sign(
-            { userId: user.id, type: 'refresh' },
-            process.env.JWT_SECRET || 'fallback-secret-key',
-            { expiresIn: '7d' }
-        );
-
-        // Invia email di benvenuto (non-blocking)
+        // Invia email di benvenuto (modalità mock)
         try {
-            await emailService.sendWelcomeEmail(user);
-            if (user.emailVerificationToken) {
-                await emailService.sendVerificationEmail(user, user.emailVerificationToken);
-            }
+            await emailService.sendWelcomeEmail(user.email, user.first_name);
         } catch (emailError) {
-            logger.warn('Errore invio email benvenuto:', emailError.message);
-            // Non bloccare la registrazione per errori email
+            logger.error('Failed to send welcome email:', emailError);
         }
 
-        logger.info(`User registered successfully: ${user.email} (${user.id})`);
-
-        // Risposta sicura (rimuovi dati sensibili)
-        const safeUser = {
-            id: user.id,
+        logger.info('New user registered:', {
+            userId: user.id,
             email: user.email,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            phone: user.phone,
-            company: user.company,
-            role: user.role,
-            emailVerified: user.emailVerified,
-            createdAt: user.createdAt
-        };
+            ip: req.ip
+        });
+
+        // Rimuovi password_hash dalla risposta
+        const { password_hash: _, ...userResponse } = user;
 
         res.status(201).json({
             success: true,
-            message: 'Registrazione completata con successo! Controlla la tua email per verificare l\'account.',
-            user: safeUser,
-            tokens: {
-                accessToken,
-                refreshToken,
-                expiresIn: '24h'
-            }
+            message: 'Registrazione completata con successo',
+            user: userResponse,
+            tokens
         });
 
     } catch (error) {
-        logger.error('Errore registrazione:', error);
+        logger.error('Registration error:', error);
         res.status(500).json({
             success: false,
-            message: 'Errore interno del server'
+            message: 'Errore durante la registrazione'
         });
     }
 });
 
 /**
- * POST /api/auth/login
- * Login utente
+ * @route   POST /api/auth/login
+ * @desc    Login utente
+ * @access  Public
  */
-router.post('/login', async (req, res) => {
+router.post('/login', authLimiter, loginValidation, async (req, res) => {
     try {
-        const { email, password } = req.body;
-
-        // Validazione campi obbligatori
-        if (!email || !password) {
+        // Validazione input
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
             return res.status(400).json({
                 success: false,
-                message: 'Email e password sono obbligatori'
+                message: 'Credenziali non valide',
+                errors: errors.array()
             });
         }
+
+        const { email, password } = req.body;
 
         // Trova utente
         const user = await User.findByEmail(email);
         if (!user) {
+            logger.warn('Login attempt with non-existent email:', {
+                email: email,
+                ip: req.ip,
+                userAgent: req.get('User-Agent')
+            });
             return res.status(401).json({
                 success: false,
-                message: 'Email o password errate'
+                message: 'Credenziali non valide'
             });
         }
 
         // Verifica password
-        const isValidPassword = await user.verifyPassword(password);
+        const isValidPassword = await bcrypt.compare(password, user.password_hash);
         if (!isValidPassword) {
             logger.warn('Invalid password attempt:', {
                 email: email,
                 ip: req.ip,
                 userAgent: req.get('User-Agent')
             });
-
             return res.status(401).json({
                 success: false,
-                message: 'Email o password errate'
+                message: 'Credenziali non valide'
             });
         }
 
-        // Verifica che l'account sia attivo
+        // Verifica status account
         if (user.status !== 'active') {
             return res.status(403).json({
                 success: false,
-                message: 'Account non attivo',
-                error: {
-                    type: 'ACCOUNT_INACTIVE',
-                    status: user.status
-                }
+                message: 'Account non attivo. Contatta il supporto.'
             });
         }
 
-        // Genera tokens
-        const accessToken = jwt.sign(
-            { userId: user.id, role: user.role },
-            process.env.JWT_SECRET || 'fallback-secret-key',
-            { expiresIn: '24h' }
-        );
-
-        const refreshToken = jwt.sign(
-            { userId: user.id, type: 'refresh' },
-            process.env.JWT_SECRET || 'fallback-secret-key',
-            { expiresIn: '7d' }
-        );
-
         // Aggiorna ultimo login
-        try {
-            await User.updateLastLogin(user.id);
-        } catch (updateError) {
-            logger.warn('Failed to update last login:', updateError.message);
-        }
+        await User.updateLastLogin(user.id);
 
-        logger.info(`User logged in successfully: ${user.email} (${user.id})`);
+        // Genera tokens
+        const tokens = generateTokens(user);
 
-        // Risposta sicura
-        const safeUser = {
-            id: user.id,
+        logger.info('User logged in successfully:', {
+            userId: user.id,
             email: user.email,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            phone: user.phone,
-            company: user.company,
-            role: user.role,
-            emailVerified: user.emailVerified,
-            lastLogin: user.lastLogin
-        };
+            ip: req.ip
+        });
+
+        // Rimuovi password_hash dalla risposta
+        const { password_hash: _, ...userResponse } = user;
 
         res.json({
             success: true,
             message: 'Login effettuato con successo',
-            user: safeUser,
-            tokens: {
-                accessToken,
-                refreshToken,
-                expiresIn: '24h'
-            }
+            user: userResponse,
+            tokens
         });
 
     } catch (error) {
-        logger.error('Errore login:', error);
+        logger.error('Login error:', error);
         res.status(500).json({
             success: false,
             message: 'Errore interno del server'
@@ -248,8 +247,9 @@ router.post('/login', async (req, res) => {
 });
 
 /**
- * POST /api/auth/refresh
- * Refresh access token usando refresh token
+ * @route   POST /api/auth/refresh
+ * @desc    Rinnova access token usando refresh token
+ * @access  Public
  */
 router.post('/refresh', async (req, res) => {
     try {
@@ -263,60 +263,136 @@ router.post('/refresh', async (req, res) => {
         }
 
         // Verifica refresh token
-        let decoded;
-        try {
-            decoded = jwt.verify(refreshToken, process.env.JWT_SECRET || 'fallback-secret-key');
-        } catch (jwtError) {
-            return res.status(401).json({
-                success: false,
-                message: 'Refresh token non valido',
-                error: {
-                    type: 'INVALID_REFRESH_TOKEN'
-                }
-            });
-        }
+        const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
 
-        // Verifica che sia un refresh token
         if (decoded.type !== 'refresh') {
             return res.status(401).json({
                 success: false,
-                message: 'Token non valido',
-                error: {
-                    type: 'INVALID_TOKEN_TYPE'
-                }
+                message: 'Token non valido'
             });
         }
 
-        // Trova utente
-        const user = await User.findById(decoded.userId);
+        // ✅ CORRETTO: Usa decoded.id (come nel generateTokens)
+        const user = await User.findById(decoded.id);
         if (!user || user.status !== 'active') {
             return res.status(401).json({
                 success: false,
-                message: 'Utente non trovato o non attivo',
-                error: {
-                    type: 'USER_NOT_FOUND'
-                }
+                message: 'Utente non trovato o non attivo'
             });
         }
 
-        // Genera nuovo access token
-        const newAccessToken = jwt.sign(
-            { userId: user.id, role: user.role },
-            process.env.JWT_SECRET || 'fallback-secret-key',
-            { expiresIn: '24h' }
-        );
-
-        logger.info(`Token refreshed for user: ${user.email}`);
+        // Genera nuovi tokens
+        const tokens = generateTokens(user);
 
         res.json({
             success: true,
-            message: 'Token aggiornato con successo',
-            accessToken: newAccessToken,
-            expiresIn: '24h'
+            tokens
         });
 
     } catch (error) {
-        logger.error('Errore refresh token:', error);
+        if (error.name === 'TokenExpiredError') {
+            return res.status(401).json({
+                success: false,
+                message: 'Refresh token scaduto'
+            });
+        }
+
+        logger.error('Refresh token error:', error);
+        res.status(401).json({
+            success: false,
+            message: 'Token non valido'
+        });
+    }
+});
+
+/**
+ * @route   POST /api/auth/logout
+ * @desc    Logout utente (invalida refresh token)
+ * @access  Private
+ */
+router.post('/logout', requireAuth, async (req, res) => {
+    try {
+        // In una implementazione reale, qui si invaliderebbero i tokens
+        // Per ora loggiamo solo l'azione
+        logger.info('User logged out:', {
+            userId: req.user.id,
+            email: req.user.email,
+            ip: req.ip
+        });
+
+        res.json({
+            success: true,
+            message: 'Logout effettuato con successo'
+        });
+
+    } catch (error) {
+        logger.error('Logout error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Errore durante il logout'
+        });
+    }
+});
+
+/**
+ * @route   POST /api/auth/forgot-password
+ * @desc    Richiesta reset password
+ * @access  Public
+ */
+router.post('/forgot-password', [
+    body('email').isEmail().normalizeEmail().withMessage('Email non valida')
+], async (req, res) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({
+                success: false,
+                message: 'Email non valida',
+                errors: errors.array()
+            });
+        }
+
+        const { email } = req.body;
+
+        // Trova utente
+        const user = await User.findByEmail(email);
+
+        // Per sicurezza, restituiamo sempre successo anche se l'utente non esiste
+        if (!user) {
+            logger.warn('Password reset requested for non-existent email:', email);
+            return res.json({
+                success: true,
+                message: 'Se l\'email esiste, riceverai istruzioni per il reset'
+            });
+        }
+
+        // Genera token reset (semplificato per demo)
+        const resetToken = jwt.sign(
+            { userId: user.id, type: 'reset' }, // ✅ Qui può rimanere userId per differenziarlo
+            process.env.JWT_SECRET,
+            { expiresIn: '1h' }
+        );
+
+        // Invia email reset (modalità mock)
+        try {
+            await emailService.sendPasswordResetEmail(user.email, user.first_name, resetToken);
+        } catch (emailError) {
+            logger.error('Failed to send reset email:', emailError);
+        }
+
+        logger.info('Password reset requested:', {
+            userId: user.id,
+            email: user.email,
+            ip: req.ip
+        });
+
+        res.json({
+            success: true,
+            message: 'Se l\'email esiste, riceverai istruzioni per il reset'
+        });
+
+    } catch (error) {
+        logger.error('Forgot password error:', error);
         res.status(500).json({
             success: false,
             message: 'Errore interno del server'
@@ -325,66 +401,31 @@ router.post('/refresh', async (req, res) => {
 });
 
 /**
- * POST /api/auth/logout
- * Logout utente (principalmente client-side con JWT)
+ * @route   GET /api/auth/me
+ * @desc    Ottiene informazioni utente corrente
+ * @access  Private
  */
-router.post('/logout', async (req, res) => {
-    // Con JWT stateless, il logout è principalmente client-side
-    // Il client deve rimuovere il token dal localStorage
-    // Qui possiamo fare log per audit trail
-
-    const authHeader = req.headers.authorization;
-    if (authHeader) {
-        try {
-            const token = authHeader.split(' ')[1];
-            const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret-key');
-            logger.info(`User logged out: ${decoded.userId}`);
-        } catch (error) {
-            // Token già scaduto o non valido, non importa per il logout
-        }
-    }
-
-    res.json({
-        success: true,
-        message: 'Logout effettuato con successo'
-    });
-});
-
-/**
- * POST /api/auth/forgot-password
- * Richiesta reset password
- */
-router.post('/forgot-password', async (req, res) => {
+router.get('/me', requireAuth, async (req, res) => {
     try {
-        const { email } = req.body;
+        const user = await User.findById(req.user.id);
 
-        if (!email) {
-            return res.status(400).json({
+        if (!user) {
+            return res.status(404).json({
                 success: false,
-                message: 'Email richiesta'
+                message: 'Utente non trovato'
             });
         }
 
-        const resetToken = await User.generateResetToken(email);
-
-        if (!resetToken) {
-            // Per sicurezza, non riveliamo se l'email esiste o meno
-            return res.json({
-                success: true,
-                message: 'Se l\'email è registrata, riceverai un link per il reset della password'
-            });
-        }
-
-        // In modalità mock, l'email sarà simulata
-        logger.info(`Password reset requested for: ${email}`);
+        // Rimuovi password_hash dalla risposta
+        const { password_hash: _, ...userResponse } = user;
 
         res.json({
             success: true,
-            message: 'Se l\'email è registrata, riceverai un link per il reset della password'
+            user: userResponse
         });
 
     } catch (error) {
-        logger.error('Errore forgot password:', error);
+        logger.error('Get current user error:', error);
         res.status(500).json({
             success: false,
             message: 'Errore interno del server'

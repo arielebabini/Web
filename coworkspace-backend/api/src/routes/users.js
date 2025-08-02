@@ -1,464 +1,222 @@
-// src/routes/users.js - Rotte Users Complete
 const express = require('express');
-const { body } = require('express-validator');
-const userController = require('../controllers/userController');
-const {
-    requireAuth,
-    requireRole,
-    requireEmailVerified
-} = require('../middleware/auth');
-
 const router = express.Router();
+const { body, param, query } = require('express-validator');
+const UserController = require('../controllers/userController');
+const { requireAuth } = require('../middleware/auth');
+const {
+    requireAdmin,
+    requireManager,
+    requireOwnershipOrRole,
+    roleBasedRateLimit
+} = require('../middleware/roleAuth');
 
-// Validazioni riutilizzabili
-const nameValidation = (field, required = false) => {
-    const validation = body(field);
-    if (!required) validation.optional();
+// Validatori comuni
+const userProfileValidation = [
+    body('first_name')
+        .optional()
+        .isLength({ min: 2, max: 100 })
+        .withMessage('Il nome deve essere tra 2 e 100 caratteri'),
+    body('last_name')
+        .optional()
+        .isLength({ min: 2, max: 100 })
+        .withMessage('Il cognome deve essere tra 2 e 100 caratteri'),
+    body('phone')
+        .optional()
+        .isMobilePhone('any')
+        .withMessage('Numero di telefono non valido'),
+    body('company')
+        .optional()
+        .isLength({ max: 255 })
+        .withMessage('Il nome dell\'azienda non può superare i 255 caratteri')
+];
 
-    return validation
-        .trim()
-        .isLength({ min: 2, max: 50 })
-        .withMessage(`${field} deve essere tra 2 e 50 caratteri`)
-        .matches(/^[a-zA-ZÀ-ÿ\s'-]+$/)
-        .withMessage(`${field} può contenere solo lettere, spazi, apostrofi e trattini`);
-};
+const roleValidation = [
+    body('role')
+        .isIn(['client', 'manager', 'admin'])
+        .withMessage('Ruolo non valido')
+];
 
-const phoneValidation = body('phone')
-    .optional()
-    .isMobilePhone('any')
-    .withMessage('Numero di telefono non valido');
+const statusValidation = [
+    body('status')
+        .isIn(['active', 'inactive', 'suspended'])
+        .withMessage('Status non valido')
+];
 
-const companyValidation = body('company')
-    .optional()
-    .trim()
-    .isLength({ max: 255 })
-    .withMessage('Nome azienda troppo lungo (max 255 caratteri)');
+const passwordValidation = [
+    body('currentPassword')
+        .notEmpty()
+        .withMessage('Password corrente richiesta'),
+    body('newPassword')
+        .isLength({ min: 8 })
+        .withMessage('La nuova password deve essere di almeno 8 caratteri')
+        .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+        .withMessage('La nuova password deve contenere almeno una lettera minuscola, una maiuscola e un numero')
+];
 
-const passwordValidation = body('newPassword')
-    .isLength({ min: 8 })
-    .withMessage('La password deve essere di almeno 8 caratteri')
-    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
-    .withMessage('La password deve contenere almeno una lettera minuscola, una maiuscola e un numero');
+const userIdValidation = [
+    param('userId')
+        .isUUID()
+        .withMessage('ID utente non valido')
+];
+
+// Rate limiting per ruolo
+const userRateLimit = roleBasedRateLimit({
+    client: 100,   // 100 richieste/ora
+    manager: 500,  // 500 richieste/ora
+    admin: -1      // Nessun limite
+});
+
+// ===============================================
+// ROUTE PROFILO UTENTE
+// ===============================================
 
 /**
- * @swagger
- * components:
- *   schemas:
- *     UserProfile:
- *       type: object
- *       properties:
- *         id:
- *           type: string
- *           format: uuid
- *         email:
- *           type: string
- *         firstName:
- *           type: string
- *         lastName:
- *           type: string
- *         phone:
- *           type: string
- *         company:
- *           type: string
- *         role:
- *           type: string
- *           enum: [client, manager, admin]
- *         status:
- *           type: string
- *           enum: [active, inactive, suspended]
- *         emailVerified:
- *           type: boolean
- *         createdAt:
- *           type: string
- *           format: date-time
- *         updatedAt:
- *           type: string
- *           format: date-time
- *         lastLogin:
- *           type: string
- *           format: date-time
+ * @route   GET /api/users/profile
+ * @desc    Ottiene il profilo dell'utente corrente
+ * @access  Private (tutti gli utenti autenticati)
  */
+router.get('/profile',
+    requireAuth,
+    userRateLimit,
+    UserController.getProfile
+);
 
 /**
- * @swagger
- * /api/users/profile:
- *   get:
- *     summary: Ottieni profilo utente corrente
- *     tags: [Users]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Profilo utente
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 data:
- *                   type: object
- *                   properties:
- *                     user:
- *                       $ref: '#/components/schemas/UserProfile'
- *       401:
- *         description: Non autorizzato
- */
-router.get('/profile', requireAuth, userController.getProfile);
-
-/**
- * @swagger
- * /api/users/profile:
- *   put:
- *     summary: Aggiorna profilo utente corrente
- *     tags: [Users]
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               firstName:
- *                 type: string
- *               lastName:
- *                 type: string
- *               phone:
- *                 type: string
- *               company:
- *                 type: string
- *     responses:
- *       200:
- *         description: Profilo aggiornato con successo
- *       400:
- *         description: Dati non validi
+ * @route   PUT /api/users/profile
+ * @desc    Aggiorna il profilo dell'utente corrente
+ * @access  Private (tutti gli utenti autenticati)
  */
 router.put('/profile',
     requireAuth,
-    [
-        nameValidation('firstName'),
-        nameValidation('lastName'),
-        phoneValidation,
-        companyValidation
-    ],
-    userController.updateProfile
+    userRateLimit,
+    userProfileValidation,
+    UserController.updateProfile
 );
 
 /**
- * @swagger
- * /api/users/change-password:
- *   put:
- *     summary: Cambia password utente corrente
- *     tags: [Users]
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - currentPassword
- *               - newPassword
- *             properties:
- *               currentPassword:
- *                 type: string
- *               newPassword:
- *                 type: string
- *                 minLength: 8
- *     responses:
- *       200:
- *         description: Password cambiata con successo
- *       400:
- *         description: Password corrente non valida
+ * @route   PUT /api/users/change-password
+ * @desc    Cambia la password dell'utente corrente
+ * @access  Private (tutti gli utenti autenticati)
  */
 router.put('/change-password',
     requireAuth,
-    [
-        body('currentPassword')
-            .notEmpty()
-            .withMessage('Password corrente richiesta'),
-        passwordValidation
-    ],
-    userController.changePassword
+    userRateLimit,
+    passwordValidation,
+    UserController.changePassword
 );
 
-// ===== ROTTE ADMIN/MANAGER =====
+/**
+ * @route   POST /api/users/verify-email/:token
+ * @desc    Verifica email utente
+ * @access  Public
+ */
+router.post('/verify-email/:token',
+    param('token').notEmpty().withMessage('Token richiesto'),
+    UserController.verifyEmail
+);
+
+// ===============================================
+// ROUTE GESTIONE UTENTI (ADMIN/MANAGER)
+// ===============================================
 
 /**
- * @swagger
- * /api/users:
- *   get:
- *     summary: Lista utenti con filtri (Admin/Manager)
- *     tags: [Users]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: query
- *         name: page
- *         schema:
- *           type: integer
- *           minimum: 1
- *           default: 1
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *           minimum: 1
- *           maximum: 100
- *           default: 20
- *       - in: query
- *         name: role
- *         schema:
- *           type: string
- *           enum: [client, manager, admin]
- *       - in: query
- *         name: status
- *         schema:
- *           type: string
- *           enum: [active, inactive, suspended]
- *       - in: query
- *         name: search
- *         schema:
- *           type: string
- *       - in: query
- *         name: sortBy
- *         schema:
- *           type: string
- *           enum: [createdAt, updatedAt, lastLogin, email, firstName, lastName]
- *           default: createdAt
- *       - in: query
- *         name: sortOrder
- *         schema:
- *           type: string
- *           enum: [ASC, DESC]
- *           default: DESC
- *     responses:
- *       200:
- *         description: Lista utenti
- *       403:
- *         description: Accesso negato
+ * @route   GET /api/users
+ * @desc    Lista tutti gli utenti con filtri e paginazione
+ * @access  Private (admin/manager)
  */
 router.get('/',
     requireAuth,
-    requireRole(['admin', 'manager']),
-    userController.getUsers
+    requireManager,
+    userRateLimit,
+    [
+        query('page').optional().isInt({ min: 1 }).withMessage('Pagina deve essere un numero positivo'),
+        query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limite deve essere tra 1 e 100'),
+        query('role').optional().isIn(['client', 'manager', 'admin']).withMessage('Ruolo non valido'),
+        query('status').optional().isIn(['active', 'inactive', 'suspended']).withMessage('Status non valido'),
+        query('search').optional().isLength({ max: 255 }).withMessage('Ricerca troppo lunga'),
+        query('sortBy').optional().isIn(['created_at', 'updated_at', 'first_name', 'last_name', 'email', 'role']).withMessage('Campo di ordinamento non valido'),
+        query('sortOrder').optional().isIn(['ASC', 'DESC']).withMessage('Ordine non valido')
+    ],
+    UserController.getAllUsers
 );
 
 /**
- * @swagger
- * /api/users/stats:
- *   get:
- *     summary: Statistiche utenti (Admin)
- *     tags: [Users]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Statistiche utenti
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 data:
- *                   type: object
- *                   properties:
- *                     stats:
- *                       type: object
- *                       properties:
- *                         totalUsers:
- *                           type: integer
- *                         activeUsers:
- *                           type: integer
- *                         verifiedUsers:
- *                           type: integer
- *                         roleCount:
- *                           type: object
- *                           properties:
- *                             client:
- *                               type: integer
- *                             manager:
- *                               type: integer
- *                             admin:
- *                               type: integer
- *       403:
- *         description: Accesso negato
+ * @route   GET /api/users/stats
+ * @desc    Ottiene statistiche degli utenti
+ * @access  Private (admin)
  */
 router.get('/stats',
     requireAuth,
-    requireRole(['admin']),
-    userController.getUserStats
+    requireAdmin,
+    userRateLimit,
+    UserController.getUserStats
 );
 
 /**
- * @swagger
- * /api/users/{id}:
- *   get:
- *     summary: Ottieni dettagli utente specifico (Admin/Manager)
- *     tags: [Users]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Dettagli utente
- *       403:
- *         description: Accesso negato
- *       404:
- *         description: Utente non trovato
+ * @route   GET /api/users/:userId
+ * @desc    Ottiene un utente specifico
+ * @access  Private (admin/manager o proprietario)
  */
-router.get('/:id',
+router.get('/:userId',
     requireAuth,
-    requireRole(['admin', 'manager']),
-    userController.getUserById
+    userRateLimit,
+    userIdValidation,
+    requireOwnershipOrRole('userId', ['manager', 'admin']),
+    UserController.getUserById
 );
 
 /**
- * @swagger
- * /api/users/{id}:
- *   put:
- *     summary: Aggiorna utente (Admin)
- *     tags: [Users]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               firstName:
- *                 type: string
- *               lastName:
- *                 type: string
- *               phone:
- *                 type: string
- *               company:
- *                 type: string
- *               role:
- *                 type: string
- *                 enum: [client, manager, admin]
- *               status:
- *                 type: string
- *                 enum: [active, inactive, suspended]
- *     responses:
- *       200:
- *         description: Utente aggiornato con successo
- *       403:
- *         description: Accesso negato
- *       404:
- *         description: Utente non trovato
+ * @route   PUT /api/users/:userId/role
+ * @desc    Aggiorna il ruolo di un utente
+ * @access  Private (solo admin)
  */
-router.put('/:id',
+router.put('/:userId/role',
     requireAuth,
-    requireRole(['admin']),
-    [
-        nameValidation('firstName'),
-        nameValidation('lastName'),
-        phoneValidation,
-        companyValidation,
-        body('role')
-            .optional()
-            .isIn(['client', 'manager', 'admin'])
-            .withMessage('Ruolo non valido'),
-        body('status')
-            .optional()
-            .isIn(['active', 'inactive', 'suspended'])
-            .withMessage('Stato non valido')
-    ],
-    userController.updateUser
+    requireAdmin,
+    userRateLimit,
+    userIdValidation,
+    roleValidation,
+    UserController.updateUserRole
 );
 
 /**
- * @swagger
- * /api/users/{id}/status:
- *   patch:
- *     summary: Aggiorna stato utente (Admin)
- *     tags: [Users]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - status
- *             properties:
- *               status:
- *                 type: string
- *                 enum: [active, inactive, suspended]
- *     responses:
- *       200:
- *         description: Stato aggiornato con successo
- *       403:
- *         description: Accesso negato
- *       404:
- *         description: Utente non trovato
+ * @route   PUT /api/users/:userId/status
+ * @desc    Aggiorna lo status di un utente
+ * @access  Private (admin/manager)
  */
-router.patch('/:id/status',
+router.put('/:userId/status',
     requireAuth,
-    requireRole(['admin']),
-    [
-        body('status')
-            .isIn(['active', 'inactive', 'suspended'])
-            .withMessage('Stato non valido')
-    ],
-    userController.updateUserStatus
+    requireManager,
+    userRateLimit,
+    userIdValidation,
+    statusValidation,
+    UserController.updateUserStatus
 );
 
 /**
- * @swagger
- * /api/users/{id}:
- *   delete:
- *     summary: Elimina utente (Admin)
- *     tags: [Users]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Utente eliminato con successo
- *       403:
- *         description: Accesso negato
- *       404:
- *         description: Utente non trovato
+ * @route   DELETE /api/users/:userId
+ * @desc    Elimina un utente (soft delete)
+ * @access  Private (solo admin)
  */
-router.delete('/:id',
+router.delete('/:userId',
     requireAuth,
-    requireRole(['admin']),
-    userController.deleteUser
+    requireAdmin,
+    userRateLimit,
+    userIdValidation,
+    UserController.deleteUser
 );
+
+// ===============================================
+// MIDDLEWARE DI GESTIONE ERRORI SPECIFICO
+// ===============================================
+router.use((error, req, res, next) => {
+    if (error.type === 'entity.parse.failed') {
+        return res.status(400).json({
+            success: false,
+            message: 'Dati JSON non validi'
+        });
+    }
+    next(error);
+});
 
 module.exports = router;

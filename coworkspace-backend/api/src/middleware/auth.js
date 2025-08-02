@@ -1,4 +1,4 @@
-// src/middleware/auth.js - Authentication middleware AGGIORNATO
+// src/middleware/auth.js - Authentication middleware CORRETTO
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const logger = require('../utils/logger');
@@ -80,12 +80,12 @@ const requireAuth = async (req, res, next) => {
             });
         }
 
-        // Trova utente nel database
-        const user = await User.findById(decoded.userId);
+        // ✅ CORREZIONE: Usa decoded.id invece di decoded.userId
+        const user = await User.findById(decoded.id);
 
         if (!user) {
             logger.warn('User not found for valid token:', {
-                userId: decoded.userId,
+                userId: decoded.id, // ✅ CORREZIONE: Usa decoded.id
                 ip: req.ip
             });
 
@@ -291,7 +291,8 @@ const optionalAuth = async (req, res, next) => {
             return next();
         }
 
-        const user = await User.findById(decoded.userId);
+        // ✅ CORREZIONE: Usa decoded.id invece di decoded.userId
+        const user = await User.findById(decoded.id);
 
         if (user && user.status === 'active') {
             req.user = user;
@@ -353,40 +354,48 @@ const requireEmailVerified = (req, res, next) => {
 };
 
 /**
- * Middleware per rate limiting personalizzato per utente
- * Limita il numero di richieste per utente/IP in una finestra temporale
- * @param {number} maxRequests - Numero massimo di richieste (default: 100)
- * @param {number} windowMs - Finestra temporale in millisecondi (default: 15 minuti)
+ * Rate limiting per utente basato sul token JWT
+ * @param {Object} options - Opzioni di configurazione
+ * @param {number} options.windowMs - Finestra temporale in millisecondi (default: 1 ora)
+ * @param {number} options.maxRequests - Numero massimo di richieste per finestra (default: 100)
  */
-const userRateLimit = (maxRequests = 100, windowMs = 15 * 60 * 1000) => {
+const userRateLimit = (options = {}) => {
+    const {
+        windowMs = 60 * 60 * 1000, // 1 ora
+        maxRequests = 100
+    } = options;
+
+    // Map per tenere traccia delle richieste per utente
     const userRequests = new Map();
 
     return (req, res, next) => {
-        const userId = req.user?.id || req.ip;
-        const now = Date.now();
-        const windowStart = now - windowMs;
-
-        // Pulisci vecchi record
-        if (userRequests.has(userId)) {
-            const requests = userRequests.get(userId);
-            userRequests.set(userId, requests.filter(time => time > windowStart));
+        // Se non c'è autenticazione, passa al prossimo middleware
+        if (!req.user) {
+            return next();
         }
 
-        // Conta richieste attuali
-        const currentRequests = userRequests.get(userId) || [];
+        const userId = req.user.id;
+        const now = Date.now();
 
+        // Ottieni richieste dell'utente
+        let currentRequests = userRequests.get(userId) || [];
+
+        // Rimuovi richieste fuori dalla finestra temporale
+        currentRequests = currentRequests.filter(timestamp => now - timestamp < windowMs);
+
+        // Controlla se ha raggiunto il limite
         if (currentRequests.length >= maxRequests) {
             logger.warn('User rate limit exceeded:', {
                 userId: userId,
+                email: req.user.email,
                 requestCount: currentRequests.length,
                 maxRequests: maxRequests,
-                endpoint: req.originalUrl,
                 ip: req.ip
             });
 
             return res.status(429).json({
                 success: false,
-                message: 'Troppe richieste. Riprova più tardi.',
+                message: 'Troppi tentativi. Riprova più tardi.',
                 error: {
                     type: 'USER_RATE_LIMIT_EXCEEDED',
                     retryAfter: Math.ceil(windowMs / 1000)
@@ -428,7 +437,8 @@ const getUserFromToken = async (token) => {
             return null; // Non accettare refresh token
         }
 
-        const user = await User.findById(decoded.userId);
+        // ✅ CORREZIONE: Usa decoded.id invece di decoded.userId
+        const user = await User.findById(decoded.id);
 
         if (user && user.status === 'active') {
             return user;

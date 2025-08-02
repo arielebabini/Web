@@ -1,36 +1,32 @@
-// src/controllers/userController.js - Controller Utenti Completo
-const { validationResult } = require('express-validator');
-const bcrypt = require('bcryptjs');
 const User = require('../models/User');
+const { validationResult } = require('express-validator');
 const logger = require('../utils/logger');
 
+/**
+ * Controller per la gestione degli utenti
+ */
 class UserController {
+
     /**
-     * Ottieni profilo utente corrente
+     * Ottiene il profilo dell'utente corrente
      */
-    async getProfile(req, res) {
+    static async getProfile(req, res) {
         try {
             const user = await User.findById(req.user.id);
 
             if (!user) {
                 return res.status(404).json({
                     success: false,
-                    message: 'Profilo utente non trovato'
+                    message: 'Utente non trovato'
                 });
             }
 
-            // Rimuovi password dal response
-            const { passwordHash, emailVerificationToken, passwordResetToken, ...safeUser } = user;
-
             res.json({
                 success: true,
-                data: {
-                    user: safeUser
-                }
+                user
             });
-
         } catch (error) {
-            logger.error('Errore recupero profilo:', error);
+            logger.error('Error getting user profile:', error);
             res.status(500).json({
                 success: false,
                 message: 'Errore interno del server'
@@ -39,10 +35,11 @@ class UserController {
     }
 
     /**
-     * Aggiorna profilo utente corrente
+     * Aggiorna il profilo dell'utente corrente
      */
-    async updateProfile(req, res) {
+    static async updateProfile(req, res) {
         try {
+            // Validazione input
             const errors = validationResult(req);
             if (!errors.isEmpty()) {
                 return res.status(400).json({
@@ -52,151 +49,33 @@ class UserController {
                 });
             }
 
-            const { firstName, lastName, phone, company } = req.body;
-            const userId = req.user.id;
+            const { first_name, last_name, phone, company } = req.body;
 
-            const updateData = {};
-            if (firstName !== undefined) updateData.firstName = firstName;
-            if (lastName !== undefined) updateData.lastName = lastName;
-            if (phone !== undefined) updateData.phone = phone;
-            if (company !== undefined) updateData.company = company;
-
-            const updatedUser = await User.updateProfile(userId, updateData);
-
-            logger.info(`Profilo aggiornato: ${req.user.email}`);
+            const updatedUser = await User.updateProfile(req.user.id, {
+                first_name,
+                last_name,
+                phone,
+                company
+            });
 
             res.json({
                 success: true,
                 message: 'Profilo aggiornato con successo',
-                data: {
-                    user: updatedUser
-                }
+                user: updatedUser
             });
-
         } catch (error) {
-            logger.error('Errore aggiornamento profilo:', error);
+            logger.error('Error updating user profile:', error);
             res.status(500).json({
                 success: false,
-                message: 'Errore interno del server'
+                message: 'Errore durante l\'aggiornamento del profilo'
             });
         }
     }
 
     /**
-     * Cambia password utente corrente
+     * Lista tutti gli utenti (solo admin)
      */
-    async changePassword(req, res) {
-        try {
-            const errors = validationResult(req);
-            if (!errors.isEmpty()) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Dati non validi',
-                    errors: errors.array()
-                });
-            }
-
-            const { currentPassword, newPassword } = req.body;
-            const userId = req.user.id;
-
-            // Recupera utente con password hash
-            const user = await User.findByEmail(req.user.email);
-            if (!user) {
-                return res.status(404).json({
-                    success: false,
-                    message: 'Utente non trovato'
-                });
-            }
-
-            // Verifica password corrente
-            const isValidPassword = await bcrypt.compare(currentPassword, user.passwordHash);
-            if (!isValidPassword) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Password corrente non corretta'
-                });
-            }
-
-            // Verifica che la nuova password sia diversa
-            const isSamePassword = await bcrypt.compare(newPassword, user.passwordHash);
-            if (isSamePassword) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'La nuova password deve essere diversa da quella corrente'
-                });
-            }
-
-            // Hash nuova password
-            const saltRounds = parseInt(process.env.BCRYPT_ROUNDS) || 12;
-            const newPasswordHash = await bcrypt.hash(newPassword, saltRounds);
-
-            // Aggiorna password
-            await User.updatePassword(userId, newPasswordHash);
-
-            logger.info(`Password cambiata: ${user.email}`);
-
-            res.json({
-                success: true,
-                message: 'Password cambiata con successo'
-            });
-
-        } catch (error) {
-            logger.error('Errore cambio password:', error);
-            res.status(500).json({
-                success: false,
-                message: 'Errore interno del server'
-            });
-        }
-    }
-
-    /**
-     * Ottieni dettagli utente specifico (Admin/Manager)
-     */
-    async getUserById(req, res) {
-        try {
-            const { id } = req.params;
-            const currentUser = req.user;
-
-            // Verifica autorizzazioni
-            if (currentUser.role !== 'admin' && currentUser.role !== 'manager' && currentUser.id !== id) {
-                return res.status(403).json({
-                    success: false,
-                    message: 'Non autorizzato ad accedere a questi dati'
-                });
-            }
-
-            const user = await User.findById(id);
-
-            if (!user) {
-                return res.status(404).json({
-                    success: false,
-                    message: 'Utente non trovato'
-                });
-            }
-
-            // Rimuovi dati sensibili
-            const { passwordHash, emailVerificationToken, passwordResetToken, ...safeUser } = user;
-
-            res.json({
-                success: true,
-                data: {
-                    user: safeUser
-                }
-            });
-
-        } catch (error) {
-            logger.error('Errore recupero utente:', error);
-            res.status(500).json({
-                success: false,
-                message: 'Errore interno del server'
-            });
-        }
-    }
-
-    /**
-     * Lista utenti con filtri (Admin/Manager)
-     */
-    async getUsers(req, res) {
+    static async getAllUsers(req, res) {
         try {
             const {
                 page = 1,
@@ -222,22 +101,50 @@ class UserController {
 
             res.json({
                 success: true,
-                data: result
+                ...result
             });
-
         } catch (error) {
-            logger.error('Errore lista utenti:', error);
+            logger.error('Error getting all users:', error);
             res.status(500).json({
                 success: false,
-                message: 'Errore interno del server'
+                message: 'Errore durante il recupero degli utenti'
             });
         }
     }
 
     /**
-     * Aggiorna utente (Admin)
+     * Ottiene un utente specifico per ID (admin/manager)
      */
-    async updateUser(req, res) {
+    static async getUserById(req, res) {
+        try {
+            const { userId } = req.params;
+
+            const user = await User.findById(userId);
+
+            if (!user) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Utente non trovato'
+                });
+            }
+
+            res.json({
+                success: true,
+                user
+            });
+        } catch (error) {
+            logger.error('Error getting user by ID:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Errore durante il recupero dell\'utente'
+            });
+        }
+    }
+
+    /**
+     * Aggiorna il ruolo di un utente (solo admin)
+     */
+    static async updateUserRole(req, res) {
         try {
             const errors = validationResult(req);
             if (!errors.isEmpty()) {
@@ -248,143 +155,197 @@ class UserController {
                 });
             }
 
-            const { id } = req.params;
-            const { firstName, lastName, phone, company, role, status } = req.body;
-            const currentUser = req.user;
+            const { userId } = req.params;
+            const { role } = req.body;
 
-            // Verifica che l'utente esista
-            const existingUser = await User.findById(id);
-            if (!existingUser) {
+            // Verifica che non sia l'utente stesso
+            if (userId === req.user.id) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Non puoi modificare il tuo stesso ruolo'
+                });
+            }
+
+            const updatedUser = await User.updateRole(userId, role);
+
+            res.json({
+                success: true,
+                message: 'Ruolo utente aggiornato con successo',
+                user: updatedUser
+            });
+        } catch (error) {
+            logger.error('Error updating user role:', error);
+
+            if (error.message === 'User not found') {
                 return res.status(404).json({
                     success: false,
                     message: 'Utente non trovato'
                 });
             }
 
-            // Verifica autorizzazioni per modifica ruolo/status
-            if ((role || status) && currentUser.role !== 'admin') {
-                return res.status(403).json({
-                    success: false,
-                    message: 'Solo gli admin possono modificare ruolo e stato'
-                });
-            }
-
-            // Impedisce auto-modifica del proprio ruolo/status
-            if (currentUser.id === id && (role || status)) {
+            if (error.message === 'Invalid role') {
                 return res.status(400).json({
                     success: false,
-                    message: 'Non puoi modificare il tuo stesso ruolo o stato'
+                    message: 'Ruolo non valido'
                 });
             }
 
-            const updateData = {};
-            if (firstName !== undefined) updateData.firstName = firstName;
-            if (lastName !== undefined) updateData.lastName = lastName;
-            if (phone !== undefined) updateData.phone = phone;
-            if (company !== undefined) updateData.company = company;
-
-            let updatedUser;
-
-            // Aggiorna profilo base
-            if (Object.keys(updateData).length > 0) {
-                updatedUser = await User.updateProfile(id, updateData);
-            }
-
-            // Aggiorna status se necessario
-            if (status && status !== existingUser.status) {
-                updatedUser = await User.updateStatus(id, status);
-            }
-
-            logger.info(`Utente aggiornato: ${existingUser.email} da ${currentUser.email}`);
-
-            res.json({
-                success: true,
-                message: 'Utente aggiornato con successo',
-                data: {
-                    user: updatedUser || existingUser
-                }
-            });
-
-        } catch (error) {
-            logger.error('Errore aggiornamento utente:', error);
             res.status(500).json({
                 success: false,
-                message: 'Errore interno del server'
+                message: 'Errore durante l\'aggiornamento del ruolo'
             });
         }
     }
 
     /**
-     * Elimina utente (Admin)
+     * Aggiorna lo status di un utente (admin/manager)
      */
-    async deleteUser(req, res) {
+    static async updateUserStatus(req, res) {
         try {
-            const { id } = req.params;
-            const currentUser = req.user;
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Dati non validi',
+                    errors: errors.array()
+                });
+            }
 
-            // Impedisce auto-eliminazione
-            if (currentUser.id === id) {
+            const { userId } = req.params;
+            const { status } = req.body;
+
+            // Verifica che non sia l'utente stesso
+            if (userId === req.user.id) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Non puoi modificare il tuo stesso status'
+                });
+            }
+
+            const updatedUser = await User.updateStatus(userId, status);
+
+            res.json({
+                success: true,
+                message: 'Status utente aggiornato con successo',
+                user: updatedUser
+            });
+        } catch (error) {
+            logger.error('Error updating user status:', error);
+
+            if (error.message === 'User not found') {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Utente non trovato'
+                });
+            }
+
+            if (error.message === 'Invalid status') {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Status non valido'
+                });
+            }
+
+            res.status(500).json({
+                success: false,
+                message: 'Errore durante l\'aggiornamento dello status'
+            });
+        }
+    }
+
+    /**
+     * Elimina un utente (soft delete, solo admin)
+     */
+    static async deleteUser(req, res) {
+        try {
+            const { userId } = req.params;
+
+            // Verifica che non sia l'utente stesso
+            if (userId === req.user.id) {
                 return res.status(400).json({
                     success: false,
                     message: 'Non puoi eliminare il tuo stesso account'
                 });
             }
 
-            // Verifica che l'utente esista
-            const existingUser = await User.findById(id);
-            if (!existingUser) {
+            const deleted = await User.softDelete(userId);
+
+            if (!deleted) {
                 return res.status(404).json({
                     success: false,
                     message: 'Utente non trovato'
                 });
             }
 
-            // Soft delete
-            await User.softDelete(id);
-
-            logger.info(`Utente eliminato: ${existingUser.email} da ${currentUser.email}`);
-
             res.json({
                 success: true,
                 message: 'Utente eliminato con successo'
             });
-
         } catch (error) {
-            logger.error('Errore eliminazione utente:', error);
+            logger.error('Error deleting user:', error);
             res.status(500).json({
                 success: false,
-                message: 'Errore interno del server'
+                message: 'Errore durante l\'eliminazione dell\'utente'
             });
         }
     }
 
     /**
-     * Statistiche utenti (Admin)
+     * Ottiene statistiche degli utenti (solo admin)
      */
-    async getUserStats(req, res) {
+    static async getUserStats(req, res) {
         try {
             const stats = await User.getStats();
 
             res.json({
                 success: true,
-                data: {
-                    stats
-                }
+                stats
             });
-
         } catch (error) {
-            logger.error('Errore statistiche utenti:', error);
+            logger.error('Error getting user stats:', error);
             res.status(500).json({
                 success: false,
-                message: 'Errore interno del server'
+                message: 'Errore durante il recupero delle statistiche'
             });
         }
     }
 
     /**
-     * Aggiorna stato utente (Admin)
+     * Verifica email utente
      */
-    async updateUserStatus(req, res) {
+    static async verifyEmail(req, res) {
+        try {
+            const { token } = req.params;
+
+            // Qui dovresti implementare la logica di verifica del token
+            // Per ora assumiamo che il token sia l'ID dell'utente
+            const user = await User.verifyEmail(token);
+
+            if (!user) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Token di verifica non valido'
+                });
+            }
+
+            res.json({
+                success: true,
+                message: 'Email verificata con successo',
+                user
+            });
+        } catch (error) {
+            logger.error('Error verifying email:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Errore durante la verifica dell\'email'
+            });
+        }
+    }
+
+    /**
+     * Cambia password utente
+     */
+    static async changePassword(req, res) {
         try {
             const errors = validationResult(req);
             if (!errors.isEmpty()) {
@@ -395,47 +356,51 @@ class UserController {
                 });
             }
 
-            const { id } = req.params;
-            const { status } = req.body;
-            const currentUser = req.user;
+            const { currentPassword, newPassword } = req.body;
+            const bcrypt = require('bcryptjs');
 
-            // Impedisce auto-modifica
-            if (currentUser.id === id) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Non puoi modificare il tuo stesso stato'
-                });
-            }
-
-            // Verifica che l'utente esista
-            const existingUser = await User.findById(id);
-            if (!existingUser) {
+            // Recupera utente con password
+            const user = await User.findByEmail(req.user.email);
+            if (!user) {
                 return res.status(404).json({
                     success: false,
                     message: 'Utente non trovato'
                 });
             }
 
-            const updatedUser = await User.updateStatus(id, status);
+            // Verifica password corrente
+            const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password_hash);
+            if (!isCurrentPasswordValid) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Password corrente non corretta'
+                });
+            }
 
-            logger.info(`Stato utente aggiornato: ${existingUser.email} -> ${status} da ${currentUser.email}`);
+            // Hash nuova password
+            const saltRounds = 12;
+            const newPasswordHash = await bcrypt.hash(newPassword, saltRounds);
+
+            // Aggiorna password nel database
+            const { query } = require('../config/database');
+            await query(`
+                UPDATE users
+                SET password_hash = $1, updated_at = CURRENT_TIMESTAMP
+                WHERE id = $2
+            `, [newPasswordHash, req.user.id]);
 
             res.json({
                 success: true,
-                message: 'Stato utente aggiornato con successo',
-                data: {
-                    user: updatedUser
-                }
+                message: 'Password aggiornata con successo'
             });
-
         } catch (error) {
-            logger.error('Errore aggiornamento stato utente:', error);
+            logger.error('Error changing password:', error);
             res.status(500).json({
                 success: false,
-                message: 'Errore interno del server'
+                message: 'Errore durante il cambio password'
             });
         }
     }
 }
 
-module.exports = new UserController();
+module.exports = UserController;
