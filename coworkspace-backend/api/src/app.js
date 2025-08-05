@@ -1,4 +1,4 @@
-// src/app.js - Applicazione Express AGGIORNATA CON DEBUG
+// src/app.js - Applicazione Express COMPLETA
 require('dotenv').config();
 
 const express = require('express');
@@ -15,8 +15,8 @@ const db = require('./config/database');
 // Import middleware
 const { errorHandler } = require('./middleware/errorHandler');
 
-// Import route con gestione errori DETTAGLIATA
-let authRoutes, userRoutes, spaceRoutes, bookingRoutes, paymentRoutes;
+// Import route con gestione errori
+let authRoutes, userRoutes, spaceRoutes, bookingRoutes, paymentRoutes, analyticsRoutes;
 
 try {
     authRoutes = require('./routes/auth');
@@ -63,6 +63,16 @@ try {
     logger.info('✅ Payment routes loaded successfully');
 } catch (e) {
     logger.error('❌ Payment routes failed to load:', {
+        message: e.message,
+        stack: e.stack
+    });
+}
+
+try {
+    analyticsRoutes = require('./routes/analytics');
+    logger.info('✅ Analytics routes loaded successfully');
+} catch (e) {
+    logger.error('❌ Analytics routes failed to load:', {
         message: e.message,
         stack: e.stack
     });
@@ -213,6 +223,7 @@ app.use('/api/users', userRoutes || express.Router());
 app.use('/api/spaces', spaceRoutes || express.Router());
 app.use('/api/bookings', bookingRoutes || express.Router());
 app.use('/api/payments', paymentRoutes || express.Router());
+app.use('/api/analytics', analyticsRoutes || express.Router());
 
 // ===== ROOT ROUTE =====
 app.get('/', (req, res) => {
@@ -228,62 +239,105 @@ app.get('/', (req, res) => {
             users: '/api/users',
             spaces: '/api/spaces',
             bookings: '/api/bookings',
-            payments: '/api/payments'
-        }
+            payments: '/api/payments',
+            analytics: '/api/analytics'
+        },
+        environment: process.env.NODE_ENV || 'development'
     });
 });
 
 // ===== 404 HANDLER =====
 app.use('*', (req, res) => {
+    logger.warn(`404 - Route not found: ${req.method} ${req.originalUrl}`);
     res.status(404).json({
         success: false,
         message: 'Endpoint non trovato',
-        path: req.originalUrl,
-        method: req.method,
-        timestamp: new Date().toISOString()
+        error: {
+            type: 'ROUTE_NOT_FOUND',
+            method: req.method,
+            path: req.originalUrl
+        }
     });
 });
 
 // ===== ERROR HANDLER =====
 app.use(errorHandler);
 
+// ===== DATABASE CONNECTION =====
+const initializeDatabase = async () => {
+    logger.info('🔄 Initializing database connection...');
+
+    try {
+        const isConnected = await db.connectDatabase();
+
+        if (isConnected) {
+            // Verifica che le tabelle esistano
+            const tablesQuery = `
+                SELECT table_name 
+                FROM information_schema.tables 
+                WHERE table_schema = 'public' 
+                AND table_name IN ('users', 'spaces', 'bookings', 'payments')
+                ORDER BY table_name
+            `;
+
+            const result = await db.query(tablesQuery);
+            logger.info('📋 Existing tables:', result.rows.map(row => row.table_name));
+
+            return true;
+        }
+
+        return false;
+    } catch (error) {
+        logger.error('❌ Database initialization failed:', error);
+        return false;
+    }
+};
+
+// ===== REDIS CONNECTION (OPZIONALE) =====
+const initializeRedis = () => {
+    if (process.env.REDIS_HOST) {
+        try {
+            // Redis initialization qui quando necessario
+            logger.info('✅ Redis configuration available');
+        } catch (error) {
+            logger.error('❌ Redis connection failed:', error);
+        }
+    } else {
+        logger.info('⚠️ Redis configuration not available, skipping...');
+    }
+};
+
 // ===== SERVER STARTUP =====
 const PORT = process.env.PORT || 3000;
 
 const startServer = async () => {
     try {
-        // Connessione database
-        logger.info('🔄 Initializing database connection...');
-        await db.connectDatabase();
+        // Inizializza database
+        const dbConnected = await initializeDatabase();
 
-        // Test Redis (opzionale)
-        try {
-            logger.info('⚠️ Redis configuration not available, skipping...');
-        } catch (redisError) {
-            logger.warn('⚠️ Redis not available (continuing without cache):', redisError.message);
-        }
+        // Inizializza Redis (opzionale)
+        initializeRedis();
 
         // Avvia server
-        const server = app.listen(PORT, () => {
-            logger.info(`🚀 Server running on port ${PORT}`, {
+        const server = app.listen(PORT, '0.0.0.0', () => {
+            logger.info('🚀 Server running on port ' + PORT, {
                 environment: process.env.NODE_ENV || 'development',
                 port: PORT,
-                pid: process.pid,
-                timestamp: new Date().toISOString()
+                pid: process.pid
             });
 
-            logger.info(`📖 Health check: http://localhost:${PORT}/api/health`);
-            if (process.env.ENABLE_SWAGGER !== 'false') {
-                logger.info(`📚 API Documentation: http://localhost:${PORT}/api/docs`);
-            }
+            logger.info('📖 Health check: http://localhost:' + PORT + '/api/health');
+            logger.info('📚 API Documentation: http://localhost:' + PORT + '/api/docs');
 
-            // Log delle funzionalità implementate
+            // Log funzionalità disponibili
             logger.info('🎉 Sistema CoWorkSpace completamente operativo!');
             logger.info('✅ Funzionalità disponibili:');
             logger.info('   - Autenticazione JWT completa');
             logger.info('   - Gestione utenti e ruoli');
             logger.info('   - CRUD spazi di coworking');
             logger.info('   - CRUD prenotazioni');
+            logger.info('   - Sistema pagamenti Stripe');
+            logger.info('   - Dashboard Analytics');
             logger.info('   - Business logic disponibilità');
             logger.info('   - Sistema permessi granulare');
             logger.info('   - Rate limiting per ruolo');
@@ -293,49 +347,24 @@ const startServer = async () => {
 
         // Graceful shutdown
         const gracefulShutdown = (signal) => {
-            logger.info(`🛑 Received ${signal}. Starting graceful shutdown...`);
+            logger.info(`Received ${signal}. Graceful shutdown...`);
 
-            server.close(async (err) => {
-                if (err) {
-                    logger.error('❌ Error during server shutdown:', err);
-                    process.exit(1);
+            server.close(() => {
+                logger.info('HTTP server closed.');
+
+                // Chiudi connessioni database
+                if (db.closePool) {
+                    db.closePool(() => {
+                        logger.info('Database pool closed.');
+                    });
                 }
 
-                logger.info('✅ HTTP server closed');
-
-                try {
-                    await db.closePool();
-                    logger.info('✅ Database connections closed');
-                } catch (dbError) {
-                    logger.error('❌ Error closing database:', dbError);
-                }
-
-                logger.info('👋 Graceful shutdown completed');
                 process.exit(0);
             });
-
-            // Force shutdown dopo 30 secondi
-            setTimeout(() => {
-                logger.error('⏰ Graceful shutdown timeout. Forcing exit...');
-                process.exit(1);
-            }, 30000);
         };
 
-        // Process event handlers
         process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
         process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-
-        process.on('uncaughtException', (error) => {
-            logger.error('💥 Uncaught Exception:', error);
-            gracefulShutdown('uncaughtException');
-        });
-
-        process.on('unhandledRejection', (reason, promise) => {
-            logger.error('💥 Unhandled Rejection:', { reason, promise });
-            gracefulShutdown('unhandledRejection');
-        });
-
-        return server;
 
     } catch (error) {
         logger.error('❌ Failed to start server:', error);
@@ -343,9 +372,7 @@ const startServer = async () => {
     }
 };
 
-// Avvia server solo se non è in modalità test
-if (process.env.NODE_ENV !== 'test') {
-    startServer();
-}
+// Avvia il server
+startServer();
 
 module.exports = app;

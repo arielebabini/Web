@@ -2,8 +2,10 @@
 const express = require('express');
 const router = express.Router();
 const PaymentController = require('../controllers/paymentController');
-const authMiddleware = require('../middleware/auth');
 const { body, param, query } = require('express-validator');
+
+// Import del middleware AUTH corretto
+const { requireAuth } = require('../middleware/auth');
 
 /**
  * @route   GET /api/payments/health
@@ -25,12 +27,10 @@ router.get('/test-stripe', PaymentController.testStripeConnection);
  * @access  Private (User)
  */
 router.post('/create-intent',
-    authMiddleware,
-    [
-        body('bookingId')
-            .isUUID()
-            .withMessage('ID prenotazione deve essere un UUID valido')
-    ],
+    requireAuth,
+    body('bookingId')
+        .isUUID()
+        .withMessage('ID prenotazione deve essere un UUID valido'),
     PaymentController.createPaymentIntent
 );
 
@@ -40,12 +40,10 @@ router.post('/create-intent',
  * @access  Private (User/Admin)
  */
 router.get('/:paymentId',
-    authMiddleware,
-    [
-        param('paymentId')
-            .isUUID()
-            .withMessage('ID pagamento non valido')
-    ],
+    requireAuth,
+    param('paymentId')
+        .isUUID()
+        .withMessage('ID pagamento non valido'),
     PaymentController.getPaymentStatus
 );
 
@@ -55,17 +53,15 @@ router.get('/:paymentId',
  * @access  Private (User)
  */
 router.get('/user/my-payments',
-    authMiddleware,
-    [
-        query('page')
-            .optional()
-            .isInt({ min: 1 })
-            .withMessage('Pagina deve essere un numero positivo'),
-        query('limit')
-            .optional()
-            .isInt({ min: 1, max: 100 })
-            .withMessage('Limite deve essere tra 1 e 100')
-    ],
+    requireAuth,
+    query('page')
+        .optional()
+        .isInt({ min: 1 })
+        .withMessage('Pagina deve essere un numero positivo'),
+    query('limit')
+        .optional()
+        .isInt({ min: 1, max: 100 })
+        .withMessage('Limite deve essere tra 1 e 100'),
     PaymentController.getUserPayments
 );
 
@@ -85,17 +81,15 @@ router.post('/webhook/stripe',
  * @access  Private (Admin)
  */
 router.get('/admin/stats',
-    authMiddleware,
-    [
-        query('startDate')
-            .optional()
-            .isISO8601()
-            .withMessage('Data inizio deve essere nel formato ISO8601'),
-        query('endDate')
-            .optional()
-            .isISO8601()
-            .withMessage('Data fine deve essere nel formato ISO8601')
-    ],
+    requireAuth,
+    query('startDate')
+        .optional()
+        .isISO8601()
+        .withMessage('Data inizio deve essere nel formato ISO8601'),
+    query('endDate')
+        .optional()
+        .isISO8601()
+        .withMessage('Data fine deve essere nel formato ISO8601'),
     PaymentController.getPaymentStats
 );
 

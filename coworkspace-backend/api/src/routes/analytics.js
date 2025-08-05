@@ -1,16 +1,17 @@
 // api/src/routes/analytics.js
 const express = require('express');
 const router = express.Router();
-const authMiddleware = require('../middleware/auth');
-const { query } = require('express-validator');
 const logger = require('../utils/logger');
+
+// Import del middleware AUTH corretto - usa la stessa soluzione dei payments
+const { requireAuth } = require('../middleware/auth');
 
 /**
  * @route   GET /api/analytics/health
  * @desc    Health check per il servizio analytics
  * @access  Private
  */
-router.get('/health', authMiddleware, (req, res) => {
+router.get('/health', requireAuth, (req, res) => {
     res.json({
         success: true,
         message: 'Analytics service is running',
@@ -33,7 +34,7 @@ router.get('/health', authMiddleware, (req, res) => {
  * @desc    Dashboard completa per amministratori
  * @access  Private (Admin)
  */
-router.get('/dashboard/admin', authMiddleware, async (req, res) => {
+router.get('/dashboard/admin', requireAuth, async (req, res) => {
     try {
         if (req.user.role !== 'admin') {
             return res.status(403).json({
@@ -103,7 +104,7 @@ router.get('/dashboard/admin', authMiddleware, async (req, res) => {
  * @desc    Dashboard per gestori di spazi
  * @access  Private (Manager/Admin)
  */
-router.get('/dashboard/manager', authMiddleware, async (req, res) => {
+router.get('/dashboard/manager', requireAuth, async (req, res) => {
     try {
         if (!['admin', 'manager'].includes(req.user.role)) {
             return res.status(403).json({
@@ -157,22 +158,14 @@ router.get('/dashboard/manager', authMiddleware, async (req, res) => {
 });
 
 /**
- * @route   GET /api/analytics/dashboard/user/:userId?
+ * @route   GET /api/analytics/dashboard/user
  * @desc    Dashboard utente
  * @access  Private (User can see own, Admin can see all)
  */
-router.get('/dashboard/user/:userId?', authMiddleware, async (req, res) => {
+router.get('/dashboard/user', requireAuth, async (req, res) => {
     try {
         const { timeRange = '30d' } = req.query;
-        const userId = req.params.userId || req.user.id;
-
-        // Gli utenti normali possono vedere solo le proprie stats
-        if (req.user.role === 'user' && userId !== req.user.id) {
-            return res.status(403).json({
-                success: false,
-                message: 'Puoi visualizzare solo le tue statistiche'
-            });
-        }
+        const userId = req.user.id;
 
         // Simulazione dati utente
         const mockUserData = {
@@ -202,7 +195,7 @@ router.get('/dashboard/user/:userId?', authMiddleware, async (req, res) => {
             ]
         };
 
-        logger.info(`User dashboard accessed by user ${req.user.id} for user ${userId}`);
+        logger.info(`User dashboard accessed by user ${req.user.id}`);
 
         res.json({
             success: true,
@@ -224,7 +217,7 @@ router.get('/dashboard/user/:userId?', authMiddleware, async (req, res) => {
  * @desc    Esporta report in formato CSV
  * @access  Private (Manager/Admin)
  */
-router.get('/export', authMiddleware, async (req, res) => {
+router.get('/export', requireAuth, async (req, res) => {
     try {
         if (!['admin', 'manager'].includes(req.user.role)) {
             return res.status(403).json({
@@ -243,28 +236,15 @@ router.get('/export', authMiddleware, async (req, res) => {
         }
 
         // Simulazione dati CSV
-        const mockCSVData = {
-            bookings: [
-                ['ID', 'Data Creazione', 'Utente', 'Spazio', 'Status', 'Prezzo'],
-                ['b1', '2025-01-15', 'mario.rossi@email.com', 'Creative Hub Milano', 'confirmed', '80.00'],
-                ['b2', '2025-01-14', 'laura.bianchi@email.com', 'Tech Space Roma', 'confirmed', '90.00']
-            ],
-            payments: [
-                ['ID', 'Data', 'Utente', 'Importo', 'Status', 'Stripe ID'],
-                ['p1', '2025-01-15', 'mario.rossi@email.com', '80.00', 'completed', 'pi_test_123'],
-                ['p2', '2025-01-14', 'laura.bianchi@email.com', '90.00', 'completed', 'pi_test_456']
-            ]
-        };
-
-        const csvContent = mockCSVData[type]
-            ? mockCSVData[type].map(row => row.join(',')).join('\n')
-            : 'No data available';
+        const csvData = `Date,Type,Amount,Status
+2025-01-15,${type},150.00,completed
+2025-01-16,${type},200.00,completed
+2025-01-17,${type},180.00,pending`;
 
         res.setHeader('Content-Type', 'text/csv');
         res.setHeader('Content-Disposition', `attachment; filename="${type}_report_${new Date().toISOString().split('T')[0]}.csv"`);
-        res.send(csvContent);
 
-        logger.info(`CSV report exported by user ${req.user.id}`, { type, startDate, endDate });
+        res.send(csvData);
 
     } catch (error) {
         logger.error('Error exporting report:', error);
