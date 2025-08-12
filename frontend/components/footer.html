@@ -1,0 +1,103 @@
+<footer class="modern-footer">
+    <div class="container">
+        <div class="row g-4">
+            <div class="col-lg-4">
+                <div class="footer-brand">
+                    <h5>CoWorkSpace</h5>
+                    <p class="footer-description">
+                        La piattaforma leader per trovare e prenotare spazi di coworking
+                        moderni e flessibili in tutta Italia.
+                    </p>
+                    <div class="social-links">
+                        <a href="#" aria-label="Facebook">
+                            <i class="fab fa-facebook-f"></i>
+                        </a>
+                        <a href="#" aria-label="Twitter">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="#" aria-label="LinkedIn">
+                            <i class="fab fa-linkedin-in"></i>
+                        </a>
+                        <a href="#" aria-label="Instagram">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-2 col-md-6">
+                <h6>Spazi</h6>
+                <ul class="footer-links">
+                    <li><a href="#" onclick="Navigation.navigateTo('spaces')"><i class="fas fa-chevron-right"></i> Trova Spazi</a></li>
+                    <li><a href="#" onclick="Navigation.filterByCity('Milano')"><i class="fas fa-chevron-right"></i> Milano</a></li>
+                    <li><a href="#" onclick="Navigation.filterByCity('Roma')"><i class="fas fa-chevron-right"></i> Roma</a></li>
+                    <li><a href="#" onclick="Navigation.filterByCity('Torino')"><i class="fas fa-chevron-right"></i> Torino</a></li>
+                    <li><a href="#" onclick="Navigation.filterByCity('Napoli')"><i class="fas fa-chevron-right"></i> Napoli</a></li>
+                </ul>
+            </div>
+
+            <div class="col-lg-2 col-md-6">
+                <h6>Servizi</h6>
+                <ul class="footer-links">
+                    <li><a href="#" onclick="Navigation.filterByType('desk')"><i class="fas fa-chevron-right"></i> Postazioni</a></li>
+                    <li><a href="#" onclick="Navigation.filterByType('office')"><i class="fas fa-chevron-right"></i> Uffici Privati</a></li>
+                    <li><a href="#" onclick="Navigation.filterByType('meeting-room')"><i class="fas fa-chevron-right"></i> Sale Riunioni</a></li>
+                    <li><a href="#" onclick="Navigation.filterByType('event-space')"><i class="fas fa-chevron-right"></i> Spazi Eventi</a></li>
+                </ul>
+            </div>
+
+            <div class="col-lg-2 col-md-6">
+                <h6>Supporto</h6>
+                <ul class="footer-links">
+                    <li><a href="#" onclick="Navigation.navigateTo('support')"><i class="fas fa-chevron-right"></i> Centro Aiuto</a></li>
+                    <li><a href="#" onclick="Navigation.navigateTo('contact')"><i class="fas fa-chevron-right"></i> Contatti</a></li>
+                    <li><a href="#" onclick="Navigation.navigateTo('terms')"><i class="fas fa-chevron-right"></i> Termini</a></li>
+                    <li><a href="#" onclick="Navigation.navigateTo('privacy')"><i class="fas fa-chevron-right"></i> Privacy</a></li>
+                </ul>
+            </div>
+
+            <div class="col-lg-2 col-md-6">
+                <h6>Newsletter</h6>
+                <p class="text-muted small mb-3">
+                    Ricevi aggiornamenti sui nuovi spazi e offerte speciali.
+                </p>
+                <form class="newsletter-form" onsubmit="Components.handleNewsletterSubmit(event)">
+                    <div class="input-group">
+                        <input type="email" class="form-control"
+                               placeholder="La tua email" required>
+                        <button class="btn btn-primary" type="submit">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <hr class="my-4">
+
+        <div class="footer-bottom">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <p class="mb-0 text-muted">
+                        © <span id="current-year">2025</span> CoWorkSpace. Tutti i diritti riservati.
+                    </p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <p class="mb-0 text-muted">
+                        Made with <i class="fas fa-heart text-danger"></i> in Italy
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<script>
+    // Aggiorna anno corrente
+    document.addEventListener('DOMContentLoaded', function() {
+        const yearElement = document.getElementById('current-year');
+        if (yearElement) {
+            yearElement.textContent = new Date().getFullYear();
+        }
+    });
+</script>
