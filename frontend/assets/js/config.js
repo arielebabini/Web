@@ -1,85 +1,103 @@
 /**
  * CoWorkSpace - Configuration
- * Configurazione globale dell'applicazione
+ * Configurazione generale dell'applicazione
  */
 
-// Configurazione globale
-window.CoWorkSpaceConfig = {
-    // API Configuration
-    api: {
-        baseUrl: 'https://api.coworkspace.it',
-        timeout: 10000,
-        retryAttempts: 3,
-        retryDelay: 1000
-    },
-
-    // App Settings
+window.Config = {
+    // Informazioni applicazione
     app: {
         name: 'CoWorkSpace',
         version: '1.0.0',
-        environment: 'development', // development | staging | production
-        debug: true,
-        enableAnalytics: false
+        description: 'Piattaforma per la gestione di spazi coworking',
+        environment: window.location.hostname === 'localhost' ? 'development' : 'production'
     },
 
-    // UI Settings
+    // API Configuration (per futuro backend)
+    api: {
+        baseUrl: window.location.hostname === 'localhost'
+            ? 'http://localhost:3000/api'
+            : 'https://api.coworkspace.it',
+        timeout: 10000,
+        retryAttempts: 3,
+        endpoints: {
+            auth: {
+                login: '/auth/login',
+                register: '/auth/register',
+                logout: '/auth/logout',
+                refresh: '/auth/refresh'
+            },
+            spaces: {
+                list: '/spaces',
+                search: '/spaces/search',
+                detail: '/spaces/:id',
+                book: '/spaces/:id/book'
+            },
+            bookings: {
+                list: '/bookings',
+                create: '/bookings',
+                update: '/bookings/:id',
+                cancel: '/bookings/:id/cancel'
+            },
+            users: {
+                profile: '/users/profile',
+                update: '/users/profile'
+            }
+        }
+    },
+
+    // UI Configuration
     ui: {
-        theme: 'light', // light | dark | auto
+        theme: 'light',
+        language: 'it-IT',
+        currency: 'EUR',
+        dateFormat: 'DD/MM/YYYY',
+        timeFormat: '24h',
+        notifications: {
+            position: 'top-right',
+            duration: 4000,
+            maxVisible: 5
+        },
         animations: {
             enabled: true,
             duration: 300,
             easing: 'ease-out'
-        },
-        notifications: {
-            position: 'top-right', // top-left | top-right | bottom-left | bottom-right
-            duration: 4000,
-            maxNotifications: 5
-        },
-        loading: {
-            showAfter: 200, // ms
-            minDuration: 500 // ms
         }
     },
 
     // Feature Flags
     features: {
-        enableDashboard: true,
-        enableBookings: true,
-        enablePayments: false,
-        enableChat: false,
-        enableNotifications: true,
-        enableAnalytics: false,
-        enableExport: true,
-        enableFilters: true,
-        enableMap: true,
-        enableOfflineMode: false
+        authentication: true,
+        booking: true,
+        payments: false, // Disabilitato per demo
+        reviews: false,  // Disabilitato per demo
+        chat: false,     // Disabilitato per demo
+        notifications: true,
+        darkMode: false, // Per futuro sviluppo
+        pwa: false,      // Per futuro sviluppo
+        maps: true,
+        analytics: window.location.hostname !== 'localhost'
     },
 
-    // Local Storage Keys
+    // Storage Configuration
     storage: {
-        user: 'coworkspace_user',
-        theme: 'coworkspace_theme',
-        language: 'coworkspace_language',
-        preferences: 'coworkspace_preferences',
-        cache: 'coworkspace_cache',
-        cookies: 'coworkspace_cookies_accepted'
-    },
-
-    // Default Values
-    defaults: {
-        language: 'it',
-        currency: 'EUR',
-        dateFormat: 'DD/MM/YYYY',
-        timeFormat: '24h',
-        itemsPerPage: 12,
-        searchMinLength: 2,
-        debounceDelay: 300
+        prefix: 'coworkspace_',
+        keys: {
+            user: 'user',
+            auth_token: 'auth_token',
+            preferences: 'preferences',
+            search_history: 'search_history',
+            cookies_accepted: 'cookies_accepted'
+        },
+        expiry: {
+            auth_token: 7 * 24 * 60 * 60 * 1000, // 7 giorni
+            search_history: 30 * 24 * 60 * 60 * 1000, // 30 giorni
+            preferences: 365 * 24 * 60 * 60 * 1000 // 1 anno
+        }
     },
 
     // Validation Rules
     validation: {
         email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-        phone: /^[\+]?[1-9][\d]{0,15}$/,
         password: {
             minLength: 8,
             requireUppercase: true,
@@ -87,162 +105,93 @@ window.CoWorkSpaceConfig = {
             requireNumbers: true,
             requireSpecialChars: false
         },
+        phone: /^[\+]?[1-9][\d]{0,15}$/,
         name: {
             minLength: 2,
-            maxLength: 50
+            maxLength: 50,
+            pattern: /^[a-zA-ZÀ-ÿ\s''-]*$/
         }
     },
 
-    // URLs
-    urls: {
-        privacyPolicy: '/privacy-policy',
-        termsOfService: '/terms-of-service',
-        cookiePolicy: '/cookie-policy',
-        support: '/support',
-        documentation: '/docs'
-    },
-
-    // Map Configuration
-    map: {
-        defaultZoom: 1,
-        minZoom: 0.5,
-        maxZoom: 2,
-        zoomStep: 0.2,
-        animationDuration: 300
-    },
-
-    // Booking Configuration
-    booking: {
-        minAdvanceBooking: 1, // hours
-        maxAdvanceBooking: 30, // days
-        cancellationDeadline: 24, // hours
-        defaultDuration: 8, // hours
-        workingHours: {
-            start: '08:00',
-            end: '20:00'
+    // Maps Configuration
+    maps: {
+        italy: {
+            center: { lat: 41.8719, lng: 12.5674 }, // Roma
+            zoom: 6,
+            cities: [
+                { name: 'Milano', lat: 45.4642, lng: 9.1900, spaces: 2 },
+                { name: 'Roma', lat: 41.9028, lng: 12.4964, spaces: 1 },
+                { name: 'Torino', lat: 45.0703, lng: 7.6869, spaces: 1 },
+                { name: 'Bologna', lat: 44.4949, lng: 11.3426, spaces: 1 },
+                { name: 'Firenze', lat: 43.7696, lng: 11.2558, spaces: 0 },
+                { name: 'Napoli', lat: 40.8518, lng: 14.2681, spaces: 0 },
+                { name: 'Venezia', lat: 45.4408, lng: 12.3155, spaces: 0 },
+                { name: 'Genova', lat: 44.4056, lng: 8.9463, spaces: 0 }
+            ]
         }
-    },
-
-    // File Upload
-    upload: {
-        maxFileSize: 5 * 1024 * 1024, // 5MB
-        allowedTypes: ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'],
-        maxFiles: 10
     },
 
     // Error Messages
-    errors: {
-        network: 'Errore di connessione. Controlla la tua connessione internet.',
-        server: 'Errore del server. Riprova più tardi.',
-        validation: 'Alcuni campi contengono errori. Controlla e riprova.',
-        authentication: 'Sessione scaduta. Effettua nuovamente il login.',
-        authorization: 'Non hai i permessi per accedere a questa risorsa.',
-        notFound: 'Risorsa non trovata.',
-        timeout: 'Richiesta scaduta. Riprova più tardi.',
-        generic: 'Si è verificato un errore. Riprova più tardi.'
-    },
-
-    // Success Messages
-    success: {
-        login: 'Login effettuato con successo!',
-        register: 'Registrazione completata con successo!',
-        logout: 'Logout effettuato con successo!',
-        profileUpdate: 'Profilo aggiornato con successo!',
-        bookingCreated: 'Prenotazione effettuata con successo!',
-        bookingUpdated: 'Prenotazione aggiornata con successo!',
-        bookingCancelled: 'Prenotazione cancellata con successo!',
-        settingsSaved: 'Impostazioni salvate con successo!'
-    },
-
-    // Event Names
-    events: {
-        userLogin: 'user:login',
-        userLogout: 'user:logout',
-        userUpdate: 'user:update',
-        bookingCreate: 'booking:create',
-        bookingUpdate: 'booking:update',
-        bookingCancel: 'booking:cancel',
-        spaceSelect: 'space:select',
-        filterApply: 'filter:apply',
-        searchPerform: 'search:perform',
-        navigationChange: 'navigation:change',
-        themeChange: 'theme:change',
-        notificationShow: 'notification:show',
-        modalOpen: 'modal:open',
-        modalClose: 'modal:close'
-    },
-
-    // CSS Classes
-    cssClasses: {
-        hidden: 'd-none',
-        visible: 'd-block',
-        loading: 'loading',
-        active: 'active',
-        disabled: 'disabled',
-        error: 'error',
-        success: 'success',
-        warning: 'warning',
-        info: 'info',
-        fadeIn: 'animate-fadeIn',
-        fadeOut: 'animate-fadeOut',
-        slideUp: 'animate-slideInUp',
-        slideDown: 'animate-slideInDown'
-    },
-
-    // Animation Settings
-    animations: {
-        page: {
-            enter: 'animate-fadeInUp',
-            exit: 'animate-fadeOut',
-            duration: 300
+    messages: {
+        errors: {
+            generic: 'Si è verificato un errore. Riprova più tardi.',
+            network: 'Errore di connessione. Controlla la tua connessione internet.',
+            validation: 'Controlla i dati inseriti e riprova.',
+            authentication: 'Credenziali non valide.',
+            authorization: 'Non hai i permessi per questa operazione.',
+            notFound: 'Risorsa non trovata.',
+            timeout: 'Richiesta scaduta. Riprova più tardi.'
         },
-        modal: {
-            enter: 'animate-zoomIn',
-            exit: 'animate-zoomOut',
-            duration: 250
+        success: {
+            login: 'Login effettuato con successo!',
+            register: 'Registrazione completata con successo!',
+            logout: 'Logout effettuato con successo.',
+            booking: 'Prenotazione effettuata con successo!',
+            update: 'Aggiornamento completato con successo.',
+            delete: 'Eliminazione completata con successo.'
         },
-        notification: {
-            enter: 'animate-slideInRight',
-            exit: 'animate-slideOutRight',
-            duration: 300
-        },
-        loading: {
-            spinner: 'animate-spin',
-            pulse: 'animate-pulse'
+        info: {
+            loading: 'Caricamento in corso...',
+            noResults: 'Nessun risultato trovato.',
+            demo: 'Questa è una versione demo dell\'applicazione.'
         }
     },
 
-    // Performance Settings
+    // Performance Configuration
     performance: {
-        enableVirtualScrolling: false,
-        enableLazyLoading: true,
-        enableImageOptimization: true,
-        debounceSearch: true,
-        throttleScroll: true,
-        cacheTimeout: 5 * 60 * 1000, // 5 minutes
-        preloadImages: true
+        lazyLoading: true,
+        imageOptimization: true,
+        caching: {
+            enabled: true,
+            duration: 5 * 60 * 1000 // 5 minuti
+        },
+        debounceDelay: 300,
+        throttleDelay: 100
     },
 
-    // Accessibility Settings
-    accessibility: {
-        focusRingVisible: true,
-        highContrast: false,
-        reducedMotion: false,
-        screenReaderAnnouncements: true,
-        keyboardNavigation: true
+    // Security Configuration
+    security: {
+        sessionTimeout: 30 * 60 * 1000, // 30 minuti
+        maxLoginAttempts: 5,
+        lockoutDuration: 15 * 60 * 1000, // 15 minuti
+        csrfProtection: true,
+        xssProtection: true
     },
 
-    // SEO Settings
-    seo: {
-        siteName: 'CoWorkSpace',
-        description: 'Piattaforma per la prenotazione di spazi di coworking in Italia',
-        keywords: 'coworking, spazi, uffici, prenotazioni, lavoro',
-        author: 'CoWorkSpace Team',
-        image: '/assets/images/og-image.jpg',
-        twitterCard: 'summary_large_image'
+    // Analytics Configuration (per futuro)
+    analytics: {
+        enabled: false,
+        provider: 'google',
+        trackingId: 'GA_TRACKING_ID',
+        events: {
+            pageView: true,
+            userInteraction: true,
+            errors: true,
+            performance: true
+        }
     },
 
-    // Social Media
+    // Social Media Links
     social: {
         facebook: 'https://facebook.com/coworkspace',
         twitter: 'https://twitter.com/coworkspace',
@@ -250,106 +199,32 @@ window.CoWorkSpaceConfig = {
         instagram: 'https://instagram.com/coworkspace'
     },
 
-    // Analytics
-    analytics: {
-        googleAnalytics: 'GA-XXXXXXXX-X',
-        facebookPixel: 'XXXXXXXXXXXXXXXXX',
-        trackPageViews: true,
-        trackEvents: true,
-        trackErrors: true,
-        anonymizeIP: true
+    // Support Configuration
+    support: {
+        email: 'support@coworkspace.it',
+        phone: '+39 02 1234567',
+        hours: 'Lun-Ven 9:00-18:00',
+        chat: false // Per futuro
     },
 
-    // Security Settings
-    security: {
-        enableCSP: true,
-        sessionTimeout: 30 * 60 * 1000, // 30 minutes
-        passwordStrengthCheck: true,
-        enableCaptcha: false,
-        rateLimiting: {
-            enabled: true,
-            maxRequests: 100,
-            windowMs: 15 * 60 * 1000 // 15 minutes
-        }
+    // Debug Configuration
+    debug: {
+        enabled: window.location.hostname === 'localhost',
+        logLevel: window.location.hostname === 'localhost' ? 'debug' : 'error',
+        showPerformance: window.location.hostname === 'localhost',
+        mockData: true
     }
 };
 
-// Environment-specific overrides
-if (window.CoWorkSpaceConfig.app.environment === 'production') {
-    window.CoWorkSpaceConfig.app.debug = false;
-    window.CoWorkSpaceConfig.app.enableAnalytics = true;
-    window.CoWorkSpaceConfig.api.baseUrl = 'https://api.coworkspace.it';
-} else if (window.CoWorkSpaceConfig.app.environment === 'staging') {
-    window.CoWorkSpaceConfig.api.baseUrl = 'https://staging-api.coworkspace.it';
-} else {
-    // Development
-    window.CoWorkSpaceConfig.api.baseUrl = 'http://localhost:3000/api';
-}
+// Freeze configuration per prevenire modifiche accidentali
+Object.freeze(window.Config);
 
-// Detect user preferences
-if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-    window.CoWorkSpaceConfig.ui.theme = 'dark';
-}
-
-if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    window.CoWorkSpaceConfig.ui.animations.enabled = false;
-    window.CoWorkSpaceConfig.accessibility.reducedMotion = true;
-}
-
-// Browser capabilities detection
-window.CoWorkSpaceConfig.browser = {
-    supportsWebP: (() => {
-        const canvas = document.createElement('canvas');
-        return canvas.toDataURL('image/webp').indexOf('data:image/webp') === 0;
-    })(),
-    supportsIntersectionObserver: 'IntersectionObserver' in window,
-    supportsLocalStorage: (() => {
-        try {
-            const test = 'test';
-            localStorage.setItem(test, test);
-            localStorage.removeItem(test);
-            return true;
-        } catch (e) {
-            return false;
-        }
-    })(),
-    supportsServiceWorker: 'serviceWorker' in navigator,
-    supportsTouchEvents: 'ontouchstart' in window,
-    supportsGeolocation: 'geolocation' in navigator,
-    supportsNotifications: 'Notification' in window
-};
-
-// Device type detection
-window.CoWorkSpaceConfig.device = {
-    isMobile: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
-    isTablet: /iPad|Android|Silk|Kindle/i.test(navigator.userAgent) && !/Mobile/i.test(navigator.userAgent),
-    isDesktop: !/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
-    hasTouch: 'ontouchstart' in window || navigator.maxTouchPoints > 0,
-    isRetina: window.devicePixelRatio > 1
-};
-
-// Screen size detection
-window.CoWorkSpaceConfig.screen = {
-    width: window.innerWidth,
-    height: window.innerHeight,
-    isSmall: window.innerWidth < 768,
-    isMedium: window.innerWidth >= 768 && window.innerWidth < 1200,
-    isLarge: window.innerWidth >= 1200
-};
-
-// Update screen info on resize
-window.addEventListener('resize', () => {
-    window.CoWorkSpaceConfig.screen.width = window.innerWidth;
-    window.CoWorkSpaceConfig.screen.height = window.innerHeight;
-    window.CoWorkSpaceConfig.screen.isSmall = window.innerWidth < 768;
-    window.CoWorkSpaceConfig.screen.isMedium = window.innerWidth >= 768 && window.innerWidth < 1200;
-    window.CoWorkSpaceConfig.screen.isLarge = window.innerWidth >= 1200;
-});
-
-// Freeze configuration to prevent accidental modifications
-Object.freeze(window.CoWorkSpaceConfig);
-
-// Export for modules
+// Export per Node.js se necessario
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = window.CoWorkSpaceConfig;
+    module.exports = window.Config;
+}
+
+// Log configurazione in development
+if (window.Config.debug.enabled) {
+    console.log('🔧 Configuration loaded:', window.Config);
 }

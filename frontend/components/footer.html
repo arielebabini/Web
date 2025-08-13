@@ -1,103 +1,137 @@
-<footer class="modern-footer">
+<!-- Footer Component -->
+<footer class="bg-dark text-white py-5 mt-5">
     <div class="container">
-        <div class="row g-4">
-            <div class="col-lg-4">
-                <div class="footer-brand">
-                    <h5>CoWorkSpace</h5>
-                    <p class="footer-description">
-                        La piattaforma leader per trovare e prenotare spazi di coworking
-                        moderni e flessibili in tutta Italia.
-                    </p>
-                    <div class="social-links">
-                        <a href="#" aria-label="Facebook">
-                            <i class="fab fa-facebook-f"></i>
-                        </a>
-                        <a href="#" aria-label="Twitter">
-                            <i class="fab fa-twitter"></i>
-                        </a>
-                        <a href="#" aria-label="LinkedIn">
-                            <i class="fab fa-linkedin-in"></i>
-                        </a>
-                        <a href="#" aria-label="Instagram">
-                            <i class="fab fa-instagram"></i>
-                        </a>
-                    </div>
+        <div class="row">
+            <div class="col-lg-3 col-md-6 mb-4">
+                <h5><i class="fas fa-building text-primary"></i> CoWorkSpace</h5>
+                <p class="text-muted">La piattaforma leader in Italia per la prenotazione di spazi di coworking professionali. Trova il workspace perfetto per la tua produttività.</p>
+                <div class="social-links mt-4">
+                    <a href="#" class="text-white me-3" aria-label="Facebook">
+                        <i class="fab fa-facebook-f"></i>
+                    </a>
+                    <a href="#" class="text-white me-3" aria-label="Twitter">
+                        <i class="fab fa-twitter"></i>
+                    </a>
+                    <a href="#" class="text-white me-3" aria-label="LinkedIn">
+                        <i class="fab fa-linkedin-in"></i>
+                    </a>
+                    <a href="#" class="text-white" aria-label="Instagram">
+                        <i class="fab fa-instagram"></i>
+                    </a>
                 </div>
             </div>
-
-            <div class="col-lg-2 col-md-6">
-                <h6>Spazi</h6>
-                <ul class="footer-links">
-                    <li><a href="#" onclick="Navigation.navigateTo('spaces')"><i class="fas fa-chevron-right"></i> Trova Spazi</a></li>
-                    <li><a href="#" onclick="Navigation.filterByCity('Milano')"><i class="fas fa-chevron-right"></i> Milano</a></li>
-                    <li><a href="#" onclick="Navigation.filterByCity('Roma')"><i class="fas fa-chevron-right"></i> Roma</a></li>
-                    <li><a href="#" onclick="Navigation.filterByCity('Torino')"><i class="fas fa-chevron-right"></i> Torino</a></li>
-                    <li><a href="#" onclick="Navigation.filterByCity('Napoli')"><i class="fas fa-chevron-right"></i> Napoli</a></li>
-                </ul>
-            </div>
-
-            <div class="col-lg-2 col-md-6">
+            <div class="col-lg-3 col-md-6 mb-4">
                 <h6>Servizi</h6>
-                <ul class="footer-links">
-                    <li><a href="#" onclick="Navigation.filterByType('desk')"><i class="fas fa-chevron-right"></i> Postazioni</a></li>
-                    <li><a href="#" onclick="Navigation.filterByType('office')"><i class="fas fa-chevron-right"></i> Uffici Privati</a></li>
-                    <li><a href="#" onclick="Navigation.filterByType('meeting-room')"><i class="fas fa-chevron-right"></i> Sale Riunioni</a></li>
-                    <li><a href="#" onclick="Navigation.filterByType('event-space')"><i class="fas fa-chevron-right"></i> Spazi Eventi</a></li>
+                <ul class="list-unstyled">
+                    <li class="mb-3"><a href="#" class="text-muted">
+                        <i class="fas fa-laptop me-2"></i>Hot Desk
+                    </a></li>
+                    <li class="mb-3"><a href="#" class="text-muted">
+                        <i class="fas fa-door-open me-2"></i>Uffici Privati
+                    </a></li>
+                    <li class="mb-3"><a href="#" class="text-muted">
+                        <i class="fas fa-users me-2"></i>Sale Riunioni
+                    </a></li>
+                    <li class="mb-3"><a href="#" class="text-muted">
+                        <i class="fas fa-calendar-alt me-2"></i>Spazi Eventi
+                    </a></li>
                 </ul>
             </div>
-
-            <div class="col-lg-2 col-md-6">
+            <div class="col-lg-3 col-md-6 mb-4">
+                <h6>Azienda</h6>
+                <ul class="list-unstyled">
+                    <li class="mb-3"><a href="#" class="text-muted" onclick="App.navigation?.showSection?.('about')">
+                        <i class="fas fa-info-circle me-2"></i>Chi Siamo
+                    </a></li>
+                    <li class="mb-3"><a href="#" class="text-muted">
+                        <i class="fas fa-briefcase me-2"></i>Lavora con Noi
+                    </a></li>
+                    <li class="mb-3"><a href="#" class="text-muted">
+                        <i class="fas fa-handshake me-2"></i>Partnership
+                    </a></li>
+                    <li class="mb-3"><a href="#" class="text-muted">
+                        <i class="fas fa-newspaper me-2"></i>Press Kit
+                    </a></li>
+                </ul>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-4">
                 <h6>Supporto</h6>
-                <ul class="footer-links">
-                    <li><a href="#" onclick="Navigation.navigateTo('support')"><i class="fas fa-chevron-right"></i> Centro Aiuto</a></li>
-                    <li><a href="#" onclick="Navigation.navigateTo('contact')"><i class="fas fa-chevron-right"></i> Contatti</a></li>
-                    <li><a href="#" onclick="Navigation.navigateTo('terms')"><i class="fas fa-chevron-right"></i> Termini</a></li>
-                    <li><a href="#" onclick="Navigation.navigateTo('privacy')"><i class="fas fa-chevron-right"></i> Privacy</a></li>
+                <ul class="list-unstyled">
+                    <li class="mb-3"><a href="#" class="text-muted" onclick="App.navigation?.showSection?.('support')">
+                        <i class="fas fa-headset me-2"></i>Centro Assistenza
+                    </a></li>
+                    <li class="mb-3"><a href="#" class="text-muted">
+                        <i class="fas fa-question-circle me-2"></i>FAQ
+                    </a></li>
+                    <li class="mb-3"><a href="#" class="text-muted">
+                        <i class="fas fa-file-contract me-2"></i>Termini di Servizio
+                    </a></li>
+                    <li class="mb-3"><a href="#" class="text-muted">
+                        <i class="fas fa-shield-alt me-2"></i>Privacy Policy
+                    </a></li>
                 </ul>
-            </div>
-
-            <div class="col-lg-2 col-md-6">
-                <h6>Newsletter</h6>
-                <p class="text-muted small mb-3">
-                    Ricevi aggiornamenti sui nuovi spazi e offerte speciali.
-                </p>
-                <form class="newsletter-form" onsubmit="Components.handleNewsletterSubmit(event)">
-                    <div class="input-group">
-                        <input type="email" class="form-control"
-                               placeholder="La tua email" required>
-                        <button class="btn btn-primary" type="submit">
-                            <i class="fas fa-paper-plane"></i>
-                        </button>
-                    </div>
-                </form>
             </div>
         </div>
 
-        <hr class="my-4">
+        <!-- Newsletter Subscription -->
+        <div class="row mt-4 pt-4 border-top border-secondary">
+            <div class="col-lg-6 mb-4">
+                <h6>📧 Resta aggiornato</h6>
+                <p class="text-muted mb-3">Ricevi le ultime novità sui nostri spazi e offerte esclusive</p>
+                <div class="input-group">
+                    <input type="email" class="form-control" placeholder="La tua email" id="newsletterEmail">
+                    <button class="btn btn-primary" type="button" onclick="subscribeNewsletter()">
+                        <i class="fas fa-paper-plane"></i> Iscriviti
+                    </button>
+                </div>
+            </div>
+            <div class="col-lg-6 mb-4">
+                <h6>🏙️ Principali Città</h6>
+                <div class="row">
+                    <div class="col-6">
+                        <p class="text-muted mb-2"><i class="fas fa-map-marker-alt me-2"></i>Milano</p>
+                        <p class="text-muted mb-2"><i class="fas fa-map-marker-alt me-2"></i>Roma</p>
+                        <p class="text-muted mb-2"><i class="fas fa-map-marker-alt me-2"></i>Torino</p>
+                    </div>
+                    <div class="col-6">
+                        <p class="text-muted mb-2"><i class="fas fa-map-marker-alt me-2"></i>Bologna</p>
+                        <p class="text-muted mb-2"><i class="fas fa-map-marker-alt me-2"></i>Firenze</p>
+                        <p class="text-muted mb-2"><i class="fas fa-map-marker-alt me-2"></i>Napoli</p>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-        <div class="footer-bottom">
-            <div class="row align-items-center">
-                <div class="col-md-6">
-                    <p class="mb-0 text-muted">
-                        © <span id="current-year">2025</span> CoWorkSpace. Tutti i diritti riservati.
-                    </p>
-                </div>
-                <div class="col-md-6 text-md-end">
-                    <p class="mb-0 text-muted">
-                        Made with <i class="fas fa-heart text-danger"></i> in Italy
-                    </p>
-                </div>
+        <hr class="my-4 border-secondary">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <p class="mb-0 text-muted">
+                    &copy; 2024 CoWorkSpace. Tutti i diritti riservati.
+                    <span class="mx-2">|</span>
+                    P.IVA: 12345678901
+                </p>
+            </div>
+            <div class="col-md-6 text-md-end">
+                <p class="mb-0 text-muted">
+                    Made with <i class="fas fa-heart text-danger"></i> in Italy
+                    <span class="mx-2">|</span>
+                    <i class="fas fa-shield-check text-success"></i> SSL Secured
+                </p>
             </div>
         </div>
     </div>
 </footer>
 
 <script>
-    // Aggiorna anno corrente
-    document.addEventListener('DOMContentLoaded', function() {
-        const yearElement = document.getElementById('current-year');
-        if (yearElement) {
-            yearElement.textContent = new Date().getFullYear();
+    // Newsletter subscription handler
+    function subscribeNewsletter() {
+        const email = document.getElementById('newsletterEmail');
+        if (email && email.value) {
+            // Simulazione iscrizione newsletter
+            App.utils?.showNotification?.('Iscrizione alla newsletter completata!', 'success');
+            email.value = '';
+        } else {
+            App.utils?.showNotification?.('Inserisci un email valida', 'warning');
         }
-    });
+    }
 </script>

@@ -1,0 +1,484 @@
+<!-- Profile Section Template -->
+<section id="profileSection" class="section-padding">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 mx-auto">
+                <div class="profile-container">
+                    <div class="profile-header">
+                        <h3><i class="fas fa-user-circle text-primary"></i> Il Mio Profilo</h3>
+                        <p class="text-muted">Gestisci le tue informazioni personali</p>
+                    </div>
+
+                    <!-- Profile Tabs -->
+                    <ul class="nav nav-tabs" id="profileTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="personal-tab" data-bs-toggle="tab" data-bs-target="#personal" type="button" role="tab">
+                                <i class="fas fa-user"></i> Informazioni Personali
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="security-tab" data-bs-toggle="tab" data-bs-target="#security" type="button" role="tab">
+                                <i class="fas fa-shield-alt"></i> Sicurezza
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="preferences-tab" data-bs-toggle="tab" data-bs-target="#preferences" type="button" role="tab">
+                                <i class="fas fa-cog"></i> Preferenze
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="notifications-tab" data-bs-toggle="tab" data-bs-target="#notifications" type="button" role="tab">
+                                <i class="fas fa-bell"></i> Notifiche
+                            </button>
+                        </li>
+                    </ul>
+
+                    <!-- Tab Content -->
+                    <div class="tab-content" id="profileTabContent">
+                        <!-- Personal Information Tab -->
+                        <div class="tab-pane fade show active" id="personal" role="tabpanel">
+                            <div class="card mt-3">
+                                <div class="card-body">
+                                    <form id="profileForm">
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Nome</label>
+                                                <input type="text" class="form-control" id="profileName" required>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Cognome</label>
+                                                <input type="text" class="form-control" id="profileSurname" required>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Email</label>
+                                            <input type="email" class="form-control" id="profileEmail" required>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Telefono</label>
+                                                <input type="tel" class="form-control" id="profilePhone">
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Data di Nascita</label>
+                                                <input type="date" class="form-control" id="profileBirthDate">
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Azienda</label>
+                                            <input type="text" class="form-control" id="profileCompany">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Posizione</label>
+                                            <input type="text" class="form-control" id="profilePosition" placeholder="es. Marketing Manager">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Bio</label>
+                                            <textarea class="form-control" id="profileBio" rows="3" placeholder="Raccontaci qualcosa di te..."></textarea>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Tipo di Account</label>
+                                            <select class="form-control" id="profileAccountType">
+                                                <option value="client">Cliente</option>
+                                                <option value="manager">Gestore</option>
+                                                <option value="admin">Amministratore</option>
+                                            </select>
+                                        </div>
+                                        <div class="profile-actions">
+                                            <button type="submit" class="btn btn-primary">
+                                                <i class="fas fa-save"></i> Salva Modifiche
+                                            </button>
+                                            <button type="button" class="btn btn-outline-secondary ms-2" onclick="cancelProfileEdit()">
+                                                <i class="fas fa-times"></i> Annulla
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Security Tab -->
+                        <div class="tab-pane fade" id="security" role="tabpanel">
+                            <div class="card mt-3">
+                                <div class="card-body">
+                                    <h5>Cambia Password</h5>
+                                    <form id="passwordForm">
+                                        <div class="mb-3">
+                                            <label class="form-label">Password Attuale</label>
+                                            <input type="password" class="form-control" id="currentPassword" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Nuova Password</label>
+                                            <input type="password" class="form-control" id="newPassword" required>
+                                            <div class="form-text">La password deve contenere almeno 8 caratteri</div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Conferma Nuova Password</label>
+                                            <input type="password" class="form-control" id="confirmNewPassword" required>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-key"></i> Aggiorna Password
+                                        </button>
+                                    </form>
+
+                                    <hr class="my-4">
+
+                                    <h5>Autenticazione a Due Fattori</h5>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <p class="mb-1">Proteggi il tuo account con l'autenticazione a due fattori</p>
+                                            <small class="text-muted">Richiede un codice dal tuo telefono oltre alla password</small>
+                                        </div>
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="enable2FA">
+                                            <label class="form-check-label" for="enable2FA">Abilita 2FA</label>
+                                        </div>
+                                    </div>
+
+                                    <hr class="my-4">
+
+                                    <h5>Sessioni Attive</h5>
+                                    <div class="list-group">
+                                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <h6 class="mb-1">Browser Corrente</h6>
+                                                <small class="text-muted">Chrome su Windows • Milano, Italia</small>
+                                            </div>
+                                            <span class="badge bg-success">Attiva</span>
+                                        </div>
+                                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <h6 class="mb-1">App Mobile</h6>
+                                                <small class="text-muted">iPhone • Ultimo accesso: 2 ore fa</small>
+                                            </div>
+                                            <button class="btn btn-outline-danger btn-sm">Disconnetti</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Preferences Tab -->
+                        <div class="tab-pane fade" id="preferences" role="tabpanel">
+                            <div class="card mt-3">
+                                <div class="card-body">
+                                    <h5>Preferenze Generali</h5>
+                                    <form id="preferencesForm">
+                                        <div class="mb-3">
+                                            <label class="form-label">Lingua</label>
+                                            <select class="form-control" id="language">
+                                                <option value="it">Italiano</option>
+                                                <option value="en">English</option>
+                                                <option value="fr">Français</option>
+                                                <option value="de">Deutsch</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Fuso Orario</label>
+                                            <select class="form-control" id="timezone">
+                                                <option value="Europe/Rome">Europa/Roma (GMT+1)</option>
+                                                <option value="Europe/London">Europa/Londra (GMT+0)</option>
+                                                <option value="America/New_York">America/New York (GMT-5)</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Valuta</label>
+                                            <select class="form-control" id="currency">
+                                                <option value="EUR">Euro (€)</option>
+                                                <option value="USD">Dollaro Americano ($)</option>
+                                                <option value="GBP">Sterlina Inglese (£)</option>
+                                            </select>
+                                        </div>
+
+                                        <hr class="my-4">
+
+                                        <h6>Preferenze di Prenotazione</h6>
+                                        <div class="form-check mb-3">
+                                            <input class="form-check-input" type="checkbox" id="autoConfirm">
+                                            <label class="form-check-label" for="autoConfirm">
+                                                Conferma automatica delle prenotazioni
+                                            </label>
+                                        </div>
+                                        <div class="form-check mb-3">
+                                            <input class="form-check-input" type="checkbox" id="savePayment">
+                                            <label class="form-check-label" for="savePayment">
+                                                Salva i metodi di pagamento per prenotazioni future
+                                            </label>
+                                        </div>
+                                        <div class="form-check mb-3">
+                                            <input class="form-check-input" type="checkbox" id="reminderNotifications">
+                                            <label class="form-check-label" for="reminderNotifications">
+                                                Invia promemoria delle prenotazioni
+                                            </label>
+                                        </div>
+
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-save"></i> Salva Preferenze
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Notifications Tab -->
+                        <div class="tab-pane fade" id="notifications" role="tabpanel">
+                            <div class="card mt-3">
+                                <div class="card-body">
+                                    <h5>Impostazioni Notifiche</h5>
+                                    <form id="notificationsForm">
+                                        <h6>Notifiche Email</h6>
+                                        <div class="form-check mb-3">
+                                            <input class="form-check-input" type="checkbox" id="emailBookings" checked>
+                                            <label class="form-check-label" for="emailBookings">
+                                                Conferme e aggiornamenti prenotazioni
+                                            </label>
+                                        </div>
+                                        <div class="form-check mb-3">
+                                            <input class="form-check-input" type="checkbox" id="emailPromotions">
+                                            <label class="form-check-label" for="emailPromotions">
+                                                Offerte e promozioni
+                                            </label>
+                                        </div>
+                                        <div class="form-check mb-3">
+                                            <input class="form-check-input" type="checkbox" id="emailNewsletter" checked>
+                                            <label class="form-check-label" for="emailNewsletter">
+                                                Newsletter mensile
+                                            </label>
+                                        </div>
+
+                                        <hr class="my-4">
+
+                                        <h6>Notifiche Push</h6>
+                                        <div class="form-check mb-3">
+                                            <input class="form-check-input" type="checkbox" id="pushBookings" checked>
+                                            <label class="form-check-label" for="pushBookings">
+                                                Promemoria prenotazioni
+                                            </label>
+                                        </div>
+                                        <div class="form-check mb-3">
+                                            <input class="form-check-input" type="checkbox" id="pushOffers">
+                                            <label class="form-check-label" for="pushOffers">
+                                                Offerte last-minute
+                                            </label>
+                                        </div>
+
+                                        <hr class="my-4">
+
+                                        <h6>Notifiche SMS</h6>
+                                        <div class="form-check mb-3">
+                                            <input class="form-check-input" type="checkbox" id="smsReminders">
+                                            <label class="form-check-label" for="smsReminders">
+                                                Promemoria SMS (24h prima)
+                                            </label>
+                                        </div>
+
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-save"></i> Salva Impostazioni
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Account Actions -->
+                    <div class="card mt-4">
+                        <div class="card-body">
+                            <h5 class="text-danger">Zona Pericolosa</h5>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6>Esporta Dati</h6>
+                                    <p class="text-muted small">Scarica una copia di tutti i tuoi dati</p>
+                                    <button class="btn btn-outline-primary" onclick="exportData()">
+                                        <i class="fas fa-download"></i> Esporta Dati
+                                    </button>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>Elimina Account</h6>
+                                    <p class="text-muted small">Elimina permanentemente il tuo account e tutti i dati</p>
+                                    <button class="btn btn-outline-danger" onclick="deleteAccount()">
+                                        <i class="fas fa-trash"></i> Elimina Account
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+    // Profile management functions
+    const ProfileManager = {
+        init() {
+            this.loadProfile();
+            this.setupEventListeners();
+        },
+
+        setupEventListeners() {
+            // Profile form
+            const profileForm = document.getElementById('profileForm');
+            if (profileForm) {
+                profileForm.addEventListener('submit', this.saveProfile.bind(this));
+            }
+
+            // Password form
+            const passwordForm = document.getElementById('passwordForm');
+            if (passwordForm) {
+                passwordForm.addEventListener('submit', this.changePassword.bind(this));
+            }
+
+            // Preferences form
+            const preferencesForm = document.getElementById('preferencesForm');
+            if (preferencesForm) {
+                preferencesForm.addEventListener('submit', this.savePreferences.bind(this));
+            }
+
+            // Notifications form
+            const notificationsForm = document.getElementById('notificationsForm');
+            if (notificationsForm) {
+                notificationsForm.addEventListener('submit', this.saveNotifications.bind(this));
+            }
+
+            // 2FA toggle
+            const enable2FA = document.getElementById('enable2FA');
+            if (enable2FA) {
+                enable2FA.addEventListener('change', this.toggle2FA.bind(this));
+            }
+        },
+
+        loadProfile() {
+            const currentUser = App.auth.getCurrentUser();
+            if (!currentUser) return;
+
+            // Load personal information
+            document.getElementById('profileName').value = currentUser.name || '';
+            document.getElementById('profileSurname').value = currentUser.surname || '';
+            document.getElementById('profileEmail').value = currentUser.email || '';
+            document.getElementById('profilePhone').value = currentUser.phone || '';
+            document.getElementById('profileCompany').value = currentUser.company || '';
+            document.getElementById('profileAccountType').value = currentUser.accountType || 'client';
+
+            // Load preferences from localStorage
+            const preferences = JSON.parse(localStorage.getItem('coworkspace_preferences') || '{}');
+            if (preferences.language) {
+                document.getElementById('language').value = preferences.language;
+            }
+            if (preferences.timezone) {
+                document.getElementById('timezone').value = preferences.timezone;
+            }
+            if (preferences.currency) {
+                document.getElementById('currency').value = preferences.currency;
+            }
+        },
+
+        saveProfile(e) {
+            e.preventDefault();
+
+            const profileData = {
+                name: document.getElementById('profileName').value,
+                surname: document.getElementById('profileSurname').value,
+                email: document.getElementById('profileEmail').value,
+                phone: document.getElementById('profilePhone').value,
+                company: document.getElementById('profileCompany').value,
+                position: document.getElementById('profilePosition').value,
+                bio: document.getElementById('profileBio').value,
+                accountType: document.getElementById('profileAccountType').value
+            };
+
+            // Update current user
+            const currentUser = App.auth.getCurrentUser();
+            Object.assign(currentUser, profileData);
+            localStorage.setItem('coworkspace_user', JSON.stringify(currentUser));
+
+            App.utils.showNotification('Profilo aggiornato con successo!', 'success');
+        },
+
+        changePassword(e) {
+            e.preventDefault();
+
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmNewPassword').value;
+
+            if (newPassword !== confirmPassword) {
+                App.utils.showNotification('Le nuove password non coincidono', 'error');
+                return;
+            }
+
+            if (newPassword.length < 8) {
+                App.utils.showNotification('La password deve contenere almeno 8 caratteri', 'error');
+                return;
+            }
+
+            // Simulate password change
+            App.utils.showNotification('Password aggiornata con successo!', 'success');
+            document.getElementById('passwordForm').reset();
+        },
+
+        savePreferences(e) {
+            e.preventDefault();
+
+            const preferences = {
+                language: document.getElementById('language').value,
+                timezone: document.getElementById('timezone').value,
+                currency: document.getElementById('currency').value,
+                autoConfirm: document.getElementById('autoConfirm').checked,
+                savePayment: document.getElementById('savePayment').checked,
+                reminderNotifications: document.getElementById('reminderNotifications').checked
+            };
+
+            localStorage.setItem('coworkspace_preferences', JSON.stringify(preferences));
+            App.utils.showNotification('Preferenze salvate con successo!', 'success');
+        },
+
+        saveNotifications(e) {
+            e.preventDefault();
+
+            const notifications = {
+                emailBookings: document.getElementById('emailBookings').checked,
+                emailPromotions: document.getElementById('emailPromotions').checked,
+                emailNewsletter: document.getElementById('emailNewsletter').checked,
+                pushBookings: document.getElementById('pushBookings').checked,
+                pushOffers: document.getElementById('pushOffers').checked,
+                smsReminders: document.getElementById('smsReminders').checked
+            };
+
+            localStorage.setItem('coworkspace_notifications', JSON.stringify(notifications));
+            App.utils.showNotification('Impostazioni notifiche salvate!', 'success');
+        },
+
+        toggle2FA(e) {
+            if (e.target.checked) {
+                App.utils.showNotification('Autenticazione a due fattori abilitata (demo)', 'success');
+            } else {
+                App.utils.showNotification('Autenticazione a due fattori disabilitata (demo)', 'info');
+            }
+        }
+    };
+
+    // Global functions
+    function cancelProfileEdit() {
+        ProfileManager.loadProfile();
+        App.utils.showNotification('Modifiche annullate', 'info');
+    }
+
+    function exportData() {
+        App.utils.showNotification('Esportazione dati disponibile nella versione completa', 'info');
+    }
+
+    function deleteAccount() {
+        if (confirm('Sei sicuro di voler eliminare definitivamente il tuo account? Questa azione non può essere annullata.')) {
+            App.utils.showNotification('Eliminazione account disponibile nella versione completa', 'info');
+        }
+    }
+
+    // Initialize when document is ready
+    document.addEventListener('DOMContentLoaded', function() {
+        if (document.getElementById('profileSection')) {
+            ProfileManager.init();
+        }
+    });
+</script>

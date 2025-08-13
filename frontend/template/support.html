@@ -1,0 +1,346 @@
+<!-- Support Section Template -->
+<section id="supportSection" class="section-padding">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 mx-auto text-center">
+                <h2 class="section-title">Centro Assistenza</h2>
+                <p class="section-subtitle">
+                    Hai bisogno di aiuto? Siamo qui per supportarti
+                </p>
+            </div>
+        </div>
+
+        <!-- Support Options -->
+        <div class="support-options mt-5">
+            <div class="row">
+                <div class="col-md-4 mb-4">
+                    <div class="support-card">
+                        <div class="support-icon">
+                            <i class="fas fa-question-circle"></i>
+                        </div>
+                        <h4>FAQ</h4>
+                        <p>Trova risposte alle domande più frequenti sui nostri servizi.</p>
+                        <button class="btn btn-outline-primary" onclick="showFAQ()">Consulta FAQ</button>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="support-card">
+                        <div class="support-icon">
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                        <h4>Contattaci</h4>
+                        <p>Invia una richiesta di supporto e ti risponderemo entro 24 ore.</p>
+                        <button class="btn btn-outline-primary" onclick="showContactForm()">Invia Messaggio</button>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="support-card">
+                        <div class="support-icon">
+                            <i class="fas fa-phone"></i>
+                        </div>
+                        <h4>Chiama</h4>
+                        <p>Parla direttamente con un nostro operatore dal lunedì al venerdì.</p>
+                        <button class="btn btn-outline-primary" onclick="showPhoneInfo()">+39 02 1234567</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- FAQ Section -->
+        <div id="faqSection" class="mt-5" style="display: none;">
+            <div class="row">
+                <div class="col-lg-8 mx-auto">
+                    <h3 class="text-center mb-4">Domande Frequenti</h3>
+                    <div class="accordion" id="faqAccordion">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                                    Come posso prenotare uno spazio?
+                                </button>
+                            </h2>
+                            <div id="faq1" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    <strong>Prenotare è semplicissimo!</strong> Vai alla sezione "Spazi", scegli quello che preferisci, seleziona data e orario, e conferma la prenotazione. Riceverai una conferma immediata via email.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                                    Posso cancellare una prenotazione?
+                                </button>
+                            </h2>
+                            <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    Sì, puoi cancellare gratuitamente fino a 24 ore prima dell'orario prenotato. Per cancellazioni last-minute potrebbero applicarsi delle penali.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                                    Quali servizi sono inclusi?
+                                </button>
+                            </h2>
+                            <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    I servizi variano per ogni spazio, ma generalmente includono: WiFi ad alta velocità, accesso 24/7, caffè, stampante, area comune. Controlla sempre i dettagli nella scheda del singolo spazio.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq4">
+                                    Come funzionano i pagamenti?
+                                </button>
+                            </h2>
+                            <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    Accettiamo tutte le principali carte di credito e PayPal. Il pagamento è sicuro e protetto da SSL. Puoi scegliere di pagare al momento della prenotazione o all'arrivo.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq5">
+                                    C'è un programma fedeltà?
+                                </button>
+                            </h2>
+                            <div id="faq5" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    Sì! I nostri utenti più fedeli ricevono sconti, accesso prioritario ai nuovi spazi e vantaggi esclusivi. Più prenoti, più risparmi!
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contact Form -->
+        <div id="contactFormSection" class="mt-5" style="display: none;">
+            <div class="row">
+                <div class="col-lg-6 mx-auto">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-envelope text-primary"></i> Contattaci</h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="contactForm">
+                                <div class="mb-3">
+                                    <label class="form-label">Nome</label>
+                                    <input type="text" class="form-control" id="contactName" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Email</label>
+                                    <input type="email" class="form-control" id="contactEmail" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Oggetto</label>
+                                    <select class="form-control" id="contactSubject" required>
+                                        <option value="">Seleziona oggetto</option>
+                                        <option value="booking">Problema con prenotazione</option>
+                                        <option value="payment">Problema con pagamento</option>
+                                        <option value="technical">Supporto tecnico</option>
+                                        <option value="feedback">Feedback e suggerimenti</option>
+                                        <option value="partnership">Partnership</option>
+                                        <option value="other">Altro</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Messaggio</label>
+                                    <textarea class="form-control" id="contactMessage" rows="5" required placeholder="Descrivi il tuo problema o la tua richiesta..."></textarea>
+                                </div>
+                                <div class="mb-3 form-check">
+                                    <input type="checkbox" class="form-check-input" id="contactPrivacy" required>
+                                    <label class="form-check-label" for="contactPrivacy">
+                                        Accetto l'<a href="#" class="text-primary">informativa privacy</a>
+                                    </label>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="fas fa-paper-plane"></i> Invia Messaggio
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Phone Info -->
+        <div id="phoneInfoSection" class="mt-5" style="display: none;">
+            <div class="row">
+                <div class="col-lg-8 mx-auto">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-phone text-primary"></i> Supporto Telefonico</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6>Orari di Apertura</h6>
+                                    <ul class="list-unstyled">
+                                        <li><strong>Lunedì - Venerdì:</strong> 9:00 - 18:00</li>
+                                        <li><strong>Sabato:</strong> 9:00 - 13:00</li>
+                                        <li><strong>Domenica:</strong> Chiuso</li>
+                                    </ul>
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-info-circle"></i>
+                                        Per urgenze fuori orario, utilizza il form di contatto.
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>Numeri di Telefono</h6>
+                                    <div class="mb-3">
+                                        <strong>Supporto Generale:</strong><br>
+                                        <a href="tel:+390212345678" class="text-primary fs-5">
+                                            <i class="fas fa-phone"></i> +39 02 1234567
+                                        </a>
+                                    </div>
+                                    <div class="mb-3">
+                                        <strong>Supporto Tecnico:</strong><br>
+                                        <a href="tel:+390212345679" class="text-primary fs-5">
+                                            <i class="fas fa-wrench"></i> +39 02 1234568
+                                        </a>
+                                    </div>
+                                    <div class="mb-3">
+                                        <strong>Emergenze:</strong><br>
+                                        <a href="tel:+393001234567" class="text-danger fs-5">
+                                            <i class="fas fa-exclamation-triangle"></i> +39 300 123456
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Live Chat -->
+        <div class="mt-5">
+            <div class="row">
+                <div class="col-lg-8 mx-auto text-center">
+                    <div class="card border-primary">
+                        <div class="card-body">
+                            <h5><i class="fas fa-comments text-primary"></i> Chat in Tempo Reale</h5>
+                            <p>Hai bisogno di aiuto immediato? Avvia una chat con il nostro team di supporto!</p>
+                            <button class="btn btn-primary" onclick="startLiveChat()">
+                                <i class="fas fa-comment-dots"></i> Inizia Chat
+                            </button>
+                            <small class="d-block mt-2 text-muted">
+                                Disponibile dal Lunedì al Venerdì, 9:00-18:00
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Help Articles -->
+        <div class="mt-5">
+            <div class="row">
+                <div class="col-12 text-center mb-4">
+                    <h3>Articoli Utili</h3>
+                    <p class="text-muted">Guide e tutorial per sfruttare al meglio CoWorkSpace</p>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <div class="text-center mb-3">
+                                <i class="fas fa-rocket fa-2x text-primary"></i>
+                            </div>
+                            <h6 class="card-title">Guida per Iniziare</h6>
+                            <p class="card-text text-muted">Scopri come registrarti e fare la tua prima prenotazione.</p>
+                            <a href="#" class="btn btn-outline-primary btn-sm">Leggi Guida</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <div class="text-center mb-3">
+                                <i class="fas fa-credit-card fa-2x text-primary"></i>
+                            </div>
+                            <h6 class="card-title">Pagamenti e Fatturazione</h6>
+                            <p class="card-text text-muted">Tutto quello che devi sapere su pagamenti e fatture.</p>
+                            <a href="#" class="btn btn-outline-primary btn-sm">Leggi Guida</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <div class="text-center mb-3">
+                                <i class="fas fa-mobile-alt fa-2x text-primary"></i>
+                            </div>
+                            <h6 class="card-title">App Mobile</h6>
+                            <p class="card-text text-muted">Scarica la nostra app per gestire le prenotazioni in mobilità.</p>
+                            <a href="#" class="btn btn-outline-primary btn-sm">Scarica App</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+    // Support section functions
+    function showFAQ() {
+        document.getElementById('faqSection').style.display = 'block';
+        document.getElementById('contactFormSection').style.display = 'none';
+        document.getElementById('phoneInfoSection').style.display = 'none';
+
+        // Scroll to FAQ
+        document.getElementById('faqSection').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function showContactForm() {
+        document.getElementById('contactFormSection').style.display = 'block';
+        document.getElementById('faqSection').style.display = 'none';
+        document.getElementById('phoneInfoSection').style.display = 'none';
+
+        // Scroll to form
+        document.getElementById('contactFormSection').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function showPhoneInfo() {
+        document.getElementById('phoneInfoSection').style.display = 'block';
+        document.getElementById('faqSection').style.display = 'none';
+        document.getElementById('contactFormSection').style.display = 'none';
+
+        // Scroll to phone info
+        document.getElementById('phoneInfoSection').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function startLiveChat() {
+        App.utils?.showNotification?.('Chat dal vivo disponibile nella versione completa', 'info');
+    }
+
+    // Contact form handler
+    document.addEventListener('DOMContentLoaded', function() {
+        const contactForm = document.getElementById('contactForm');
+        if (contactForm) {
+            contactForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+
+                const name = document.getElementById('contactName').value;
+                const email = document.getElementById('contactEmail').value;
+                const subject = document.getElementById('contactSubject').value;
+                const message = document.getElementById('contactMessage').value;
+
+                if (!name || !email || !subject || !message) {
+                    App.utils?.showNotification?.('Compila tutti i campi obbligatori', 'warning');
+                    return;
+                }
+
+                // Simulate message sending
+                App.utils?.showNotification?.('Messaggio inviato con successo! Ti risponderemo entro 24 ore.', 'success');
+                contactForm.reset();
+            });
+        }
+    });
+</script>

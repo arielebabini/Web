@@ -1,903 +1,681 @@
 /**
- * CoWorkSpace - Bookings Manager
- * Gestione prenotazioni spazi coworking
+ * CoWorkSpace - Booking Module
+ * Gestione prenotazioni e calendario
  */
 
 window.Bookings = {
     /**
-     * Stato del modulo
+     * Stato del modulo prenotazioni
      */
     state: {
-        initialized: false,
-        loading: false,
         bookings: [],
         currentBooking: null,
         filters: {
-            status: 'all',
-            dateRange: null,
-            space: null
+            status: 'all', // 'all', 'upcoming', 'past', 'cancelled'
+            sortBy: 'date-desc'
         },
-        cache: new Map()
+        loading: false
     },
 
     /**
-     * Configurazione
+     * Dati mock delle prenotazioni
      */
-    config: {
-        maxAdvanceBookingDays: 90,
-        minBookingDuration: 1, // ore
-        maxBookingDuration: 24, // ore
-        cancellationDeadline: 24, // ore prima
-        endpoints: {
-            bookings: '/api/bookings',
-            create: '/api/bookings/create',
-            update: '/api/bookings/update',
-            cancel: '/api/bookings/cancel',
-            availability: '/api/spaces/availability'
+    mockBookings: [
+        {
+            id: 1,
+            userId: 1,
+            spaceId: 1,
+            spaceName: "Milano Business Hub",
+            spaceAddress: "Via Brera 12, Milano",
+            startDate: "2024-01-15",
+            endDate: "2024-01-15",
+            startTime: "09:00",
+            endTime: "18:00",
+            people: 8,
+            totalPrice: 85,
+            status: "confirmed",
+            notes: "Riunione importante con clienti internazionali",
+            createdAt: "2024-01-10T10:00:00Z",
+            amenities: ["wifi", "projector", "coffee"]
+        },
+        {
+            id: 2,
+            userId: 1,
+            spaceId: 2,
+            spaceName: "Milano Creative Space",
+            spaceAddress: "Via Navigli 45, Milano",
+            startDate: "2024-01-20",
+            endDate: "2024-01-22",
+            startTime: "08:00",
+            endTime: "20:00",
+            people: 4,
+            totalPrice: 135,
+            status: "confirmed",
+            notes: "Workshop di 3 giorni",
+            createdAt: "2024-01-12T14:30:00Z",
+            amenities: ["wifi", "coffee", "kitchen"]
         }
-    },
+    ],
 
     /**
-     * Templates HTML
+     * Inizializza il modulo prenotazioni
      */
-    templates: {
-        bookingCard: `
-            <div class="booking-card" data-booking-id="{id}">
-                <div class="booking-header">
-                    <div class="booking-status status-{status}">{statusText}</div>
-                    <div class="booking-date">{date}</div>
-                </div>
-                <div class="booking-content">
-                    <h5 class="booking-space">{spaceName}</h5>
-                    <div class="booking-details">
-                        <span class="booking-time">
-                            <i class="fas fa-clock"></i> {startTime} - {endTime}
-                        </span>
-                        <span class="booking-duration">
-                            <i class="fas fa-hourglass-half"></i> {duration}
-                        </span>
-                        <span class="booking-price">
-                            <i class="fas fa-euro-sign"></i> {price}
-                        </span>
-                    </div>
-                </div>
-                <div class="booking-actions">
-                    {actionButtons}
-                </div>
-            </div>
-        `,
+    init() {
+        console.log('📅 Initializing Bookings module...');
 
-        bookingForm: `
-            <form id="booking-form" class="booking-form">
-                <div class="row">
-                    <div class="col-md-6">
-                        <label for="booking-date" class="form-label">Data</label>
-                        <input type="date" id="booking-date" class="form-control" required>
-                    </div>
-                    <div class="col-md-3">
-                        <label for="booking-start" class="form-label">Ora Inizio</label>
-                        <select id="booking-start" class="form-select" required>
-                            <option value="">Seleziona...</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label for="booking-end" class="form-label">Ora Fine</label>
-                        <select id="booking-end" class="form-select" required>
-                            <option value="">Seleziona...</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="row mt-3">
-                    <div class="col-md-6">
-                        <label for="booking-guests" class="form-label">Numero Ospiti</label>
-                        <select id="booking-guests" class="form-select" required>
-                            <option value="">Seleziona...</option>
-                        </select>
-                    </div>
-                    <div class="col-md-6">
-                        <label for="booking-services" class="form-label">Servizi Aggiuntivi</label>
-                        <div class="services-checkboxes">
-                            <!-- Popolato dinamicamente -->
-                        </div>
-                    </div>
-                </div>
-                <div class="row mt-3">
-                    <div class="col-12">
-                        <label for="booking-notes" class="form-label">Note (opzionale)</label>
-                        <textarea id="booking-notes" class="form-control" rows="3" 
-                                  placeholder="Richieste speciali o note aggiuntive..."></textarea>
-                    </div>
-                </div>
-                <div class="booking-summary mt-4">
-                    <div class="summary-row">
-                        <span>Prezzo base:</span>
-                        <span id="base-price">€0.00</span>
-                    </div>
-                    <div class="summary-row">
-                        <span>Servizi aggiuntivi:</span>
-                        <span id="services-price">€0.00</span>
-                    </div>
-                    <div class="summary-row total">
-                        <span><strong>Totale:</strong></span>
-                        <span id="total-price"><strong>€0.00</strong></span>
-                    </div>
-                </div>
-                <div class="form-actions mt-4">
-                    <button type="button" class="btn btn-secondary" onclick="Utils.modal.hide()">
-                        Annulla
-                    </button>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-calendar-check"></i> Conferma Prenotazione
-                    </button>
-                </div>
-            </form>
-        `
-    },
+        this.state.bookings = [...this.mockBookings];
+        this.setupEventListeners();
 
-    /**
-     * Inizializza il modulo
-     */
-    async init() {
-        try {
-            console.log('📅 Initializing Bookings Manager...');
-
-            // Verifica dipendenze
-            if (!window.API || !window.Utils) {
-                throw new Error('Required dependencies not available');
-            }
-
-            // Setup event listeners
-            this.setupEventListeners();
-
-            // Carica configurazione utente
-            await this.loadUserBookings();
-
-            this.state.initialized = true;
-            console.log('✅ Bookings Manager initialized');
-
-            return true;
-
-        } catch (error) {
-            console.error('❌ Failed to initialize Bookings Manager:', error);
-            return false;
-        }
+        console.log('✅ Bookings module initialized');
     },
 
     /**
      * Setup event listeners
      */
     setupEventListeners() {
-        // Listener per aggiornamenti auth
-        document.addEventListener('auth:login', () => {
-            this.loadUserBookings();
+        // Filtri prenotazioni
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('[data-filter]')) {
+                const filter = e.target.closest('[data-filter]').getAttribute('data-filter');
+                this.setFilter('status', filter);
+            }
         });
 
-        document.addEventListener('auth:logout', () => {
-            this.clearBookings();
-        });
-
-        // Listener per refresh automatico
-        document.addEventListener('visibilitychange', () => {
-            if (!document.hidden && this.state.initialized) {
-                this.refreshBookings();
+        // Ordinamento
+        document.addEventListener('change', (e) => {
+            if (e.target.id === 'sortBookings') {
+                this.setFilter('sortBy', e.target.value);
             }
         });
     },
 
     /**
-     * Carica prenotazioni utente
+     * Mostra sezione prenotazioni
      */
-    async loadUserBookings() {
+    showBookings() {
+        // Controlla autenticazione
         if (!window.Auth?.isAuthenticated()) {
+            if (window.Notifications) {
+                window.Notifications.show('Devi effettuare il login per vedere le prenotazioni', 'warning');
+            }
+            window.Auth?.showLoginModal();
             return;
         }
 
-        try {
-            this.state.loading = true;
+        this.loadBookingsSection();
 
-            const response = await window.API.get(this.config.endpoints.bookings);
-
-            if (response.success) {
-                this.state.bookings = response.data || [];
-                this.triggerEvent('bookings:loaded');
-            }
-
-        } catch (error) {
-            console.error('Error loading user bookings:', error);
-            window.Utils?.notifications?.show('Errore nel caricamento delle prenotazioni', 'error');
-        } finally {
-            this.state.loading = false;
+        if (window.Navigation) {
+            window.Navigation.showSection('bookings');
         }
     },
 
     /**
-     * Crea nuova prenotazione
+     * Carica la sezione prenotazioni
      */
-    async createBooking(bookingData) {
-        try {
-            // Validazione dati
-            const validation = this.validateBookingData(bookingData);
-            if (!validation.valid) {
-                throw new Error(validation.message);
-            }
+    loadBookingsSection() {
+        const bookingsHTML = `
+            <section id="bookingsSection" class="section-padding">
+                <div class="container">
+                    <div class="bookings-header">
+                        <h2><i class="fas fa-calendar-check text-primary"></i> Le Mie Prenotazioni</h2>
+                        <p class="text-muted">Gestisci e monitora le tue prenotazioni</p>
+                    </div>
 
-            this.state.loading = true;
+                    <!-- Booking Filters -->
+                    <div class="booking-filters">
+                        <div class="row align-items-center">
+                            <div class="col-md-6">
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-outline-primary active" data-filter="all">
+                                        Tutte
+                                    </button>
+                                    <button type="button" class="btn btn-outline-primary" data-filter="upcoming">
+                                        Prossime
+                                    </button>
+                                    <button type="button" class="btn btn-outline-primary" data-filter="past">
+                                        Passate
+                                    </button>
+                                    <button type="button" class="btn btn-outline-primary" data-filter="cancelled">
+                                        Cancellate
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="col-md-6 text-end">
+                                <select class="form-select d-inline-block w-auto" id="sortBookings">
+                                    <option value="date-desc">Data: Più Recente</option>
+                                    <option value="date-asc">Data: Meno Recente</option>
+                                    <option value="price-high">Prezzo: Alto → Basso</option>
+                                    <option value="price-low">Prezzo: Basso → Alto</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
 
-            const response = await window.API.post(this.config.endpoints.create, bookingData);
+                    <div id="bookingsContainer" class="bookings-grid">
+                        <!-- Bookings will be loaded here -->
+                    </div>
+                </div>
+            </section>
+        `;
 
-            if (response.success) {
-                // Aggiungi alla lista locale
-                this.state.bookings.unshift(response.data);
-
-                // Mostra conferma
-                window.Utils?.notifications?.show('Prenotazione confermata!', 'success');
-
-                // Trigger evento
-                this.triggerEvent('booking:created', response.data);
-
-                return response.data;
-            } else {
-                throw new Error(response.message || 'Errore nella creazione della prenotazione');
-            }
-
-        } catch (error) {
-            console.error('Error creating booking:', error);
-            window.Utils?.notifications?.show(error.message, 'error');
-            throw error;
-        } finally {
-            this.state.loading = false;
+        const dynamicContent = document.getElementById('dynamicContent');
+        if (dynamicContent) {
+            dynamicContent.innerHTML = bookingsHTML;
         }
+
+        this.renderBookings();
     },
 
     /**
-     * Aggiorna prenotazione esistente
+     * Renderizza le prenotazioni
      */
-    async updateBooking(bookingId, updateData) {
-        try {
-            this.state.loading = true;
+    renderBookings() {
+        const container = document.getElementById('bookingsContainer');
+        if (!container) return;
 
-            const response = await window.API.put(
-                `${this.config.endpoints.update}/${bookingId}`,
-                updateData
-            );
+        const currentUser = window.Auth?.getCurrentUser();
+        if (!currentUser) return;
 
-            if (response.success) {
-                // Aggiorna nella lista locale
-                const index = this.state.bookings.findIndex(b => b.id === bookingId);
-                if (index !== -1) {
-                    this.state.bookings[index] = { ...this.state.bookings[index], ...response.data };
-                }
+        // Filtra prenotazioni dell'utente corrente
+        let userBookings = this.state.bookings.filter(booking => booking.userId === currentUser.id);
 
-                window.Utils?.notifications?.show('Prenotazione aggiornata', 'success');
+        // Applica filtri
+        userBookings = this.applyFilters(userBookings);
 
-                this.triggerEvent('booking:updated', response.data);
-
-                return response.data;
-            } else {
-                throw new Error(response.message || 'Errore nell\'aggiornamento della prenotazione');
-            }
-
-        } catch (error) {
-            console.error('Error updating booking:', error);
-            window.Utils?.notifications?.show(error.message, 'error');
-            throw error;
-        } finally {
-            this.state.loading = false;
+        if (userBookings.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-5">
+                    <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                    <h4>Nessuna prenotazione trovata</h4>
+                    <p class="text-muted">Non hai ancora effettuato nessuna prenotazione</p>
+                    <button class="btn btn-primary" onclick="window.Navigation?.showSection('spaces')">
+                        <i class="fas fa-search"></i> Esplora Spazi
+                    </button>
+                </div>
+            `;
+            return;
         }
+
+        const bookingsHTML = userBookings.map(booking => this.createBookingCard(booking)).join('');
+        container.innerHTML = `<div class="row">${bookingsHTML}</div>`;
     },
 
     /**
-     * Cancella prenotazione
+     * Crea una card per la prenotazione
      */
-    async cancelBooking(bookingId, reason = '') {
-        try {
-            // Controlla se la cancellazione è ancora possibile
-            const booking = this.getBookingById(bookingId);
-            if (!booking) {
-                throw new Error('Prenotazione non trovata');
-            }
+    createBookingCard(booking) {
+        const statusClass = this.getStatusClass(booking.status);
+        const statusLabel = this.getStatusLabel(booking.status);
+        const isUpcoming = new Date(booking.startDate) > new Date();
+        const isPast = new Date(booking.endDate) < new Date();
 
-            if (!this.canCancelBooking(booking)) {
-                throw new Error('Non è più possibile cancellare questa prenotazione');
-            }
-
-            this.state.loading = true;
-
-            const response = await window.API.post(
-                `${this.config.endpoints.cancel}/${bookingId}`,
-                { reason }
-            );
-
-            if (response.success) {
-                // Aggiorna status nella lista locale
-                const index = this.state.bookings.findIndex(b => b.id === bookingId);
-                if (index !== -1) {
-                    this.state.bookings[index].status = 'cancelled';
-                    this.state.bookings[index].cancelledAt = new Date().toISOString();
-                    this.state.bookings[index].cancellationReason = reason;
-                }
-
-                window.Utils?.notifications?.show('Prenotazione cancellata', 'success');
-
-                this.triggerEvent('booking:cancelled', booking);
-
-                return true;
-            } else {
-                throw new Error(response.message || 'Errore nella cancellazione della prenotazione');
-            }
-
-        } catch (error) {
-            console.error('Error cancelling booking:', error);
-            window.Utils?.notifications?.show(error.message, 'error');
-            throw error;
-        } finally {
-            this.state.loading = false;
+        return `
+            <div class="col-md-6 mb-4">
+                <div class="card booking-card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">${booking.spaceName}</h6>
+                        <span class="badge bg-${statusClass}">${statusLabel}</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="booking-info mb-3">
+                            <div class="row">
+                                <div class="col-6">
+                                    <small class="text-muted">Data</small>
+                                    <div class="fw-bold">${this.formatDate(booking.startDate)}</div>
+                                    ${booking.startDate !== booking.endDate ?
+            `<div class="text-muted">fino al ${this.formatDate(booking.endDate)}</div>` : ''
         }
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted">Orario</small>
+                                    <div class="fw-bold">${booking.startTime} - ${booking.endTime}</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="booking-details mb-3">
+                            <div class="row">
+                                <div class="col-6">
+                                    <small class="text-muted">Persone</small>
+                                    <div><i class="fas fa-users text-primary"></i> ${booking.people}</div>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted">Prezzo Totale</small>
+                                    <div class="fw-bold text-success">€${booking.totalPrice}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="booking-location mb-3">
+                            <small class="text-muted">Posizione</small>
+                            <div><i class="fas fa-map-marker-alt text-primary"></i> ${booking.spaceAddress}</div>
+                        </div>
+
+                        ${booking.amenities ? `
+                            <div class="booking-amenities mb-3">
+                                <small class="text-muted d-block mb-1">Servizi inclusi</small>
+                                <div class="amenities-list">
+                                    ${booking.amenities.map(amenity =>
+            `<span class="badge bg-light text-dark me-1">${this.getAmenityLabel(amenity)}</span>`
+        ).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+
+                        ${booking.notes ? `
+                            <div class="booking-notes mb-3">
+                                <small class="text-muted">Note</small>
+                                <div class="text-muted">${booking.notes}</div>
+                            </div>
+                        ` : ''}
+
+                        <div class="booking-actions">
+                            <div class="row">
+                                <div class="col-6">
+                                    <button class="btn btn-outline-primary btn-sm w-100" 
+                                            onclick="window.Bookings.showBookingDetail(${booking.id})">
+                                        <i class="fas fa-eye"></i> Dettagli
+                                    </button>
+                                </div>
+                                <div class="col-6">
+                                    ${isUpcoming && booking.status === 'confirmed' ? `
+                                        <button class="btn btn-outline-danger btn-sm w-100" 
+                                                onclick="window.Bookings.cancelBooking(${booking.id})">
+                                            <i class="fas fa-times"></i> Cancella
+                                        </button>
+                                    ` : isPast ? `
+                                        <button class="btn btn-outline-success btn-sm w-100" 
+                                                onclick="window.Bookings.leaveReview(${booking.id})">
+                                            <i class="fas fa-star"></i> Recensione
+                                        </button>
+                                    ` : `
+                                        <button class="btn btn-secondary btn-sm w-100" disabled>
+                                            <i class="fas fa-ban"></i> Non disponibile
+                                        </button>
+                                    `}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer text-muted">
+                        <small>
+                            <i class="fas fa-clock"></i> 
+                            Prenotato il ${this.formatDateTime(booking.createdAt)}
+                        </small>
+                    </div>
+                </div>
+            </div>
+        `;
     },
 
     /**
-     * Controlla disponibilità spazio
+     * Applica filtri alle prenotazioni
      */
-    async checkAvailability(spaceId, date, startTime, endTime) {
-        try {
-            const cacheKey = `availability_${spaceId}_${date}_${startTime}_${endTime}`;
-
-            // Controlla cache
-            if (this.state.cache.has(cacheKey)) {
-                const cached = this.state.cache.get(cacheKey);
-                if (Date.now() - cached.timestamp < 300000) { // 5 minuti
-                    return cached.data;
-                }
-            }
-
-            const response = await window.API.get(this.config.endpoints.availability, {
-                spaceId,
-                date,
-                startTime,
-                endTime
-            });
-
-            if (response.success) {
-                // Salva in cache
-                this.state.cache.set(cacheKey, {
-                    data: response.data,
-                    timestamp: Date.now()
-                });
-
-                return response.data;
-            } else {
-                throw new Error(response.message || 'Errore nel controllo disponibilità');
-            }
-
-        } catch (error) {
-            console.error('Error checking availability:', error);
-            return { available: false, message: 'Errore nel controllo disponibilità' };
-        }
-    },
-
-    /**
-     * Valida dati prenotazione
-     */
-    validateBookingData(data) {
-        // Data richiesta
-        if (!data.date) {
-            return { valid: false, message: 'Data richiesta' };
-        }
-
-        // Controlla che la data non sia nel passato
-        const bookingDate = new Date(data.date);
+    applyFilters(bookings) {
+        let filtered = [...bookings];
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        if (bookingDate < today) {
-            return { valid: false, message: 'Non è possibile prenotare per date passate' };
+        // Filtro per status
+        switch (this.state.filters.status) {
+            case 'upcoming':
+                filtered = filtered.filter(booking =>
+                    new Date(booking.startDate) >= today && booking.status === 'confirmed'
+                );
+                break;
+            case 'past':
+                filtered = filtered.filter(booking =>
+                    new Date(booking.endDate) < today
+                );
+                break;
+            case 'cancelled':
+                filtered = filtered.filter(booking => booking.status === 'cancelled');
+                break;
+            default: // 'all'
+                // Nessun filtro
+                break;
         }
 
-        // Controlla limite massimo anticipazione
-        const maxDate = new Date();
-        maxDate.setDate(maxDate.getDate() + this.config.maxAdvanceBookingDays);
-
-        if (bookingDate > maxDate) {
-            return { valid: false, message: `Non è possibile prenotare oltre ${this.config.maxAdvanceBookingDays} giorni` };
-        }
-
-        // Orario richiesto
-        if (!data.startTime || !data.endTime) {
-            return { valid: false, message: 'Orario di inizio e fine richiesti' };
-        }
-
-        // Controlla durata
-        const start = new Date(`${data.date}T${data.startTime}`);
-        const end = new Date(`${data.date}T${data.endTime}`);
-        const duration = (end - start) / (1000 * 60 * 60); // ore
-
-        if (duration < this.config.minBookingDuration) {
-            return { valid: false, message: `Durata minima: ${this.config.minBookingDuration} ora/e` };
-        }
-
-        if (duration > this.config.maxBookingDuration) {
-            return { valid: false, message: `Durata massima: ${this.config.maxBookingDuration} ore` };
-        }
-
-        // Spazio richiesto
-        if (!data.spaceId) {
-            return { valid: false, message: 'Spazio richiesto' };
-        }
-
-        // Numero ospiti
-        if (!data.guests || data.guests < 1) {
-            return { valid: false, message: 'Numero ospiti richiesto' };
-        }
-
-        return { valid: true };
-    },
-
-    /**
-     * Controlla se una prenotazione può essere cancellata
-     */
-    canCancelBooking(booking) {
-        if (booking.status === 'cancelled' || booking.status === 'completed') {
-            return false;
-        }
-
-        const bookingDateTime = new Date(`${booking.date}T${booking.startTime}`);
-        const now = new Date();
-        const hoursUntilBooking = (bookingDateTime - now) / (1000 * 60 * 60);
-
-        return hoursUntilBooking > this.config.cancellationDeadline;
-    },
-
-    /**
-     * Ottieni prenotazione per ID
-     */
-    getBookingById(bookingId) {
-        return this.state.bookings.find(booking => booking.id === bookingId);
-    },
-
-    /**
-     * Filtra prenotazioni
-     */
-    getFilteredBookings() {
-        let filtered = [...this.state.bookings];
-
-        // Filtra per status
-        if (this.state.filters.status !== 'all') {
-            filtered = filtered.filter(booking => booking.status === this.state.filters.status);
-        }
-
-        // Filtra per range date
-        if (this.state.filters.dateRange) {
-            const { start, end } = this.state.filters.dateRange;
-            filtered = filtered.filter(booking => {
-                const bookingDate = new Date(booking.date);
-                return bookingDate >= start && bookingDate <= end;
-            });
-        }
-
-        // Filtra per spazio
-        if (this.state.filters.space) {
-            filtered = filtered.filter(booking => booking.spaceId === this.state.filters.space);
+        // Ordinamento
+        switch (this.state.filters.sortBy) {
+            case 'date-asc':
+                filtered.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+                break;
+            case 'price-high':
+                filtered.sort((a, b) => b.totalPrice - a.totalPrice);
+                break;
+            case 'price-low':
+                filtered.sort((a, b) => a.totalPrice - b.totalPrice);
+                break;
+            default: // 'date-desc'
+                filtered.sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
+                break;
         }
 
         return filtered;
     },
 
     /**
-     * Mostra modal prenotazione
+     * Imposta filtro
      */
-    showBookingModal(spaceId, spaceData = null) {
-        const modalContent = this.buildBookingForm(spaceId, spaceData);
+    setFilter(filterType, value) {
+        this.state.filters[filterType] = value;
 
-        window.Utils?.modal?.show({
-            title: 'Nuova Prenotazione',
-            content: modalContent,
-            size: 'lg',
-            onShow: () => {
-                this.initializeBookingForm(spaceId, spaceData);
-            }
-        });
-    },
-
-    /**
-     * Costruisce form prenotazione
-     */
-    buildBookingForm(spaceId, spaceData) {
-        let form = this.templates.bookingForm;
-
-        // Sostituzioni dinamiche se necessario
-        if (spaceData) {
-            form = form.replace('{spaceName}', spaceData.name);
-        }
-
-        return form;
-    },
-
-    /**
-     * Inizializza form prenotazione
-     */
-    async initializeBookingForm(spaceId, spaceData) {
-        try {
-            // Popola le opzioni orario
-            this.populateTimeOptions();
-
-            // Popola numero ospiti basato sulla capacità dello spazio
-            this.populateGuestOptions(spaceData?.capacity || 10);
-
-            // Popola servizi aggiuntivi
-            if (spaceData?.services) {
-                this.populateServices(spaceData.services);
-            }
-
-            // Setup event listeners del form
-            this.setupFormEventListeners(spaceId, spaceData);
-
-            // Imposta data minima
-            const dateInput = document.getElementById('booking-date');
-            if (dateInput) {
-                const tomorrow = new Date();
-                tomorrow.setDate(tomorrow.getDate() + 1);
-                dateInput.min = tomorrow.toISOString().split('T')[0];
-
-                const maxDate = new Date();
-                maxDate.setDate(maxDate.getDate() + this.config.maxAdvanceBookingDays);
-                dateInput.max = maxDate.toISOString().split('T')[0];
-            }
-
-        } catch (error) {
-            console.error('Error initializing booking form:', error);
-        }
-    },
-
-    /**
-     * Popola opzioni orario
-     */
-    populateTimeOptions() {
-        const startSelect = document.getElementById('booking-start');
-        const endSelect = document.getElementById('booking-end');
-
-        if (!startSelect || !endSelect) return;
-
-        // Orari dalle 8:00 alle 20:00
-        for (let hour = 8; hour <= 20; hour++) {
-            const time = `${hour.toString().padStart(2, '0')}:00`;
-            const option = `<option value="${time}">${time}</option>`;
-            startSelect.innerHTML += option;
-
-            if (hour > 8) { // L'orario di fine inizia da 9:00
-                endSelect.innerHTML += option;
+        // Aggiorna UI filtri
+        if (filterType === 'status') {
+            document.querySelectorAll('[data-filter]').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            const activeBtn = document.querySelector(`[data-filter="${value}"]`);
+            if (activeBtn) {
+                activeBtn.classList.add('active');
             }
         }
 
-        // Event listener per aggiornare orario fine
-        startSelect.addEventListener('change', () => {
-            const selectedHour = parseInt(startSelect.value.split(':')[0]);
-            endSelect.innerHTML = '<option value="">Seleziona...</option>';
+        this.renderBookings();
+    },
 
-            for (let hour = selectedHour + 1; hour <= 21; hour++) {
-                const time = `${hour.toString().padStart(2, '0')}:00`;
-                endSelect.innerHTML += `<option value="${time}">${time}</option>`;
+    /**
+     * Mostra dettagli prenotazione
+     */
+    showBookingDetail(bookingId) {
+        const booking = this.state.bookings.find(b => b.id === bookingId);
+        if (!booking) {
+            if (window.Notifications) {
+                window.Notifications.show('Prenotazione non trovata', 'error');
             }
-        });
-    },
-
-    /**
-     * Popola opzioni numero ospiti
-     */
-    populateGuestOptions(maxCapacity) {
-        const guestSelect = document.getElementById('booking-guests');
-        if (!guestSelect) return;
-
-        for (let i = 1; i <= maxCapacity; i++) {
-            guestSelect.innerHTML += `<option value="${i}">${i} ${i === 1 ? 'persona' : 'persone'}</option>`;
+            return;
         }
+
+        this.showBookingModal(booking);
     },
 
     /**
-     * Popola servizi aggiuntivi
+     * Mostra modal dettagli prenotazione
      */
-    populateServices(services) {
-        const container = document.querySelector('.services-checkboxes');
-        if (!container || !services) return;
+    showBookingModal(booking) {
+        const statusClass = this.getStatusClass(booking.status);
+        const statusLabel = this.getStatusLabel(booking.status);
 
-        services.forEach(service => {
-            const checkbox = `
-                <div class="form-check">
-                    <input class="form-check-input service-checkbox" type="checkbox" 
-                           value="${service.id}" id="service-${service.id}" 
-                           data-price="${service.price}">
-                    <label class="form-check-label" for="service-${service.id}">
-                        ${service.name} (+€${service.price})
-                    </label>
+        const modalHTML = `
+            <div class="modal fade" id="bookingDetailModal" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">
+                                <i class="fas fa-calendar-check text-primary"></i>
+                                Dettagli Prenotazione #${booking.id}
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="booking-status mb-4">
+                                <span class="badge bg-${statusClass} fs-6">${statusLabel}</span>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-4">
+                                    <h6><i class="fas fa-building text-primary"></i> Spazio</h6>
+                                    <div class="space-info">
+                                        <h5>${booking.spaceName}</h5>
+                                        <p class="text-muted mb-2">
+                                            <i class="fas fa-map-marker-alt"></i> ${booking.spaceAddress}
+                                        </p>
+                                        <div class="space-details">
+                                            <span class="badge bg-light text-dark">
+                                                <i class="fas fa-users"></i> ${booking.people} persone
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6 mb-4">
+                                    <h6><i class="fas fa-calendar text-primary"></i> Date e Orari</h6>
+                                    <div class="datetime-info">
+                                        <div class="mb-2">
+                                            <strong>Data inizio:</strong> ${this.formatDate(booking.startDate)}
+                                        </div>
+                                        <div class="mb-2">
+                                            <strong>Data fine:</strong> ${this.formatDate(booking.endDate)}
+                                        </div>
+                                        <div class="mb-2">
+                                            <strong>Orario:</strong> ${booking.startTime} - ${booking.endTime}
+                                        </div>
+                                        <div class="text-muted">
+                                            Durata: ${this.calculateDuration(booking)}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            ${booking.amenities && booking.amenities.length > 0 ? `
+                                <div class="row">
+                                    <div class="col-12 mb-4">
+                                        <h6><i class="fas fa-list-check text-primary"></i> Servizi Inclusi</h6>
+                                        <div class="amenities-grid">
+                                            ${booking.amenities.map(amenity => `
+                                                <div class="amenity-item">
+                                                    <i class="fas fa-check text-success"></i>
+                                                    <span>${this.getAmenityLabel(amenity)}</span>
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                </div>
+                            ` : ''}
+
+                            ${booking.notes ? `
+                                <div class="row">
+                                    <div class="col-12 mb-4">
+                                        <h6><i class="fas fa-sticky-note text-primary"></i> Note</h6>
+                                        <div class="alert alert-light">
+                                            ${booking.notes}
+                                        </div>
+                                    </div>
+                                </div>
+                            ` : ''}
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <h6><i class="fas fa-euro-sign text-primary"></i> Dettagli Pagamento</h6>
+                                    <div class="payment-summary">
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <span>Prezzo totale:</span>
+                                            <strong class="text-success">€${booking.totalPrice}</strong>
+                                        </div>
+                                        <div class="text-muted">
+                                            <small>IVA inclusa • Pagamento confermato</small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <h6><i class="fas fa-info-circle text-primary"></i> Info Prenotazione</h6>
+                                    <div class="booking-meta">
+                                        <div class="mb-1">
+                                            <small class="text-muted">ID Prenotazione:</small>
+                                            <span class="fw-bold">#${booking.id}</span>
+                                        </div>
+                                        <div class="mb-1">
+                                            <small class="text-muted">Data prenotazione:</small>
+                                            <span>${this.formatDateTime(booking.createdAt)}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                <i class="fas fa-times"></i> Chiudi
+                            </button>
+                            ${this.isUpcoming(booking) && booking.status === 'confirmed' ? `
+                                <button type="button" class="btn btn-outline-danger" 
+                                        onclick="window.Bookings.cancelBooking(${booking.id})">
+                                    <i class="fas fa-ban"></i> Cancella Prenotazione
+                                </button>
+                            ` : ''}
+                            <button type="button" class="btn btn-primary" onclick="window.print()">
+                                <i class="fas fa-print"></i> Stampa
+                            </button>
+                        </div>
+                    </div>
                 </div>
-            `;
-            container.innerHTML += checkbox;
-        });
+            </div>
+        `;
+
+        // Rimuovi modal esistente
+        const existingModal = document.getElementById('bookingDetailModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+
+        // Inserisci nuovo modal
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+        // Mostra modal
+        const modal = new bootstrap.Modal(document.getElementById('bookingDetailModal'));
+        modal.show();
     },
 
     /**
-     * Setup event listeners del form
+     * Cancella prenotazione
      */
-    setupFormEventListeners(spaceId, spaceData) {
-        const form = document.getElementById('booking-form');
-        if (!form) return;
+    cancelBooking(bookingId) {
+        const booking = this.state.bookings.find(b => b.id === bookingId);
+        if (!booking) return;
 
-        // Submit form
-        form.addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.handleBookingSubmit(spaceId, spaceData);
-        });
+        if (!confirm(`Sei sicuro di voler cancellare la prenotazione per "${booking.spaceName}"?`)) {
+            return;
+        }
 
-        // Aggiorna prezzo quando cambiano i valori
-        const priceInputs = form.querySelectorAll('input, select');
-        priceInputs.forEach(input => {
-            input.addEventListener('change', () => {
-                this.updateBookingPrice(spaceData);
-            });
-        });
+        // Aggiorna status
+        booking.status = 'cancelled';
 
-        // Controlla disponibilità quando cambiano data/orario
-        const dateInput = document.getElementById('booking-date');
-        const startInput = document.getElementById('booking-start');
-        const endInput = document.getElementById('booking-end');
+        // Chiudi modal se aperto
+        const modal = document.getElementById('bookingDetailModal');
+        if (modal) {
+            bootstrap.Modal.getInstance(modal)?.hide();
+        }
 
-        const checkAvailabilityDebounced = Utils.debounce(() => {
-            this.checkAndUpdateAvailability(spaceId);
-        }, 500);
+        // Ricarica vista
+        this.renderBookings();
 
-        [dateInput, startInput, endInput].forEach(input => {
-            if (input) {
-                input.addEventListener('change', checkAvailabilityDebounced);
-            }
-        });
-    },
-
-    /**
-     * Aggiorna prezzo prenotazione
-     */
-    updateBookingPrice(spaceData) {
-        if (!spaceData) return;
-
-        const startTime = document.getElementById('booking-start')?.value;
-        const endTime = document.getElementById('booking-end')?.value;
-
-        if (!startTime || !endTime) return;
-
-        // Calcola durata
-        const start = new Date(`2000-01-01T${startTime}`);
-        const end = new Date(`2000-01-01T${endTime}`);
-        const duration = (end - start) / (1000 * 60 * 60);
-
-        // Prezzo base
-        const basePrice = (spaceData.hourlyRate || 0) * duration;
-
-        // Servizi aggiuntivi
-        const serviceCheckboxes = document.querySelectorAll('.service-checkbox:checked');
-        let servicesPrice = 0;
-        serviceCheckboxes.forEach(checkbox => {
-            servicesPrice += parseFloat(checkbox.dataset.price || 0);
-        });
-
-        // Aggiorna UI
-        document.getElementById('base-price').textContent = `€${basePrice.toFixed(2)}`;
-        document.getElementById('services-price').textContent = `€${servicesPrice.toFixed(2)}`;
-        document.getElementById('total-price').innerHTML = `<strong>€${(basePrice + servicesPrice).toFixed(2)}</strong>`;
-    },
-
-    /**
-     * Controlla e aggiorna disponibilità
-     */
-    async checkAndUpdateAvailability(spaceId) {
-        const date = document.getElementById('booking-date')?.value;
-        const startTime = document.getElementById('booking-start')?.value;
-        const endTime = document.getElementById('booking-end')?.value;
-
-        if (!date || !startTime || !endTime) return;
-
-        try {
-            const availability = await this.checkAvailability(spaceId, date, startTime, endTime);
-
-            // Aggiorna UI basandosi sulla disponibilità
-            const submitBtn = document.querySelector('#booking-form button[type="submit"]');
-            if (submitBtn) {
-                if (availability.available) {
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = '<i class="fas fa-calendar-check"></i> Conferma Prenotazione';
-                } else {
-                    submitBtn.disabled = true;
-                    submitBtn.innerHTML = '<i class="fas fa-times"></i> Non Disponibile';
-                }
-            }
-
-        } catch (error) {
-            console.error('Error checking availability:', error);
+        if (window.Notifications) {
+            window.Notifications.show('Prenotazione cancellata con successo', 'success');
         }
     },
 
     /**
-     * Gestisce submit del form
+     * Lascia recensione
      */
-    async handleBookingSubmit(spaceId, spaceData) {
-        try {
-            const formData = this.gatherFormData(spaceId);
-
-            // Valida dati
-            const validation = this.validateBookingData(formData);
-            if (!validation.valid) {
-                window.Utils?.notifications?.show(validation.message, 'error');
-                return;
-            }
-
-            // Controlla disponibilità finale
-            const availability = await this.checkAvailability(
-                spaceId,
-                formData.date,
-                formData.startTime,
-                formData.endTime
-            );
-
-            if (!availability.available) {
-                window.Utils?.notifications?.show('Lo spazio non è più disponibile per l\'orario selezionato', 'error');
-                return;
-            }
-
-            // Crea prenotazione
-            const booking = await this.createBooking(formData);
-
-            if (booking) {
-                window.Utils?.modal?.hide();
-
-                // Reindirizza alle prenotazioni o aggiorna la vista
-                if (window.Navigation?.showSection) {
-                    setTimeout(() => {
-                        window.Navigation.showSection('profile', 'bookings');
-                    }, 1000);
-                }
-            }
-
-        } catch (error) {
-            console.error('Error submitting booking:', error);
+    leaveReview(bookingId) {
+        if (window.Notifications) {
+            window.Notifications.show('Funzione recensioni in arrivo!', 'info');
         }
     },
 
     /**
-     * Raccoglie dati dal form
+     * Crea nuova prenotazione
      */
-    gatherFormData(spaceId) {
-        const form = document.getElementById('booking-form');
-        if (!form) return {};
-
-        const data = {
-            spaceId: spaceId,
-            date: form.querySelector('#booking-date')?.value,
-            startTime: form.querySelector('#booking-start')?.value,
-            endTime: form.querySelector('#booking-end')?.value,
-            guests: parseInt(form.querySelector('#booking-guests')?.value || '1'),
-            notes: form.querySelector('#booking-notes')?.value || '',
-            services: []
+    createBooking(bookingData) {
+        const newBooking = {
+            id: Date.now(),
+            userId: window.Auth?.getCurrentUser()?.id || 1,
+            ...bookingData,
+            status: 'confirmed',
+            createdAt: new Date().toISOString()
         };
 
-        // Raccogli servizi selezionati
-        const serviceCheckboxes = form.querySelectorAll('.service-checkbox:checked');
-        serviceCheckboxes.forEach(checkbox => {
-            data.services.push({
-                id: checkbox.value,
-                price: parseFloat(checkbox.dataset.price || 0)
-            });
+        this.state.bookings.push(newBooking);
+
+        if (window.Notifications) {
+            window.Notifications.show('Prenotazione effettuata con successo!', 'success');
+        }
+
+        return newBooking;
+    },
+
+    /**
+     * Utility functions
+     */
+    getStatusClass(status) {
+        const statusClasses = {
+            'confirmed': 'success',
+            'pending': 'warning',
+            'cancelled': 'danger',
+            'completed': 'primary'
+        };
+        return statusClasses[status] || 'secondary';
+    },
+
+    getStatusLabel(status) {
+        const statusLabels = {
+            'confirmed': 'Confermata',
+            'pending': 'In Attesa',
+            'cancelled': 'Cancellata',
+            'completed': 'Completata'
+        };
+        return statusLabels[status] || status;
+    },
+
+    getAmenityLabel(amenity) {
+        const labels = {
+            'wifi': 'WiFi',
+            'parking': 'Parcheggio',
+            'coffee': 'Caffè',
+            'printer': 'Stampante',
+            'projector': 'Proiettore',
+            'kitchen': 'Cucina'
+        };
+        return labels[amenity] || amenity;
+    },
+
+    formatDate(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('it-IT', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
         });
-
-        return data;
     },
 
-    /**
-     * Refresh prenotazioni
-     */
-    async refreshBookings() {
-        if (this.state.loading) return;
-
-        await this.loadUserBookings();
-    },
-
-    /**
-     * Pulisci prenotazioni
-     */
-    clearBookings() {
-        this.state.bookings = [];
-        this.state.currentBooking = null;
-        this.state.cache.clear();
-    },
-
-    /**
-     * Imposta filtri
-     */
-    setFilters(filters) {
-        this.state.filters = { ...this.state.filters, ...filters };
-        this.triggerEvent('bookings:filtered');
-    },
-
-    /**
-     * Reset filtri
-     */
-    resetFilters() {
-        this.state.filters = {
-            status: 'all',
-            dateRange: null,
-            space: null
-        };
-        this.triggerEvent('bookings:filtered');
-    },
-
-    /**
-     * Trigger evento custom
-     */
-    triggerEvent(eventName, data = {}) {
-        const event = new CustomEvent(eventName, {
-            detail: { ...data, bookings: this }
+    formatDateTime(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('it-IT', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
         });
-        document.dispatchEvent(event);
     },
 
-    /**
-     * Ottieni statistiche prenotazioni
-     */
-    getBookingStats() {
-        const bookings = this.state.bookings;
+    calculateDuration(booking) {
+        const start = new Date(`${booking.startDate} ${booking.startTime}`);
+        const end = new Date(`${booking.endDate} ${booking.endTime}`);
+        const diffMs = end - start;
+        const diffHours = Math.round(diffMs / (1000 * 60 * 60));
 
-        return {
-            total: bookings.length,
-            active: bookings.filter(b => b.status === 'confirmed').length,
-            completed: bookings.filter(b => b.status === 'completed').length,
-            cancelled: bookings.filter(b => b.status === 'cancelled').length,
-            upcoming: bookings.filter(b => {
-                const bookingDate = new Date(`${b.date}T${b.startTime}`);
-                return bookingDate > new Date() && b.status === 'confirmed';
-            }).length
-        };
-    },
-
-    /**
-     * Esporta prenotazioni
-     */
-    exportBookings(format = 'json') {
-        const bookings = this.getFilteredBookings();
-
-        if (format === 'json') {
-            const dataStr = JSON.stringify(bookings, null, 2);
-            const blob = new Blob([dataStr], { type: 'application/json' });
-            Utils.download(blob, 'prenotazioni.json');
-        } else if (format === 'csv') {
-            const csv = this.convertToCSV(bookings);
-            const blob = new Blob([csv], { type: 'text/csv' });
-            Utils.download(blob, 'prenotazioni.csv');
+        if (diffHours < 24) {
+            return `${diffHours} ore`;
+        } else {
+            const days = Math.floor(diffHours / 24);
+            const hours = diffHours % 24;
+            return hours > 0 ? `${days} giorni e ${hours} ore` : `${days} giorni`;
         }
     },
 
-    /**
-     * Converte prenotazioni in CSV
-     */
-    convertToCSV(bookings) {
-        const headers = ['ID', 'Data', 'Ora Inizio', 'Ora Fine', 'Spazio', 'Ospiti', 'Status', 'Prezzo'];
-        const rows = bookings.map(booking => [
-            booking.id,
-            booking.date,
-            booking.startTime,
-            booking.endTime,
-            booking.spaceName || '',
-            booking.guests,
-            booking.status,
-            booking.totalPrice || ''
-        ]);
-
-        return [headers, ...rows].map(row => row.join(',')).join('\n');
+    isUpcoming(booking) {
+        return new Date(booking.startDate) > new Date();
     }
 };
 
-// Auto-inizializzazione se DOM pronto e dipendenze disponibili
+// Auto-inizializzazione quando il DOM è pronto
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
-        if (window.API && window.Utils) {
-            window.Bookings.init();
-        }
+        if (window.Bookings) window.Bookings.init();
     });
-} else if (window.API && window.Utils) {
-    window.Bookings.init();
+} else {
+    if (window.Bookings) window.Bookings.init();
 }

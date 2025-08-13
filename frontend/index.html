@@ -1,136 +1,301 @@
 <!DOCTYPE html>
-<html lang="it" data-theme="auto">
+<html lang="it">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CoWorkSpace - Gestione Spazi Condivisi</title>
-    <meta name="description" content="Piattaforma per la gestione e prenotazione di spazi coworking, uffici condivisi e sale riunioni.">
 
-    <!-- Preconnect for performance -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Meta Tags -->
+    <meta name="description" content="Piattaforma per la prenotazione di spazi di coworking in Italia">
+    <meta name="keywords" content="coworking, spazi, uffici, prenotazioni, lavoro">
 
-    <!-- CSS Framework and Custom Styles -->
+    <!-- Bootstrap CSS -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 
-    <!-- Custom CSS - PERCORSI CORRETTI (relativo alla posizione di index.html in Web/frontend/) -->
-    <link href="./assets/css/variables.css" rel="stylesheet">
-    <link href="./assets/css/layout.css" rel="stylesheet">
-    <link href="./assets/css/components.css" rel="stylesheet">
-    <link href="./assets/css/animations.css" rel="stylesheet">
-    <link href="./assets/css/responsive.css" rel="stylesheet">
-
-    <!-- Favicon and icons -->
-    <link rel="icon" href="./assets/images/favicon.svg" type="image/svg+xml">
-
-    <!-- Open Graph and Twitter Cards -->
-    <meta property="og:title" content="CoWorkSpace - Gestione Spazi Condivisi">
-    <meta property="og:description" content="Trova e prenota il tuo spazio di lavoro ideale">
-    <meta property="og:image" content="./assets/images/og-image.jpg">
-    <meta property="og:type" content="website">
-    <meta name="twitter:card" content="summary_large_image">
-
-    <!-- Theme detection script -->
-    <script>
-        (function() {
-            const theme = localStorage.getItem('coworkspace_theme') ||
-                (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-            document.documentElement.setAttribute('data-theme', theme);
-        })();
-    </script>
-
-    <!-- Initialize Configuration before other scripts -->
-    <script>
-        // Configurazione globale dell'applicazione
-        window.CoWorkSpaceConfig = {
-            app: {
-                name: 'CoWorkSpace',
-                version: '1.0.0',
-                environment: 'development',
-                debug: true
-            },
-            api: {
-                baseURL: 'http://localhost:3000/api',
-                timeout: 10000,
-                retryAttempts: 3,
-                retryDelay: 1000
-            },
-            auth: {
-                tokenKey: 'coworkspace_token',
-                refreshTokenKey: 'coworkspace_refresh_token',
-                userKey: 'coworkspace_user',
-                tokenExpiry: 3600000, // 1 hour
-                refreshTokenExpiry: 604800000 // 7 days
-            },
-            ui: {
-                animationDuration: 300,
-                notificationDuration: 5000,
-                modalBackdrop: true,
-                loadingDelay: 200
-            },
-            features: {
-                enableAnalytics: true,
-                enableNotifications: true,
-                enableCookieBanner: true,
-                enableDarkMode: true,
-                enablePWA: false
-            },
-            storage: {
-                prefix: 'coworkspace_',
-                type: 'localStorage' // or 'sessionStorage'
-            },
-            routes: {
-                defaultSection: 'home',
-                authRequired: ['dashboard', 'profile', 'bookings'],
-                adminRequired: ['dashboard']
-            }
-        };
-    </script>
+    <!-- Custom CSS Files -->
+    <link rel="stylesheet" href="./assets/css/variables.css">
+    <link rel="stylesheet" href="./assets/css/layout.css">
+    <link rel="stylesheet" href="./assets/css/components.css">
+    <link rel="stylesheet" href="./assets/css/animations.css">
+    <link rel="stylesheet" href="./assets/css/responsive.css">
 </head>
 
 <body>
-<!-- ✅ Navigation Component Container -->
-<div id="navbar-container"></div>
-
-<!-- ✅ Main Content Container -->
-<main id="main-content" class="main-content">
-    <!-- ✅ Dynamic content sections will be loaded here -->
-    <div id="content-container" class="container mt-4">
-        <!-- Contenuto iniziale di caricamento -->
-        <div class="text-center py-5">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Caricamento...</span>
+<!-- Navigation -->
+<nav class="navbar navbar-expand-lg navbar-light fixed-top">
+    <div class="container">
+        <a class="navbar-brand" href="#" onclick="showSection('home')">
+            <i class="fas fa-building"></i> CoWorkSpace
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="#" onclick="showSection('home')">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" onclick="showSection('spaces')">Spazi</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" onclick="showSection('about')">Chi Siamo</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" onclick="showSection('support')">Supporto</a>
+                </li>
+            </ul>
+            <div class="navbar-nav">
+                <div id="authButtons">
+                    <button class="btn btn-outline-primary me-2" onclick="showLogin()">
+                        <i class="fas fa-sign-in-alt"></i> Accedi
+                    </button>
+                    <button class="btn btn-primary" onclick="showRegister()">
+                        <i class="fas fa-user-plus"></i> Registrati
+                    </button>
+                </div>
+                <div id="userMenu" style="display: none;">
+                    <div class="dropdown">
+                        <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user"></i> <span id="userName"></span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="#" onclick="showProfile()">
+                                <i class="fas fa-user-circle"></i> Profilo
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" onclick="showBookings()">
+                                <i class="fas fa-calendar-check"></i> Le Mie Prenotazioni
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" onclick="showDashboard()">
+                                <i class="fas fa-tachometer-alt"></i> Dashboard
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" onclick="logout()">
+                                <i class="fas fa-sign-out-alt"></i> Logout
+                            </a></li>
+                        </ul>
+                    </div>
+                </div>
             </div>
-            <p class="mt-3">Caricamento applicazione...</p>
         </div>
     </div>
-</main>
+</nav>
 
-<!-- ✅ Footer Component Container -->
-<div id="footer-container"></div>
+<!-- Main Content Container -->
+<div id="mainContent">
+    <!-- Home Section -->
+    <section id="homeSection" class="hero-section">
+        <div class="hero-background"></div>
+        <div class="container">
+            <div class="row align-items-center min-vh-100">
+                <div class="col-lg-6">
+                    <div class="hero-content">
+                        <div class="hero-badge mb-4">
+                            <i class="fas fa-star"></i>
+                            Piattaforma #1 per Coworking in Italia
+                        </div>
+                        <h1 class="hero-title">
+                            Trova il tuo
+                            <span class="gradient-text">spazio ideale</span>
+                            per lavorare
+                        </h1>
+                        <p class="hero-subtitle">
+                            Prenota spazi di coworking professionali in tutta Italia.
+                            Postazioni flessibili, sale riunioni e uffici privati per
+                            massimizzare la tua produttività.
+                        </p>
+                        <div class="hero-actions">
+                            <button class="btn btn-primary btn-lg me-3" onclick="showSection('spaces')">
+                                <i class="fas fa-search"></i> Esplora Spazi
+                            </button>
+                            <button class="btn btn-outline-primary btn-lg" onclick="showRegister()">
+                                <i class="fas fa-play"></i> Guarda Demo
+                            </button>
+                        </div>
+                        <div class="hero-stats mt-5">
+                            <div class="row">
+                                <div class="col-4 text-center">
+                                    <div class="stat-number">500+</div>
+                                    <div class="stat-label">Spazi</div>
+                                </div>
+                                <div class="col-4 text-center">
+                                    <div class="stat-number">50+</div>
+                                    <div class="stat-label">Città</div>
+                                </div>
+                                <div class="col-4 text-center">
+                                    <div class="stat-number">10k+</div>
+                                    <div class="stat-label">Utenti</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="search-container">
+                        <div class="search-header">
+                            <h3><i class="fas fa-map-marker-alt text-primary"></i> Cerca Spazi</h3>
+                            <p class="text-muted">Trova il workspace perfetto per te</p>
+                        </div>
+                        <form id="quickSearchForm">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Città</label>
+                                    <select class="form-control" id="quickCity">
+                                        <option value="">Seleziona città</option>
+                                        <option value="Milano">Milano</option>
+                                        <option value="Roma">Roma</option>
+                                        <option value="Torino">Torino</option>
+                                        <option value="Napoli">Napoli</option>
+                                        <option value="Bologna">Bologna</option>
+                                        <option value="Firenze">Firenze</option>
+                                        <option value="Venezia">Venezia</option>
+                                        <option value="Genova">Genova</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Tipo di Spazio</label>
+                                    <select class="form-control" id="quickSpaceType">
+                                        <option value="">Tutti i tipi</option>
+                                        <option value="hot-desk">Hot Desk</option>
+                                        <option value="private-office">Ufficio Privato</option>
+                                        <option value="meeting-room">Sala Riunioni</option>
+                                        <option value="event-space">Spazio Eventi</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Data</label>
+                                    <input type="date" class="form-control" id="quickDate">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Persone</label>
+                                    <select class="form-control" id="quickCapacity">
+                                        <option value="">Qualsiasi</option>
+                                        <option value="1-5">1-5 persone</option>
+                                        <option value="6-10">6-10 persone</option>
+                                        <option value="11-20">11-20 persone</option>
+                                        <option value="20+">20+ persone</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100 btn-lg">
+                                <i class="fas fa-search"></i> Cerca Spazi Disponibili
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
 
-<!-- ✅ Modal Container -->
-<div id="modal-container"></div>
+    <!-- Contenitore per le altre sezioni -->
+    <div id="dynamicContent">
+        <!-- Le sezioni verranno caricate qui dinamicamente -->
+    </div>
+</div>
 
-<!-- ✅ Cookie Banner Container -->
-<div id="cookie-banner-container"></div>
+<!-- Modals Container -->
+<div id="modalsContainer">
+    <!-- I modali verranno caricati qui dinamicamente -->
+</div>
 
-<!-- ✅ Back to Top Button -->
-<button id="back-to-top" class="back-to-top d-none" aria-label="Torna in alto">
+<!-- Notification Container -->
+<div id="notificationContainer" class="notification-container"></div>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay" class="loading-overlay" style="display: none;">
+    <div class="loading-spinner">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Caricamento...</span>
+        </div>
+        <p class="mt-3">Caricamento in corso...</p>
+    </div>
+</div>
+
+<!-- Footer -->
+<footer class="bg-dark text-white py-5 mt-5">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-3 col-md-6 mb-4">
+                <h5><i class="fas fa-building text-primary"></i> CoWorkSpace</h5>
+                <p class="text-muted">La piattaforma leader in Italia per la prenotazione di spazi di coworking professionali.</p>
+                <div class="social-links mt-4">
+                    <a href="#" class="text-white me-3"><i class="fab fa-facebook-f"></i></a>
+                    <a href="#" class="text-white me-3"><i class="fab fa-twitter"></i></a>
+                    <a href="#" class="text-white me-3"><i class="fab fa-linkedin-in"></i></a>
+                    <a href="#" class="text-white"><i class="fab fa-instagram"></i></a>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-4">
+                <h6>Servizi</h6>
+                <ul class="list-unstyled">
+                    <li class="mb-3"><a href="#" class="text-muted">Hot Desk</a></li>
+                    <li class="mb-3"><a href="#" class="text-muted">Uffici Privati</a></li>
+                    <li class="mb-3"><a href="#" class="text-muted">Sale Riunioni</a></li>
+                    <li class="mb-3"><a href="#" class="text-muted">Spazi Eventi</a></li>
+                </ul>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-4">
+                <h6>Azienda</h6>
+                <ul class="list-unstyled">
+                    <li class="mb-3"><a href="#" class="text-muted">Chi Siamo</a></li>
+                    <li class="mb-3"><a href="#" class="text-muted">Lavora con Noi</a></li>
+                    <li class="mb-3"><a href="#" class="text-muted">Partnership</a></li>
+                    <li class="mb-3"><a href="#" class="text-muted">Press Kit</a></li>
+                </ul>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-4">
+                <h6>Supporto</h6>
+                <ul class="list-unstyled">
+                    <li class="mb-3"><a href="#" class="text-muted">Centro Assistenza</a></li>
+                    <li class="mb-3"><a href="#" class="text-muted">FAQ</a></li>
+                    <li class="mb-3"><a href="#" class="text-muted">Termini di Servizio</a></li>
+                    <li class="mb-3"><a href="#" class="text-muted">Privacy Policy</a></li>
+                </ul>
+            </div>
+        </div>
+        <hr class="my-4">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <p class="mb-0 text-muted">&copy; 2024 CoWorkSpace. Tutti i diritti riservati.</p>
+            </div>
+            <div class="col-md-6 text-md-end">
+                <p class="mb-0 text-muted">Made with ❤️ in Italy</p>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<!-- Cookie Banner -->
+<div id="cookieBanner" class="cookie-banner" style="display: none;">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <p class="mb-0">
+                    <i class="fas fa-cookie-bite text-warning me-2"></i>
+                    Utilizziamo cookie per migliorare la tua esperienza.
+                </p>
+            </div>
+            <div class="col-md-4 text-end">
+                <button class="btn btn-sm btn-outline-light me-2" onclick="declineCookies()">Rifiuta</button>
+                <button class="btn btn-sm btn-primary" onclick="acceptCookies()">Accetta</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Back to Top Button -->
+<button id="backToTop" class="back-to-top" style="display: none;" onclick="scrollToTop()">
     <i class="fas fa-chevron-up"></i>
 </button>
 
-<!-- ✅ Loading Overlay Container -->
-<div id="loading-overlay-container"></div>
-
-<!-- ✅ Notification Container -->
-<div id="notification-container" class="notification-container"></div>
-
-<!-- External JavaScript Libraries -->
+<!-- Scripts -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
 
-<!-- Custom JavaScript Modules (in order of dependency) - PERCORSI CORRETTI -->
+<!-- Custom Scripts -->
 <script src="./assets/js/config.js"></script>
 <script src="./assets/js/utils.js"></script>
 <script src="./assets/js/api.js"></script>
@@ -138,70 +303,10 @@
 <script src="./assets/js/navigation.js"></script>
 <script src="./assets/js/spaces.js"></script>
 <script src="./assets/js/booking.js"></script>
-<script src="./assets/js/dashboard.js"></script>
 <script src="./assets/js/user.js"></script>
+<script src="./assets/js/dashboard.js"></script>
 <script src="./assets/js/components.js"></script>
+<script src="./assets/js/notification.js"></script>
 <script src="./assets/js/app.js"></script>
-
-<!-- App Initialization -->
-<script>
-    // Initialize app when DOM is ready
-    document.addEventListener('DOMContentLoaded', function() {
-        // Verifica che tutti i moduli siano caricati
-        console.log('🔍 Checking modules...');
-        const modules = [
-            'CoWorkSpaceConfig',
-            'Utils',
-            'API',
-            'Auth',
-            'Navigation',
-            'Spaces',
-            'Bookings',
-            'Dashboard',
-            'User',
-            'Components',
-            'App'
-        ];
-
-        let allModulesLoaded = true;
-        modules.forEach(module => {
-            if (typeof window[module] === 'undefined') {
-                console.warn(`⚠️ Module ${module} not loaded`);
-                allModulesLoaded = false;
-            } else {
-                console.log(`✅ Module ${module} loaded`);
-            }
-        });
-
-        // Se App è disponibile, prova ad inizializzare
-        if (window.App) {
-            App.init().then(() => {
-                console.log('✅ CoWorkSpace App initialized successfully!');
-            }).catch(error => {
-                console.error('❌ App initialization failed:', error);
-                showErrorMessage(error);
-            });
-        } else if (!allModulesLoaded) {
-            console.error('❌ Critical modules not loaded');
-            showErrorMessage('Moduli critici non caricati');
-        }
-
-        function showErrorMessage(error) {
-            document.getElementById('content-container').innerHTML = `
-                    <div class="alert alert-danger" role="alert">
-                        <h4 class="alert-heading">Errore di inizializzazione</h4>
-                        <p>Si è verificato un errore durante il caricamento dell'applicazione.</p>
-                        <hr>
-                        <p class="mb-0">Dettaglio errore: ${error}</p>
-                        <p class="mt-3">
-                            <button class="btn btn-danger" onclick="location.reload()">
-                                <i class="fas fa-redo"></i> Ricarica la pagina
-                            </button>
-                        </p>
-                    </div>
-                `;
-        }
-    });
-</script>
 </body>
 </html>
