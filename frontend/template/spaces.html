@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spazi - CoWorkSpace</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="../assets/css/variables.css">
+    <link rel="stylesheet" href="../assets/css/components.css">
+    <link rel="stylesheet" href="../assets/css/layout.css">
+    <link rel="stylesheet" href="../assets/css/animations.css">
+    <link rel="stylesheet" href="../assets/css/responsive.css">
+    <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+
+<body>
+<!-- Navigation -->
+<div id="navbar-container"></div>
+
+<!-- Spaces Section -->
+<section class="section-padding" style="margin-top: 80px;">
+    <div class="container">
+        <!-- Search and Filters Bar -->
+        <div class="search-filters-bar">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <div class="search-input-group">
+                        <i class="fas fa-search"></i>
+                        <input type="text" class="form-control" id="searchSpaces"
+                               placeholder="Cerca per nome, città o servizi...">
+                    </div>
+                </div>
+                <div class="col-md-6 text-end">
+                    <button class="btn btn-outline-primary me-2" onclick="showFilters()">
+                        <i class="fas fa-filter"></i> Filtri
+                    </button>
+                    <select class="form-select d-inline-block w-auto" id="sortSpaces">
+                        <option value="relevance">Rilevanza</option>
+                        <option value="rating">Migliore Valutazione</option>
+                        <option value="price-low">Prezzo: Basso → Alto</option>
+                        <option value="price-high">Prezzo: Alto → Basso</option>
+                        <option value="distance">Distanza</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Header with View Toggle -->
+        <div class="results-header">
+            <div class="d-flex justify-content-between align-items-center flex-wrap">
+                <div class="mb-2 mb-md-0">
+                    <h2><i class="fas fa-building text-primary"></i> Spazi Disponibili</h2>
+                    <p class="results-count" id="resultsCount">Caricamento spazi...</p>
+                </div>
+                <div class="view-toggle">
+                    <button class="btn btn-view-toggle active" id="gridViewBtn" onclick="showGridView()">
+                        <i class="fas fa-th-large"></i> Griglia
+                    </button>
+                    <button class="btn btn-view-toggle" id="mapViewBtn" onclick="showMapView()">
+                        <i class="fas fa-map"></i> Mappa
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Filters -->
+        <div class="quick-filters">
+            <span class="filter-label">Filtri rapidi:</span>
+            <button class="quick-filter-btn" data-filter="available">
+                <i class="fas fa-check-circle"></i> Disponibili Ora
+            </button>
+            <button class="quick-filter-btn" data-filter="featured">
+                <i class="fas fa-star"></i> In Evidenza
+            </button>
+            <button class="quick-filter-btn" data-filter="hot-desk">
+                <i class="fas fa-laptop"></i> Hot Desk
+            </button>
+            <button class="quick-filter-btn" data-filter="meeting-room">
+                <i class="fas fa-users"></i> Sale Riunioni
+            </button>
+        </div>
+
+        <!-- Spaces Grid -->
+        <div id="spacesContainer" class="spaces-grid">
+            <!-- Spaces will be loaded here by JavaScript -->
+        </div>
+
+        <!-- Map Container -->
+        <div id="mapContainer" style="display: none;">
+            <div class="italy-map-container">
+                <div class="map-header">
+                    <h4><i class="fas fa-map text-primary"></i> Mappa degli Spazi</h4>
+                    <div class="map-controls">
+                        <button class="btn btn-sm btn-outline-primary" onclick="zoomIn()">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-primary" onclick="zoomOut()">
+                            <i class="fas fa-minus"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-primary" onclick="centerMap()">
+                            <i class="fas fa-crosshairs"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="italy-map" id="italyMap">
+                    <svg viewBox="0 0 800 1000" class="italy-svg">
+                        <!-- Forma stilizzata dell'Italia -->
+                        <path d="M300 100 Q350 80 400 100 Q450 90 500 120 Q520 150 510 200 Q500 250 480 300 Q460 350 450 400 Q440 450 430 500 Q420 550 410 600 Q400 650 390 700 Q380 750 370 800 Q360 850 350 900 L340 900 Q330 850 320 800 Q310 750 300 700 Q290 650 280 600 Q270 550 260 500 Q250 450 240 400 Q230 350 220 300 Q210 250 220 200 Q230 150 250 120 Q270 100 300 100 Z"
+                              fill="#e8f2ff" stroke="#667eea" stroke-width="2"/>
+
+                        <!-- Marker per Milano -->
+                        <circle cx="320" cy="200" r="8" fill="#667eea" class="city-marker" data-city="Milano" data-count="2">
+                            <animate attributeName="r" values="8;12;8" dur="2s" repeatCount="indefinite"/>
+                        </circle>
+
+                        <!-- Marker per Roma -->
+                        <circle cx="380" cy="500" r="8" fill="#667eea" class="city-marker" data-city="Roma" data-count="1">
+                            <animate attributeName="r" values="8;12;8" dur="2s" repeatCount="indefinite"/>
+                        </circle>
+
+                        <!-- Marker per Torino -->
+                        <circle cx="280" cy="180" r="8" fill="#667eea" class="city-marker" data-city="Torino" data-count="1">
+                            <animate attributeName="r" values="8;12;8" dur="2s" repeatCount="indefinite"/>
+                        </circle>
+
+                        <!-- Marker per Bologna -->
+                        <circle cx="360" cy="320" r="8" fill="#667eea" class="city-marker" data-city="Bologna" data-count="1">
+                            <animate attributeName="r" values="8;12;8" dur="2s" repeatCount="indefinite"/>
+                        </circle>
+
+                        <!-- Labels delle città -->
+                        <text x="330" y="195" fill="#1f2937" font-size="14" font-weight="bold">Milano</text>
+                        <text x="390" y="495" fill="#1f2937" font-size="14" font-weight="bold">Roma</text>
+                        <text x="290" y="175" fill="#1f2937" font-size="14" font-weight="bold">Torino</text>
+                        <text x="370" y="315" fill="#1f2937" font-size="14" font-weight="bold">Bologna</text>
+                    </svg>
+
+                    <!-- Popup per i dettagli delle città -->
+                    <div id="cityPopup" class="city-popup" style="display: none;">
+                        <div class="popup-content">
+                            <h5 id="popupCityName"></h5>
+                            <p id="popupSpaceCount"></p>
+                            <button class="btn btn-sm btn-primary" onclick="filterByCity()">
+                                Vedi Spazi
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="map-footer">
+                    <span id="mapSpaceCount">0 spazi sulla mappa</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Load More Button -->
+        <div class="text-center mt-5">
+            <button class="btn btn-outline-primary btn-lg" id="loadMoreSpaces">
+                <i class="fas fa-plus"></i> Carica Altri Spazi
+            </button>
+        </div>
+    </div>
+</section>
+
+<!-- Footer -->
+<div id="footer-container"></div>
+
+<!-- Modals -->
+<div id="modals-container"></div>
+
+<!-- Notification Container -->
+<div id="notificationContainer" class="notification-container"></div>
+
+<!-- Back to Top Button -->
+<button id="backToTop" class="back-to-top" style="display: none;" onclick="scrollToTop()">
+    <i class="fas fa-chevron-up"></i>
+</button>
+
+<!-- Scripts -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.min.js"></script>
+
+<!-- App Scripts -->
+<script src="../assets/js/config.js"></script>
+<script src="../assets/js/utils.js"></script>
+<script src="../assets/js/components.js"></script>
+<script src="../assets/js/auth.js"></script>
+<script src="../assets/js/notification.js"></script>
+<script src="../assets/js/navigation.js"></script>
+<script src="../assets/js/spaces.js"></script>
+<script src="../assets/js/app.js"></script>
+
+<script>
+    // Inizializza la pagina spazi
+    document.addEventListener('DOMContentLoaded', function() {
+        // Carica componenti comuni
+        loadComponent('navbar-container', 'components/navbar.html');
+        loadComponent('footer-container', 'components/footer.html');
+        loadComponent('modals-container', 'components/modals.html');
+        loadComponent('notification-container', 'components/notification.html');
+        loadComponent('back-to-top', 'components/back-to-top.html');
+
+
+        // Carica gli spazi
+        loadSpaces();
+
+        // Recupera parametri di ricerca se presenti
+        const searchParams = localStorage.getItem('searchParams');
+        if (searchParams) {
+            const params = JSON.parse(searchParams);
+            // Applica i filtri dalla home
+            if (params.city) document.getElementById('quickCity').value = params.city;
+            if (params.type) document.getElementById('quickSpaceType').value = params.type;
+            // Pulisci i parametri salvati
+            localStorage.removeItem('searchParams');
+        }
+    });
+</script>
+</body>
+</html>

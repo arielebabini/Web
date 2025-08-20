@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supporto - CoWorkSpace</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="../assets/css/variables.css">
+    <link rel="stylesheet" href="../assets/css/components.css">
+    <link rel="stylesheet" href="../assets/css/layout.css">
+    <link rel="stylesheet" href="../assets/css/animations.css">
+    <link rel="stylesheet" href="../assets/css/responsive.css">
+    <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+
+<body>
+<!-- Navigation -->
+<div id="navbar-container"></div>
+
+<!-- Support Section -->
+<section class="section-padding" style="margin-top: 80px;">
+    <div class="container">
+        <!-- Header Section -->
+        <div class="row">
+            <div class="col-lg-8 mx-auto text-center">
+                <h2 class="section-title">
+                    <i class="fas fa-headset text-primary"></i> Centro Assistenza
+                </h2>
+                <p class="section-subtitle">
+                    Hai bisogno di aiuto? Siamo qui per supportarti in ogni momento
+                </p>
+            </div>
+        </div>
+
+        <!-- Support Options Cards -->
+        <div class="support-options mt-5">
+            <div class="row">
+                <div class="col-md-4 mb-4">
+                    <div class="support-card h-100">
+                        <div class="support-icon">
+                            <i class="fas fa-question-circle"></i>
+                        </div>
+                        <h4>FAQ</h4>
+                        <p>Trova risposte alle domande più frequenti sui nostri servizi e spazi di coworking.</p>
+                        <button class="btn btn-outline-primary" onclick="showFAQ()">
+                            <i class="fas fa-search"></i> Consulta FAQ
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="support-card h-100">
+                        <div class="support-icon">
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                        <h4>Contattaci</h4>
+                        <p>Invia una richiesta di supporto e ti risponderemo entro 24 ore.</p>
+                        <button class="btn btn-outline-primary" onclick="showContactForm()">
+                            <i class="fas fa-paper-plane"></i> Invia Messaggio
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="support-card h-100">
+                        <div class="support-icon">
+                            <i class="fas fa-phone"></i>
+                        </div>
+                        <h4>Chiama</h4>
+                        <p>Parla direttamente con un nostro operatore dal lunedì al venerdì.</p>
+                        <button class="btn btn-outline-primary" onclick="showPhoneInfo()">
+                            <i class="fas fa-phone-alt"></i> +39 02 1234567
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- FAQ Section -->
+        <div id="faqSection" class="mt-5" style="display: none;">
+            <div class="row">
+                <div class="col-lg-10 mx-auto">
+                    <div class="section-header text-center mb-4">
+                        <h3><i class="fas fa-question-circle text-primary"></i> Domande Frequenti</h3>
+                        <p class="text-muted">Le risposte alle domande più comuni sui nostri servizi</p>
+                    </div>
+
+                    <div class="accordion" id="faqAccordion">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                                    <i class="fas fa-calendar-alt me-2 text-primary"></i>
+                                    Come posso prenotare uno spazio?
+                                </button>
+                            </h2>
+                            <div id="faq1" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    <strong>Prenotare è semplicissimo!</strong> Vai alla sezione "Spazi", scegli quello che preferisci, seleziona data e orario, e conferma la prenotazione. Riceverai una conferma immediata via email con tutti i dettagli di accesso.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                                    <i class="fas fa-times-circle me-2 text-warning"></i>
+                                    Posso cancellare una prenotazione?
+                                </button>
+                            </h2>
+                            <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    Sì, puoi cancellare gratuitamente fino a 24 ore prima dell'orario prenotato. Per cancellazioni last-minute potrebbero applicarsi delle penali del 50% del costo totale.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                                    <i class="fas fa-wifi me-2 text-success"></i>
+                                    Quali servizi sono inclusi?
+                                </button>
+                            </h2>
+                            <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    I servizi variano per ogni spazio, ma generalmente includono: WiFi ad alta velocità, accesso 24/7, caffè gratuito, stampante/scanner, area comune rilassante. Controlla sempre i dettagli nella scheda del singolo spazio.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq4">
+                                    <i class="fas fa-credit-card me-2 text-info"></i>
+                                    Come funzionano i pagamenti?
+                                </button>
+                            </h2>
+                            <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    Accettiamo tutte le principali carte di credito, PayPal e bonifico bancario. Il pagamento è sicuro e protetto da SSL. Puoi scegliere di pagare al momento della prenotazione o all'arrivo (solo per abbonamenti mensili).
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq5">
+                                    <i class="fas fa-star me-2 text-warning"></i>
+                                    C'è un programma fedeltà?
+                                </button>
+                            </h2>
+                            <div id="faq5" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    Sì! I nostri utenti più fedeli ricevono sconti progressivi, accesso prioritario ai nuovi spazi, vantaggi esclusivi e upgrade gratuiti. Più prenoti, più risparmi!
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq6">
+                                    <i class="fas fa-shield-alt me-2 text-success"></i>
+                                    Che misure di sicurezza adottate?
+                                </button>
+                            </h2>
+                            <div id="faq6" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    Tutti i nostri spazi sono dotati di sistemi di sicurezza moderni: accesso con badge elettronico, videosorveglianza 24/7, cassette di sicurezza individuali e personale di vigilanza negli orari di punta.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contact Form Section -->
+        <div id="contactFormSection" class="mt-5" style="display: none;">
+            <div class="row">
+                <div class="col-lg-8 mx-auto">
+                    <div class="card shadow-lg">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-envelope me-2"></i> Contattaci</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <form id="contactForm">
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Nome *</label>
+                                                <input type="text" class="form-control" id="contactName" required>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Cognome *</label>
+                                                <input type="text" class="form-control" id="contactSurname" required>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Email *</label>
+                                                <input type="email" class="form-control" id="contactEmail" required>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">Telefono</label>
+                                                <input type="tel" class="form-control" id="contactPhone" placeholder="+39 3XX XXXXXXX">
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Oggetto *</label>
+                                            <select class="form-select" id="contactSubject" required>
+                                                <option value="">Seleziona oggetto</option>
+                                                <option value="booking">Problema con prenotazione</option>
+                                                <option value="payment">Problema con pagamento</option>
+                                                <option value="technical">Supporto tecnico</option>
+                                                <option value="feedback">Feedback e suggerimenti</option>
+                                                <option value="partnership">Partnership commerciale</option>
+                                                <option value="space-owner">Voglio diventare partner</option>
+                                                <option value="other">Altro</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Messaggio *</label>
+                                            <textarea class="form-control" id="contactMessage" rows="5" required
+                                                      placeholder="Descrivi il tuo problema o la tua richiesta in dettaglio..."></textarea>
+                                        </div>
+                                        <div class="mb-3 form-check">
+                                            <input type="checkbox" class="form-check-input" id="contactPrivacy" required>
+                                            <label class="form-check-label" for="contactPrivacy">
+                                                Accetto l'<a href="#" class="text-primary">informativa privacy</a> e i <a href="#" class="text-primary">termini di servizio</a>
+                                            </label>
+                                        </div>
+                                        <div class="d-grid">
+                                            <button type="submit" class="btn btn-primary btn-lg">
+                                                <i class="fas fa-paper-plane me-2"></i> Invia Messaggio
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="contact-info">
+                                        <h6 class="text-primary">Informazioni di Contatto</h6>
+                                        <div class="contact-item mb-3">
+                                            <i class="fas fa-clock text-muted me-2"></i>
+                                            <strong>Tempo di Risposta:</strong><br>
+                                            <small class="text-muted">Entro 24 ore lavorative</small>
+                                        </div>
+                                        <div class="contact-item mb-3">
+                                            <i class="fas fa-language text-muted me-2"></i>
+                                            <strong>Lingue Supportate:</strong><br>
+                                            <small class="text-muted">Italiano, Inglese</small>
+                                        </div>
+                                        <div class="contact-item">
+                                            <i class="fas fa-shield-alt text-muted me-2"></i>
+                                            <strong>Privacy:</strong><br>
+                                            <small class="text-muted">I tuoi dati sono protetti da SSL</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Phone Info Section -->
+        <div id="phoneInfoSection" class="mt-5" style="display: none;">
+            <div class="row">
+                <div class="col-lg-10 mx-auto">
+                    <div class="card shadow-lg">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0"><i class="fas fa-phone me-2"></i> Supporto Telefonico</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6 class="text-success">Orari di Apertura</h6>
+                                    <div class="schedule-list">
+                                        <div class="schedule-item">
+                                            <strong>Lunedì - Venerdì:</strong> 9:00 - 18:00
+                                        </div>
+                                        <div class="schedule-item">
+                                            <strong>Sabato:</strong> 9:00 - 13:00
+                                        </div>
+                                        <div class="schedule-item">
+                                            <strong>Domenica:</strong> Chiuso
+                                        </div>
+                                    </div>
+                                    <div class="alert alert-info mt-3">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        Per urgenze fuori orario, utilizza il form di contatto o la chat dal vivo.
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6 class="text-success">Numeri di Telefono</h6>
+                                    <div class="phone-numbers">
+                                        <div class="phone-item mb-3">
+                                            <strong>Supporto Generale:</strong><br>
+                                            <a href="tel:+390212345678" class="text-success fs-5">
+                                                <i class="fas fa-phone me-1"></i> +39 02 1234567
+                                            </a>
+                                            <small class="d-block text-muted">Prenotazioni, info generali</small>
+                                        </div>
+                                        <div class="phone-item mb-3">
+                                            <strong>Supporto Tecnico:</strong><br>
+                                            <a href="tel:+390212345679" class="text-primary fs-5">
+                                                <i class="fas fa-wrench me-1"></i> +39 02 1234568
+                                            </a>
+                                            <small class="d-block text-muted">Problemi app, accesso spazi</small>
+                                        </div>
+                                        <div class="phone-item mb-3">
+                                            <strong>Emergenze:</strong><br>
+                                            <a href="tel:+393001234567" class="text-danger fs-5">
+                                                <i class="fas fa-exclamation-triangle me-1"></i> +39 300 123456
+                                            </a>
+                                            <small class="d-block text-muted">Solo per emergenze urgenti</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Live Chat Section -->
+        <div class="mt-5">
+            <div class="row">
+                <div class="col-lg-8 mx-auto text-center">
+                    <div class="card border-primary shadow">
+                        <div class="card-body">
+                            <h5><i class="fas fa-comments text-primary me-2"></i> Chat in Tempo Reale</h5>
+                            <p class="text-muted">Hai bisogno di aiuto immediato? Avvia una chat con il nostro team di supporto!</p>
+                            <button class="btn btn-primary btn-lg" onclick="startLiveChat()">
+                                <i class="fas fa-comment-dots me-2"></i> Inizia Chat
+                            </button>
+                            <div class="mt-3">
+                                <small class="text-muted">
+                                    <i class="fas fa-clock me-1"></i> Disponibile dal Lunedì al Venerdì, 9:00-18:00
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Help Articles Section -->
+        <div class="mt-5">
+            <div class="row">
+                <div class="col-12 text-center mb-4">
+                    <h3><i class="fas fa-book-open text-primary me-2"></i> Guide e Tutorial</h3>
+                    <p class="text-muted">Risorse utili per sfruttare al meglio CoWorkSpace</p>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body text-center">
+                            <div class="feature-icon mb-3">
+                                <i class="fas fa-rocket fa-3x text-primary"></i>
+                            </div>
+                            <h6 class="card-title">Guida per Iniziare</h6>
+                            <p class="card-text text-muted">Scopri come registrarti e fare la tua prima prenotazione in pochi semplici passi.</p>
+                            <a href="#" class="btn btn-outline-primary">
+                                <i class="fas fa-external-link-alt me-1"></i> Leggi Guida
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body text-center">
+                            <div class="feature-icon mb-3">
+                                <i class="fas fa-credit-card fa-3x text-success"></i>
+                            </div>
+                            <h6 class="card-title">Pagamenti e Fatturazione</h6>
+                            <p class="card-text text-muted">Tutto quello che devi sapere su pagamenti, fatture e rimborsi.</p>
+                            <a href="#" class="btn btn-outline-success">
+                                <i class="fas fa-external-link-alt me-1"></i> Leggi Guida
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body text-center">
+                            <div class="feature-icon mb-3">
+                                <i class="fas fa-mobile-alt fa-3x text-info"></i>
+                            </div>
+                            <h6 class="card-title">App Mobile</h6>
+                            <p class="card-text text-muted">Scarica la nostra app per gestire le prenotazioni in mobilità.</p>
+                            <div class="d-grid gap-2">
+                                <a href="#" class="btn btn-outline-info btn-sm">
+                                    <i class="fab fa-apple me-1"></i> iOS
+                                </a>
+                                <a href="#" class="btn btn-outline-info btn-sm">
+                                    <i class="fab fa-google-play me-1"></i> Android
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics Section -->
+        <div class="mt-5">
+            <div class="row">
+                <div class="col-12 text-center mb-4">
+                    <h4><i class="fas fa-chart-line text-primary me-2"></i> I Nostri Numeri</h4>
+                </div>
+            </div>
+            <div class="row text-center">
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="stat-card">
+                        <div class="stat-number">24/7</div>
+                        <div class="stat-label">Supporto Disponibile</div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="stat-card">
+                        <div class="stat-number">< 2h</div>
+                        <div class="stat-label">Tempo Medio di Risposta</div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="stat-card">
+                        <div class="stat-number">98%</div>
+                        <div class="stat-label">Soddisfazione Clienti</div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="stat-card">
+                        <div class="stat-number">5★</div>
+                        <div class="stat-label">Valutazione Media</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Footer -->
+<div id="footer-container"></div>
+
+<!-- Modals -->
+<div id="modals-container"></div>
+
+<!-- Notification Container -->
+<div id="notificationContainer" class="notification-container"></div>
+
+<!-- Back to Top Button -->
+<button id="backToTop" class="back-to-top" style="display: none;" onclick="scrollToTop()">
+    <i class="fas fa-chevron-up"></i>
+</button>
+
+<!-- Scripts -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.min.js"></script>
+
+<!-- App Scripts -->
+<script src="../assets/js/config.js"></script>
+<script src="../assets/js/utils.js"></script>
+<script src="../assets/js/components.js"></script>
+<script src="../assets/js/auth.js"></script>
+<script src="../assets/js/notification.js"></script>
+<script src="../assets/js/navigation.js"></script>
+<script src="../assets/js/spaces.js"></script>
+<script src="../assets/js/app.js"></script>
+
+<script>
+    // Support section functions
+    function showFAQ() {
+        // Hide other sections
+        document.getElementById('contactFormSection').style.display = 'none';
+        document.getElementById('phoneInfoSection').style.display = 'none';
+
+        // Show FAQ
+        document.getElementById('faqSection').style.display = 'block';
+
+        // Smooth scroll to FAQ
+        document.getElementById('faqSection').scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+        });
+
+        // Update active states
+        updateActiveSupport('faq');
+    }
+
+    function showContactForm() {
+        // Hide other sections
+        document.getElementById('faqSection').style.display = 'none';
+        document.getElementById('phoneInfoSection').style.display = 'none';
+
+        // Show contact form
+        document.getElementById('contactFormSection').style.display = 'block';
+
+        // Smooth scroll to form
+        document.getElementById('contactFormSection').scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+        });
+
+        // Focus on first input
+        setTimeout(() => {
+            document.getElementById('contactName').focus();
+        }, 500);
+
+        // Update active states
+        updateActiveSupport('contact');
+    }
+
+    function showPhoneInfo() {
+        // Hide other sections
+        document.getElementById('faqSection').style.display = 'none';
+        document.getElementById('contactFormSection').style.display = 'none';
+
+        // Show phone info
+        document.getElementById('phoneInfoSection').style.display = 'block';
+
+        // Smooth scroll to phone info
+        document.getElementById('phoneInfoSection').scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+        });
+
+        // Update active states
+        updateActiveSupport('phone');
+    }
+
+    function updateActiveSupport(type) {
+        // Remove active class from all support cards
+        document.querySelectorAll('.support-card').forEach(card => {
+            card.classList.remove('active');
+        });
+
+        // Add active class to current card
+        const cards = document.querySelectorAll('.support-card');
+        switch(type) {
+            case 'faq':
+                cards[0]?.classList.add('active');
+                break;
+            case 'contact':
+                cards[1]?.classList.add('active');
+                break;
+            case 'phone':
+                cards[2]?.classList.add('active');
+                break;
+        }
+    }
+
+    function startLiveChat() {
+        // Check if user is logged in
+        const currentUser = App.auth?.getCurrentUser?.();
+
+        if (currentUser) {
+            App.utils?.showNotification?.('Connessione alla chat in corso...', 'info');
+
+            // Simulate chat initialization
+            setTimeout(() => {
+                App.utils?.showNotification?.('Chat dal vivo disponibile nella versione completa', 'success');
+            }, 1500);
+        } else {
+            App.utils?.showNotification?.(
+                'Effettua il login per accedere alla chat dal vivo',
+                'warning'
+            );
+
+            // Show login modal after a delay
+            setTimeout(() => {
+                App.auth?.showLogin?.();
+            }, 1000);
+        }
+    }
+
+    // Contact form validation and submission
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize page components
+        loadComponent('navbar-container', 'components/navbar.html');
+        loadComponent('footer-container', 'components/footer.html');
+        loadComponent('modals-container', 'components/modals.html');
+
+        // Setup contact form handler
+        const contactForm = document.getElementById('contactForm');
+        if (contactForm) {
+            contactForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+
+                // Get form data
+                const formData = {
+                    name: document.getElementById('contactName').value.trim(),
+                    surname: document.getElementById('contactSurname').value.trim(),
+                    email: document.getElementById('contactEmail').value.trim(),
+                    phone: document.getElementById('contactPhone').value.trim(),
+                    subject: document.getElementById('contactSubject').value,
+                    message: document.getElementById('contactMessage').value.trim(),
+                    privacy: document.getElementById('contactPrivacy').checked
+                };
+
+                // Validation
+                if (!formData.name || !formData.surname || !formData.email ||
+                    !formData.subject || !formData.message || !formData.privacy) {
+                    App.utils?.showNotification?.(
+                        'Compila tutti i campi obbligatori e accetta la privacy policy',
+                        'warning'
+                    );
+                    return;
+                }
+
+                // Email validation
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(formData.email)) {
+                    App.utils?.showNotification?.(
+                        'Inserisci un indirizzo email valido',
+                        'warning'
+                    );
+                    return;
+                }
+
+                // Phone validation (optional but if present must be valid)
+                if (formData.phone) {
+                    const phoneRegex = /^(\+39)?\s?3\d{2}\s?\d{6,7}$/;
+                    if (!phoneRegex.test(formData.phone)) {
+                        App.utils?.showNotification?.(
+                            'Inserisci un numero di telefono valido (es: +39 3XX XXXXXXX)',
+                            'warning'
+                        );
+                        return;
+                    }
+                }
+
+                // Show loading state
+                const submitBtn = contactForm.querySelector('button[type="submit"]');
+                const originalText = submitBtn.innerHTML;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Invio in corso...';
+                submitBtn.disabled = true;
+
+                // Simulate API call
+                setTimeout(() => {
+                    // Reset button
+                    submitBtn.innerHTML = originalText;
+                    submitBtn.disabled = false;
+
+                    // Show success message
+                    App.utils?.showNotification?.(
+                        'Messaggio inviato con successo! Ti risponderemo entro 24 ore.',
+                        'success'
+                    );
+
+                    // Reset form
+                    contactForm.reset();
+
+                    // Log to console for debugging
+                    console.log('Support request submitted:', formData);
+
+                }, 2000);
+            });
+        }
+
+        // Setup phone number formatting
+        const phoneInput = document.getElementById('contactPhone');
+        if (phoneInput) {
+            phoneInput.addEventListener('input', function(e) {
+                let value = e.target.value.replace(/\D/g, '');
+
+                // Add +39 prefix if not present
+                if (value.length > 0 && !value.startsWith('39')) {
+                    if (value.startsWith('3')) {
+                        value = '39' + value;
+                    }
+                }
+
+                // Format the number
+                if (value.length >= 2) {
+                    let formatted = '+39 ';
+                    if (value.length > 2) {
+                        formatted += value.substring(2, 5);
+                    }
+                    if (value.length > 5) {
+                        formatted += ' ' + value.substring(5, 12);
+                    }
+                    e.target.value = formatted;
+                }
+            });
+        }
+
+        // Auto-scroll to sections based on URL hash
+        const hash = window.location.hash;
+        if (hash === '#faq') {
+            setTimeout(() => showFAQ(), 500);
+        } else if (hash === '#contact') {
+            setTimeout(() => showContactForm(), 500);
+        } else if (hash === '#phone') {
+            setTimeout(() => showPhoneInfo(), 500);
+        }
+
+        // Add click tracking for statistics
+        document.querySelectorAll('.support-card button').forEach(button => {
+            button.addEventListener('click', function() {
+                const cardTitle = this.closest('.support-card').querySelector('h4').textContent;
+                console.log('Support option clicked:', cardTitle);
+
+                // Track user interaction (for analytics)
+                if (window.gtag) {
+                    gtag('event', 'support_option_click', {
+                        'event_category': 'support',
+                        'event_label': cardTitle
+                    });
+                }
+            });
+        });
+
+        // Add smooth scroll for all anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Initialize tooltips for better UX
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+
+        // Add dynamic content updates
+        updateSupportStats();
+
+        // Check for success/error messages from URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const message = urlParams.get('message');
+        const type = urlParams.get('type');
+
+        if (message && type) {
+            setTimeout(() => {
+                App.utils?.showNotification?.(decodeURIComponent(message), type);
+
+                // Clean URL
+                const cleanUrl = window.location.pathname;
+                window.history.replaceState({}, document.title, cleanUrl);
+            }, 1000);
+        }
+    });
+
+    // Function to update support statistics
+    function updateSupportStats() {
+        // Simulate loading current support metrics
+        const stats = {
+            responseTime: '< 2h',
+            satisfaction: '98%',
+            availability: '24/7',
+            rating: '5★'
+        };
+
+        // Update stat cards with animation
+        setTimeout(() => {
+            const statNumbers = document.querySelectorAll('.stat-number');
+            statNumbers.forEach((stat, index) => {
+                const values = Object.values(stats);
+                if (values[index]) {
+                    stat.style.opacity = '0';
+                    setTimeout(() => {
+                        stat.textContent = values[index];
+                        stat.style.opacity = '1';
+                    }, index * 200);
+                }
+            });
+        }, 500);
+    }
+
+    // Function to handle search within FAQ
+    function searchFAQ(query) {
+        const faqItems = document.querySelectorAll('.accordion-item');
+        const searchTerm = query.toLowerCase();
+
+        faqItems.forEach(item => {
+            const question = item.querySelector('.accordion-button').textContent.toLowerCase();
+            const answer = item.querySelector('.accordion-body').textContent.toLowerCase();
+
+            if (question.includes(searchTerm) || answer.includes(searchTerm)) {
+                item.style.display = 'block';
+
+                // Highlight search term if visible
+                if (query.length > 2) {
+                    highlightSearchTerm(item, query);
+                }
+            } else {
+                item.style.display = searchTerm.length > 2 ? 'none' : 'block';
+            }
+        });
+    }
+
+    // Function to highlight search terms
+    function highlightSearchTerm(element, term) {
+        const walker = document.createTreeWalker(
+            element,
+            NodeFilter.SHOW_TEXT,
+            null,
+            false
+        );
+
+        const textNodes = [];
+        let node;
+
+        while (node = walker.nextNode()) {
+            textNodes.push(node);
+        }
+
+        textNodes.forEach(textNode => {
+            const text = textNode.textContent;
+            const regex = new RegExp(`(${term})`, 'gi');
+
+            if (regex.test(text)) {
+                const highlightedText = text.replace(regex, '<mark>$1</mark>');
+                const wrapper = document.createElement('span');
+                wrapper.innerHTML = highlightedText;
+                textNode.parentNode.replaceChild(wrapper, textNode);
+            }
+        });
+    }
+
+    // Add real-time chat status
+    function updateChatStatus() {
+        const chatButton = document.querySelector('[onclick="startLiveChat()"]');
+        const statusIndicator = document.createElement('span');
+        statusIndicator.className = 'chat-status';
+
+        // Simulate checking chat availability
+        const isOnline = new Date().getHours() >= 9 && new Date().getHours() < 18;
+        const weekday = new Date().getDay();
+        const isWeekday = weekday >= 1 && weekday <= 5;
+
+        if (isOnline && isWeekday) {
+            statusIndicator.innerHTML = '<i class="fas fa-circle text-success me-1"></i> Online';
+            statusIndicator.className += ' text-success';
+        } else {
+            statusIndicator.innerHTML = '<i class="fas fa-circle text-warning me-1"></i> Offline';
+            statusIndicator.className += ' text-warning';
+        }
+
+        if (chatButton && !document.querySelector('.chat-status')) {
+            chatButton.parentNode.appendChild(statusIndicator);
+        }
+    }
+
+    // Update chat status every minute
+    updateChatStatus();
+    setInterval(updateChatStatus, 60000);
+
+    // Add keyboard shortcuts for better UX
+    document.addEventListener('keydown', function(e) {
+        // Ctrl/Cmd + K to focus search
+        if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+            e.preventDefault();
+            const searchInput = document.querySelector('#searchSpaces, input[type="search"]');
+            if (searchInput) {
+                searchInput.focus();
+            }
+        }
+
+        // Escape key to close opened sections
+        if (e.key === 'Escape') {
+            const openSections = document.querySelectorAll('#faqSection:not([style*="none"]), #contactFormSection:not([style*="none"]), #phoneInfoSection:not([style*="none"])');
+            openSections.forEach(section => {
+                section.style.display = 'none';
+            });
+
+            // Remove active states
+            document.querySelectorAll('.support-card.active').forEach(card => {
+                card.classList.remove('active');
+            });
+        }
+    });
+</script>
+
+</body>
+</html>

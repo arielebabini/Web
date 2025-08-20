@@ -1,0 +1,47 @@
+<!-- Cookie Banner Component -->
+<div id="cookieBanner" class="cookie-banner" style="display: none;">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <p class="mb-0">
+                    <i class="fas fa-cookie-bite text-warning me-2"></i>
+                    Utilizziamo cookie per migliorare la tua esperienza. Continuando accetti la nostra
+                    <a href="#" class="text-primary">Cookie Policy</a>.
+                </p>
+            </div>
+            <div class="col-md-4 text-end">
+                <button class="btn btn-sm btn-outline-light me-2" onclick="declineCookies()">Rifiuta</button>
+                <button class="btn btn-sm btn-primary" onclick="acceptCookies()">Accetta</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Cookie Banner Management
+    function showCookieBanner() {
+        const accepted = localStorage.getItem('coworkspace_cookies_accepted');
+        if (!accepted) {
+            document.getElementById('cookieBanner').style.display = 'block';
+        }
+    }
+
+    function acceptCookies() {
+        localStorage.setItem('coworkspace_cookies_accepted', 'true');
+        document.getElementById('cookieBanner').style.display = 'none';
+        App.utils?.showNotification?.('Preferenze cookie salvate', 'success');
+    }
+
+    function declineCookies() {
+        localStorage.setItem('coworkspace_cookies_accepted', 'false');
+        document.getElementById('cookieBanner').style.display = 'none';
+        App.utils?.showNotification?.('Cookie non necessari disabilitati', 'info');
+    }
+
+    // Show cookie banner on page load after 2 seconds
+    setTimeout(() => {
+        if (typeof showCookieBanner === 'function') {
+            showCookieBanner();
+        }
+    }, 2000);
+</script>

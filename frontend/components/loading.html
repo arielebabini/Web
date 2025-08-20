@@ -1,0 +1,77 @@
+<!-- Loading Overlay Component -->
+<div id="loadingOverlay" class="loading-overlay" style="display: none;">
+    <div class="loading-spinner">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Caricamento...</span>
+        </div>
+        <p class="mt-3" id="loadingText">Caricamento in corso...</p>
+    </div>
+</div>
+
+<!-- Back to Top Button -->
+<button id="backToTop" class="back-to-top" style="display: none;" onclick="scrollToTop()">
+    <i class="fas fa-chevron-up"></i>
+</button>
+
+<script>
+    // Loading overlay management
+    window.LoadingManager = {
+        overlay: null,
+        text: null,
+
+        init() {
+            this.overlay = document.getElementById('loadingOverlay');
+            this.text = document.getElementById('loadingText');
+            this.setupBackToTop();
+        },
+
+        show(message = 'Caricamento in corso...') {
+            if (this.overlay) {
+                if (this.text) {
+                    this.text.textContent = message;
+                }
+                this.overlay.style.display = 'flex';
+                document.body.style.overflow = 'hidden';
+            }
+        },
+
+        hide() {
+            if (this.overlay) {
+                this.overlay.style.display = 'none';
+                document.body.style.overflow = '';
+            }
+        },
+
+        setupBackToTop() {
+            const backToTopBtn = document.getElementById('backToTop');
+            if (!backToTopBtn) return;
+
+            // Show/Hide back to top button based on scroll
+            window.addEventListener('scroll', function() {
+                if (window.scrollY > 100) {
+                    backToTopBtn.style.display = 'block';
+                } else {
+                    backToTopBtn.style.display = 'none';
+                }
+            });
+        }
+    };
+
+    // Back to top function
+    function scrollToTop() {
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+    }
+
+    // Initialize loading manager when DOM is ready
+    document.addEventListener('DOMContentLoaded', function() {
+        LoadingManager.init();
+    });
+
+    // Add loading manager to global App object if available
+    if (typeof App !== 'undefined' && App.utils) {
+        App.utils.showLoading = LoadingManager.show.bind(LoadingManager);
+        App.utils.hideLoading = LoadingManager.hide.bind(LoadingManager);
+    }

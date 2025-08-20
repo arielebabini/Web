@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CoWorkSpace - Gestione Spazi Condivisi</title>
+
+    <!-- Meta Tags -->
+    <meta name="description" content="Piattaforma per la prenotazione di spazi di coworking in Italia">
+    <meta name="keywords" content="coworking, spazi, uffici, prenotazioni, lavoro">
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+
+<body>
+<!-- Navigation (loaded via JS) -->
+<div id="navbar-container"></div>
+
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="hero-background"></div>
+    <div class="container">
+        <div class="row align-items-center min-vh-100">
+            <div class="col-lg-6">
+                <div class="hero-content">
+                    <div class="hero-badge mb-4">
+                        <i class="fas fa-star"></i>
+                        Piattaforma #1 per Coworking in Italia
+                    </div>
+                    <h1 class="hero-title">
+                        Trova il tuo
+                        <span class="gradient-text">spazio ideale</span>
+                        per lavorare
+                    </h1>
+                    <p class="hero-subtitle">
+                        Prenota spazi di coworking professionali in tutta Italia.
+                        Postazioni flessibili, sale riunioni e uffici privati per
+                        massimizzare la tua produttività.
+                    </p>
+                    <div class="hero-actions">
+                        <a href="spaces.html" class="btn btn-primary btn-lg">
+                            <i class="fas fa-search"></i> Esplora Spazi
+                        </a>
+                        <button class="btn btn-outline-primary btn-lg" onclick="showRegister()">
+                            <i class="fas fa-play"></i> Guarda Demo
+                        </button>
+                    </div>
+                    <div class="hero-stats mt-5">
+                        <div class="row">
+                            <div class="col-4 text-center">
+                                <div class="stat-number">500+</div>
+                                <div class="stat-label">Spazi</div>
+                            </div>
+                            <div class="col-4 text-center">
+                                <div class="stat-number">50+</div>
+                                <div class="stat-label">Città</div>
+                            </div>
+                            <div class="col-4 text-center">
+                                <div class="stat-number">10k+</div>
+                                <div class="stat-label">Utenti</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="search-container">
+                    <div class="search-header">
+                        <h3><i class="fas fa-map-marker-alt text-primary"></i> Cerca Spazi</h3>
+                        <p class="text-muted">Trova il workspace perfetto per te</p>
+                    </div>
+                    <form id="quickSearchForm">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Città</label>
+                                <select class="form-control" id="quickCity">
+                                    <option value="">Seleziona città</option>
+                                    <option value="Milano">Milano</option>
+                                    <option value="Roma">Roma</option>
+                                    <option value="Torino">Torino</option>
+                                    <option value="Napoli">Napoli</option>
+                                    <option value="Bologna">Bologna</option>
+                                    <option value="Firenze">Firenze</option>
+                                    <option value="Venezia">Venezia</option>
+                                    <option value="Genova">Genova</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Tipo di Spazio</label>
+                                <select class="form-control" id="quickSpaceType">
+                                    <option value="">Tutti i tipi</option>
+                                    <option value="hot-desk">Hot Desk</option>
+                                    <option value="private-office">Ufficio Privato</option>
+                                    <option value="meeting-room">Sala Riunioni</option>
+                                    <option value="event-space">Spazio Eventi</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Data</label>
+                                <input type="date" class="form-control" id="quickDate">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Persone</label>
+                                <select class="form-control" id="quickCapacity">
+                                    <option value="">Qualsiasi</option>
+                                    <option value="1-5">1-5 persone</option>
+                                    <option value="6-10">6-10 persone</option>
+                                    <option value="11-20">11-20 persone</option>
+                                    <option value="20+">20+ persone</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 btn-lg">
+                            <i class="fas fa-search"></i> Cerca Spazi Disponibili
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="section-padding">
+    <div class="container">
+        <div class="row">
+            <div class="col-12 text-center mb-5">
+                <h2 class="section-title">Perché Scegliere CoWorkSpace</h2>
+                <p class="section-subtitle">
+                    Scopri i vantaggi della nostra piattaforma
+                </p>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-4 mb-4">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <h4>Prenotazione Istantanea</h4>
+                    <p>Prenota il tuo spazio in pochi click, con conferma immediata e pagamento sicuro.</p>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <h4>Pagamenti Sicuri</h4>
+                    <p>Tutti i pagamenti sono protetti con crittografia SSL e sistemi di sicurezza avanzati.</p>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-headset"></i>
+                    </div>
+                    <h4>Supporto 24/7</h4>
+                    <p>Il nostro team di supporto è sempre disponibile per aiutarti con qualsiasi necessità.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Footer (loaded via JS) -->
+<div id="footer-container"></div>
+
+<!-- Modals -->
+<div id="modals-container"></div>
+
+<!-- Notification Container -->
+<div id="notificationContainer" class="notification-container"></div>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay" class="loading-overlay" style="display: none;">
+    <div class="loading-spinner">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Caricamento...</span>
+        </div>
+        <p class="mt-3">Caricamento in corso...</p>
+    </div>
+</div>
+
+<!-- Cookie Banner (loaded via JS) -->
+<div id="cookie-banner-container"></div>
+
+<!-- Back to Top Button -->
+<button id="backToTop" class="back-to-top" style="display: none;" onclick="scrollToTop()">
+    <i class="fas fa-chevron-up"></i>
+</button>
+
+<!-- Scripts -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.min.js"></script>
+
+<!-- App Scripts -->
+<script src="assets/js/config.js"></script>
+<script src="assets/js/utils.js"></script>
+<script src="assets/js/components.js"></script>
+<script src="assets/js/auth.js"></script>
+<script src="assets/js/notification.js"></script>
+<script src="assets/js/navigation.js"></script>
+<script src="assets/js/app.js"></script>
+
+<script>
+    // Inizializza la pagina home
+    document.addEventListener('DOMContentLoaded', function() {
+        // Carica componenti comuni
+        loadComponent('navbar-container', 'components/navbar.html');
+        loadComponent('footer-container', 'components/footer.html');
+        loadComponent('modals-container', 'components/modals.html');
+        loadComponent('cookie-banner-container', 'components/cookie-banner.html');
+
+        // Setup form di ricerca rapida
+        const quickSearchForm = document.getElementById('quickSearchForm');
+        if (quickSearchForm) {
+            quickSearchForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                // Salva i parametri di ricerca
+                const searchParams = {
+                    city: document.getElementById('quickCity').value,
+                    type: document.getElementById('quickSpaceType').value,
+                    date: document.getElementById('quickDate').value,
+                    capacity: document.getElementById('quickCapacity').value
+                };
+                localStorage.setItem('searchParams', JSON.stringify(searchParams));
+                // Reindirizza alla pagina spazi
+                window.location.href = 'spaces.html';
+            });
+        }
+
+        // Imposta data minima
+        const today = new Date().toISOString().split('T')[0];
+        const dateInput = document.getElementById('quickDate');
+        if (dateInput) {
+            dateInput.setAttribute('min', today);
+            dateInput.value = today;
+        }
+    });
+</script>
+</body>
+</html>
