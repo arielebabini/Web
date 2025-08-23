@@ -1,0 +1,303 @@
+/* ===== RESPONSIVE DESIGN MODERNO ===== */
+@media (max-width: 1200px) {
+    .spaces-grid {
+        grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+        gap: 2rem;
+    }
+
+    .hero-title {
+        font-size: clamp(2.5rem, 6vw, 4.5rem);
+    }
+
+    .section-title {
+        font-size: 3rem;
+    }
+}
+
+@media (max-width: 992px) {
+    .hero-actions {
+        justify-content: center;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .search-filters-bar .row {
+        text-align: center;
+    }
+
+    .search-filters-bar .col-md-6:last-child {
+        margin-top: 1.5rem;
+    }
+
+    .dashboard-sidebar {
+        min-height: auto;
+    }
+
+    .sidebar-menu a {
+        padding: 1rem;
+    }
+
+    .results-header .d-flex {
+        flex-direction: column;
+        text-align: center;
+        gap: 1.5rem;
+    }
+
+    .view-toggle {
+        justify-content: center;
+        width: 100%;
+    }
+
+    .italy-map {
+        height: 500px;
+    }
+
+    .map-header {
+        flex-direction: column;
+        gap: 1.5rem;
+        text-align: center;
+    }
+}
+
+@media (max-width: 768px) {
+    body {
+        padding-top: 76px;
+    }
+
+    .navbar {
+        padding: 0.75rem 0;
+    }
+
+    .navbar-brand {
+        font-size: 1.5rem;
+    }
+
+    .hero-title {
+        font-size: clamp(2rem, 8vw, 3.5rem);
+        text-align: center;
+    }
+
+    .hero-subtitle {
+        text-align: center;
+        font-size: 1.2rem;
+    }
+
+    .hero-actions {
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+    }
+
+    .hero-actions .btn {
+        width: 100%;
+        max-width: 300px;
+    }
+
+    .search-container {
+        margin-top: 3rem;
+        padding: 2rem;
+    }
+
+    .spaces-grid {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+
+    .quick-filters {
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .italy-map {
+        height: 400px;
+    }
+
+    .city-popup {
+        min-width: 180px;
+        padding: 1rem;
+    }
+
+    .section-title {
+        font-size: 2.5rem;
+    }
+
+    .section-padding {
+        padding: 4rem 0;
+    }
+
+    .modal-body {
+        padding: 1.5rem;
+    }
+
+    .booking-form {
+        padding: 2rem;
+        position: static;
+    }
+
+    .profile-container {
+        padding: 2rem;
+    }
+
+    .dashboard-content {
+        padding: 2rem;
+    }
+
+    .team-section,
+    .values-section {
+        padding: 3rem 1rem;
+        margin: 2rem 0;
+    }
+
+    .team-card,
+    .about-card {
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+
+    .team-avatar img {
+        width: 100px;
+        height: 100px;
+    }
+
+    .value-icon {
+        font-size: 2.5rem;
+    }
+
+    footer h5 {
+        font-size: 1.3rem;
+    }
+
+    footer h6 {
+        font-size: 1.1rem;
+        text-align: center;
+    }
+
+    footer .col-lg-3,
+    footer .col-md-6 {
+        text-align: center;
+        margin-bottom: 2.5rem;
+    }
+
+    footer .social-links {
+        justify-content: center;
+        margin-top: 1rem;
+    }
+
+    footer .input-group {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    footer .input-group .form-control,
+    footer .input-group .btn {
+        border-radius: var(--radius-lg);
+        width: 100%;
+    }
+}
+
+@media (max-width: 576px) {
+    .hero-title {
+        font-size: 2.25rem;
+    }
+
+    .section-title {
+        font-size: 2rem;
+    }
+
+    .search-container {
+        padding: 1.5rem;
+    }
+
+    .space-card {
+        margin-bottom: 1.5rem;
+    }
+
+    .booking-filters .btn-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        justify-content: center;
+    }
+
+    .booking-filters .btn-group .btn {
+        flex: 1;
+        min-width: 140px;
+    }
+
+    .notification-container {
+        left: 15px;
+        right: 15px;
+        max-width: none;
+    }
+
+    .notification {
+        padding: 1.25rem 1.5rem;
+    }
+
+    .cookie-banner .row {
+        text-align: center;
+    }
+
+    .cookie-banner .col-md-4 {
+        margin-top: 1rem;
+    }
+
+    .back-to-top {
+        bottom: 20px;
+        right: 20px;
+        width: 50px;
+        height: 50px;
+    }
+
+    .about-card,
+    .team-card {
+        padding: 1.5rem;
+    }
+
+    .about-icon,
+    .feature-icon {
+        width: 60px;
+        height: 60px;
+        font-size: 1.5rem;
+    }
+
+    .stats-section .row {
+        justify-content: center;
+    }
+
+    .stats-card {
+        margin-bottom: 1.5rem;
+    }
+
+    footer .row .col-lg-6 {
+        margin-bottom: 2rem;
+    }
+
+    .italy-svg {
+        max-width: 300px;
+        max-height: 350px;
+    }
+}
+
+/* ===== PRINT STYLES ===== */
+@media print {
+    .navbar,
+    .hero-section,
+    .modal,
+    .notification-container,
+    .loading-overlay,
+    .cookie-banner,
+    .back-to-top,
+    footer,
+    .btn,
+    .quick-filters {
+        display: none !important;
+    }
+
+    body {
+        padding-top: 0;
+        background: white;
+        font-size: 12pt;
+        line-height: 1.4;
+    }
+}
