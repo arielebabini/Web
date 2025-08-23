@@ -23,6 +23,7 @@ const spaceRoutes = require('./src/routes/spaces');
 const bookingRoutes = require('./src/routes/bookings');
 const paymentRoutes = require('./src/routes/payments');
 const analyticsRoutes = require('./src/routes/analytics');
+const adminRoutes = require('./src/routes/admin');
 
 // ===== EXPRESS APP SETUP =====
 const app = express();
@@ -241,6 +242,7 @@ app.use('/api/spaces', spaceRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/admin', adminRoutes);
 
 // ===== API INFO ENDPOINT =====
 app.get('/api', (req, res) => {

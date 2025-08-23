@@ -1,0 +1,1736 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard - CoWorkSpace</title>
+
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Font Awesome -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <!-- Chart.js for analytics -->
+  <link href="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.css" rel="stylesheet">
+
+  <style>
+    :root {
+      --primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --primary-solid: #667eea;
+      --sidebar-width: 280px;
+      --header-height: 70px;
+    }
+
+    body {
+      background: #f8fafc;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    /* Sidebar */
+    .admin-sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 100vh;
+      width: var(--sidebar-width);
+      background: linear-gradient(180deg, #2d3748 0%, #1a202c 100%);
+      color: white;
+      z-index: 1000;
+      transition: all 0.3s ease;
+      overflow-y: auto;
+    }
+
+    .admin-sidebar.collapsed {
+      width: 80px;
+    }
+
+    .sidebar-header {
+      padding: 1.5rem;
+      border-bottom: 1px solid #4a5568;
+      text-align: center;
+    }
+
+    .sidebar-brand {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: white;
+      text-decoration: none;
+    }
+
+    .sidebar-menu {
+      padding: 1rem 0;
+    }
+
+    .sidebar-item {
+      margin: 0.25rem 1rem;
+    }
+
+    .sidebar-link {
+      display: flex;
+      align-items: center;
+      padding: 0.75rem 1rem;
+      color: #e2e8f0;
+      text-decoration: none;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+
+    .sidebar-link:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+      transform: translateX(4px);
+    }
+
+    .sidebar-link.active {
+      background: var(--primary);
+      color: white;
+    }
+
+    .sidebar-icon {
+      width: 20px;
+      margin-right: 0.75rem;
+      text-align: center;
+    }
+
+    /* Main content */
+    .admin-main {
+      margin-left: var(--sidebar-width);
+      min-height: 100vh;
+      transition: margin-left 0.3s ease;
+    }
+
+    .admin-main.expanded {
+      margin-left: 80px;
+    }
+
+    .admin-header {
+      background: white;
+      height: var(--header-height);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2rem;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+      position: sticky;
+      top: 0;
+      z-index: 999;
+    }
+
+    .admin-content {
+      padding: 2rem;
+    }
+
+    /* Cards */
+    .admin-card {
+      background: white;
+      border-radius: 15px;
+      padding: 1.5rem;
+      box-shadow: 0 4px 25px rgba(0, 0, 0, 0.08);
+      border: 1px solid #e2e8f0;
+      transition: all 0.3s ease;
+    }
+
+    .admin-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 40px rgba(0, 0, 0, 0.12);
+    }
+
+    .stats-card {
+      background: var(--primary);
+      color: white;
+      border: none;
+    }
+
+    .stats-card .stats-icon {
+      font-size: 2.5rem;
+      opacity: 0.8;
+    }
+
+    /* Tables */
+    .admin-table {
+      background: white;
+      border-radius: 15px;
+      overflow: hidden;
+      box-shadow: 0 4px 25px rgba(0, 0, 0, 0.08);
+    }
+
+    .admin-table table {
+      margin: 0;
+    }
+
+    .admin-table th {
+      background: #f8fafc;
+      border: none;
+      padding: 1rem 1.5rem;
+      font-weight: 600;
+      color: #4a5568;
+    }
+
+    .admin-table td {
+      border: none;
+      padding: 1rem 1.5rem;
+      vertical-align: middle;
+    }
+
+    .admin-table tbody tr {
+      border-bottom: 1px solid #e2e8f0;
+      transition: background-color 0.2s ease;
+    }
+
+    .admin-table tbody tr:hover {
+      background: #f7fafc;
+    }
+
+    /* Buttons */
+    .btn-admin {
+      border-radius: 8px;
+      font-weight: 600;
+      padding: 0.5rem 1rem;
+      transition: all 0.3s ease;
+    }
+
+    .btn-admin-primary {
+      background: var(--primary);
+      border: none;
+      color: white;
+    }
+
+    .btn-admin-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+      color: white;
+    }
+
+    /* Status badges */
+    .status-badge {
+      padding: 0.25rem 0.75rem;
+      border-radius: 50px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .status-active { background: #d4edda; color: #155724; }
+    .status-inactive { background: #f8d7da; color: #721c24; }
+    .status-suspended { background: #fff3cd; color: #856404; }
+
+    /* Role badges */
+    .role-badge {
+      padding: 0.25rem 0.75rem;
+      border-radius: 50px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .role-admin { background: #e1effe; color: #1e40af; }
+    .role-manager { background: #f0fdf4; color: #166534; }
+    .role-client { background: #fef3c7; color: #92400e; }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .admin-sidebar {
+        transform: translateX(-100%);
+      }
+      .admin-sidebar.mobile-open {
+        transform: translateX(0);
+      }
+      .admin-main {
+        margin-left: 0;
+      }
+    }
+
+    /* Loading states */
+    .loading {
+      opacity: 0.6;
+      pointer-events: none;
+    }
+
+    .spinner-border-sm {
+      width: 1rem;
+      height: 1rem;
+    }
+
+    /* Charts */
+    .chart-container {
+      position: relative;
+      height: 300px;
+    }
+  </style>
+</head>
+<body>
+<!-- Sidebar -->
+<div class="admin-sidebar" id="adminSidebar">
+  <div class="sidebar-header">
+    <a href="#" class="sidebar-brand">
+      <i class="fas fa-cog"></i>
+      <span class="brand-text">Admin</span>
+    </a>
+    <button class="btn btn-link text-white d-md-none" onclick="toggleSidebar()">
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
+
+  <div class="sidebar-menu">
+    <div class="sidebar-item">
+      <a href="#dashboard" class="sidebar-link active" onclick="showSection('dashboard')">
+        <i class="fas fa-tachometer-alt sidebar-icon"></i>
+        <span>Dashboard</span>
+      </a>
+    </div>
+    <div class="sidebar-item">
+      <a href="#users" class="sidebar-link" onclick="showSection('users')">
+        <i class="fas fa-users sidebar-icon"></i>
+        <span>Gestione Utenti</span>
+      </a>
+    </div>
+    <div class="sidebar-item">
+      <a href="#spaces" class="sidebar-link" onclick="showSection('spaces')">
+        <i class="fas fa-building sidebar-icon"></i>
+        <span>Gestione Spazi</span>
+      </a>
+    </div>
+    <div class="sidebar-item">
+      <a href="#bookings" class="sidebar-link" onclick="showSection('bookings')">
+        <i class="fas fa-calendar-check sidebar-icon"></i>
+        <span>Prenotazioni</span>
+      </a>
+    </div>
+    <div class="sidebar-item">
+      <a href="#analytics" class="sidebar-link" onclick="showSection('analytics')">
+        <i class="fas fa-chart-bar sidebar-icon"></i>
+        <span>Analytics</span>
+      </a>
+    </div>
+    <div class="sidebar-item">
+      <a href="#settings" class="sidebar-link" onclick="showSection('settings')">
+        <i class="fas fa-cog sidebar-icon"></i>
+        <span>Impostazioni</span>
+      </a>
+    </div>
+    <div class="sidebar-item mt-4">
+      <a href="../index.html" class="sidebar-link">
+        <i class="fas fa-arrow-left sidebar-icon"></i>
+        <span>Torna al Sito</span>
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Main Content -->
+<div class="admin-main" id="adminMain">
+  <!-- Header -->
+  <div class="admin-header">
+    <div class="d-flex align-items-center">
+      <button class="btn btn-link d-md-none me-3" onclick="toggleSidebar()">
+        <i class="fas fa-bars"></i>
+      </button>
+      <h4 class="mb-0" id="pageTitle">Dashboard</h4>
+    </div>
+    <div class="d-flex align-items-center">
+      <div class="dropdown">
+        <button class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown">
+          <i class="fas fa-user"></i>
+          <span id="adminUserName">Admin</span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li><a class="dropdown-item" href="#profile"><i class="fas fa-user me-2"></i>Profilo</a></li>
+          <li><hr class="dropdown-divider"></li>
+          <li><a class="dropdown-item" href="#" onclick="logout()"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="admin-content">
+    <!-- Dashboard Section -->
+    <div id="dashboardSection" class="admin-section">
+      <div class="row mb-4">
+        <div class="col-xl-3 col-lg-6 mb-4">
+          <div class="admin-card stats-card">
+            <div class="row align-items-center">
+              <div class="col">
+                <h6 class="text-uppercase mb-1">Utenti Totali</h6>
+                <h2 class="mb-0" id="totalUsers">0</h2>
+              </div>
+              <div class="col-auto">
+                <i class="fas fa-users stats-icon"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-xl-3 col-lg-6 mb-4">
+          <div class="admin-card stats-card">
+            <div class="row align-items-center">
+              <div class="col">
+                <h6 class="text-uppercase mb-1">Spazi Attivi</h6>
+                <h2 class="mb-0" id="activeSpaces">0</h2>
+              </div>
+              <div class="col-auto">
+                <i class="fas fa-building stats-icon"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-xl-3 col-lg-6 mb-4">
+          <div class="admin-card stats-card">
+            <div class="row align-items-center">
+              <div class="col">
+                <h6 class="text-uppercase mb-1">Prenotazioni</h6>
+                <h2 class="mb-0" id="totalBookings">0</h2>
+              </div>
+              <div class="col-auto">
+                <i class="fas fa-calendar-check stats-icon"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-xl-3 col-lg-6 mb-4">
+          <div class="admin-card stats-card">
+            <div class="row align-items-center">
+              <div class="col">
+                <h6 class="text-uppercase mb-1">Ricavi Mensili</h6>
+                <h2 class="mb-0" id="monthlyRevenue">€0</h2>
+              </div>
+              <div class="col-auto">
+                <i class="fas fa-euro-sign stats-icon"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-lg-8 mb-4">
+          <div class="admin-card">
+            <h5 class="mb-4">
+              <i class="fas fa-chart-line text-primary me-2"></i>
+              Trend Prenotazioni
+            </h5>
+            <div class="chart-container">
+              <canvas id="bookingsChart"></canvas>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-4 mb-4">
+          <div class="admin-card">
+            <h5 class="mb-4">
+              <i class="fas fa-pie-chart text-primary me-2"></i>
+              Utenti per Ruolo
+            </h5>
+            <div class="chart-container">
+              <canvas id="usersChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Users Management Section -->
+    <div id="usersSection" class="admin-section" style="display: none;">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4>
+          <i class="fas fa-users text-primary me-2"></i>
+          Gestione Utenti
+        </h4>
+        <button class="btn btn-admin-primary" onclick="showAddUserModal()">
+          <i class="fas fa-plus me-2"></i>Nuovo Utente
+        </button>
+      </div>
+
+      <!-- Filters -->
+      <div class="admin-card mb-4">
+        <div class="row g-3">
+          <div class="col-md-3">
+            <label class="form-label">Cerca</label>
+            <input type="text" class="form-control" id="userSearch" placeholder="Nome, email...">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Ruolo</label>
+            <select class="form-select" id="roleFilter">
+              <option value="">Tutti</option>
+              <option value="client">Client</option>
+              <option value="manager">Manager</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Status</label>
+            <select class="form-select" id="statusFilter">
+              <option value="">Tutti</option>
+              <option value="active">Attivo</option>
+              <option value="inactive">Inattivo</option>
+              <option value="suspended">Sospeso</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">&nbsp;</label>
+            <div class="d-flex gap-2">
+              <button class="btn btn-outline-primary" onclick="applyUserFilters()">
+                <i class="fas fa-search"></i> Filtra
+              </button>
+              <button class="btn btn-outline-secondary" onclick="resetUserFilters()">
+                <i class="fas fa-refresh"></i> Reset
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Users Table -->
+      <div class="admin-table">
+        <table class="table table-hover">
+          <thead>
+          <tr>
+            <th>Utente</th>
+            <th>Email</th>
+            <th>Ruolo</th>
+            <th>Status</th>
+            <th>Registrato</th>
+            <th>Azioni</th>
+          </tr>
+          </thead>
+          <tbody id="usersTableBody">
+          <tr>
+            <td colspan="6" class="text-center py-4">
+              <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </div>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div class="d-flex justify-content-between align-items-center mt-4">
+        <div class="text-muted">
+          Mostra <span id="usersShowing">0</span> di <span id="usersTotal">0</span> utenti
+        </div>
+        <nav>
+          <ul class="pagination mb-0" id="usersPagination">
+            <!-- Pagination will be generated here -->
+          </ul>
+        </nav>
+      </div>
+    </div>
+
+    <!-- Other sections will be added here -->
+    <!-- SEZIONE GESTIONE SPAZI PER ADMIN DASHBOARD -->
+    <!-- Da inserire nel file admin-dashboard.html al posto di spacesSection -->
+
+    <div id="spacesSection" class="admin-section" style="display: none;">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4>
+          <i class="fas fa-building text-primary me-2"></i>
+          Gestione Spazi
+        </h4>
+        <button class="btn btn-admin-primary" onclick="showAddSpaceModal()">
+          <i class="fas fa-plus me-2"></i>Nuovo Spazio
+        </button>
+      </div>
+
+      <!-- Filtri e Ricerca -->
+      <div class="admin-card mb-4">
+        <div class="row g-3">
+          <div class="col-md-3">
+            <label class="form-label">Cerca Spazio</label>
+            <input type="text" class="form-control" id="spaceSearch" placeholder="Nome, città, indirizzo...">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Città</label>
+            <select class="form-select" id="cityFilter">
+              <option value="">Tutte le città</option>
+              <option value="Milano">Milano</option>
+              <option value="Roma">Roma</option>
+              <option value="Torino">Torino</option>
+              <option value="Bologna">Bologna</option>
+              <option value="Napoli">Napoli</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Tipo</label>
+            <select class="form-select" id="spaceTypeFilter">
+              <option value="">Tutti i tipi</option>
+              <option value="desk">Scrivania</option>
+              <option value="meeting_room">Sala Meeting</option>
+              <option value="private_office">Ufficio Privato</option>
+              <option value="coworking">Coworking</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Status</label>
+            <select class="form-select" id="spaceStatusFilter">
+              <option value="">Tutti</option>
+              <option value="active">Attivo</option>
+              <option value="inactive">Inattivo</option>
+              <option value="maintenance">Manutenzione</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">&nbsp;</label>
+            <div class="d-flex gap-2">
+              <button class="btn btn-outline-primary" onclick="applySpaceFilters()">
+                <i class="fas fa-search"></i> Filtra
+              </button>
+              <button class="btn btn-outline-secondary" onclick="resetSpaceFilters()">
+                <i class="fas fa-refresh"></i> Reset
+              </button>
+              <button class="btn btn-outline-success" onclick="exportSpacesData()">
+                <i class="fas fa-download"></i> Esporta
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Statistiche Rapide -->
+      <div class="row mb-4">
+        <div class="col-md-3">
+          <div class="admin-card text-center">
+            <div class="text-primary mb-2">
+              <i class="fas fa-building fa-2x"></i>
+            </div>
+            <h5 class="mb-1" id="totalSpacesCount">0</h5>
+            <small class="text-muted">Spazi Totali</small>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="admin-card text-center">
+            <div class="text-success mb-2">
+              <i class="fas fa-check-circle fa-2x"></i>
+            </div>
+            <h5 class="mb-1" id="activeSpacesCount">0</h5>
+            <small class="text-muted">Spazi Attivi</small>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="admin-card text-center">
+            <div class="text-warning mb-2">
+              <i class="fas fa-calendar-check fa-2x"></i>
+            </div>
+            <h5 class="mb-1" id="bookedSpacesCount">0</h5>
+            <small class="text-muted">Prenotati Oggi</small>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="admin-card text-center">
+            <div class="text-info mb-2">
+              <i class="fas fa-euro-sign fa-2x"></i>
+            </div>
+            <h5 class="mb-1" id="spacesRevenue">€0</h5>
+            <small class="text-muted">Ricavi Mensili</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabella Spazi -->
+      <div class="admin-table">
+        <table class="table table-hover">
+          <thead>
+          <tr>
+            <th>Spazio</th>
+            <th>Città</th>
+            <th>Tipo</th>
+            <th>Capienza</th>
+            <th>Prezzo/h</th>
+            <th>Status</th>
+            <th>Prenotazioni</th>
+            <th>Azioni</th>
+          </tr>
+          </thead>
+          <tbody id="spacesTableBody">
+          <tr>
+            <td colspan="8" class="text-center py-4">
+              <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Caricamento...</span>
+              </div>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Paginazione -->
+      <div class="d-flex justify-content-between align-items-center mt-4">
+        <div class="text-muted">
+          Mostra <span id="spacesShowing">0</span> di <span id="spacesTotal">0</span> spazi
+        </div>
+        <nav>
+          <ul class="pagination mb-0" id="spacesPagination">
+            <!-- Pagination will be generated here -->
+          </ul>
+        </nav>
+      </div>
+    </div>
+
+    <!-- Modal per Nuovo/Modifica Spazio -->
+    <div class="modal fade" id="spaceModal" tabindex="-1">
+      <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">
+              <i class="fas fa-building me-2"></i>
+              <span id="spaceModalTitle">Nuovo Spazio</span>
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <form id="spaceForm">
+              <input type="hidden" id="spaceId">
+
+              <!-- Informazioni Base -->
+              <div class="row mb-4">
+                <div class="col-12">
+                  <h6 class="text-primary border-bottom pb-2 mb-3">
+                    <i class="fas fa-info-circle me-2"></i>Informazioni Base
+                  </h6>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Nome Spazio *</label>
+                  <input type="text" class="form-control" id="spaceName" required>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Tipo Spazio *</label>
+                  <select class="form-select" id="spaceType" required>
+                    <option value="">Seleziona tipo</option>
+                    <option value="desk">Scrivania Condivisa</option>
+                    <option value="private_desk">Scrivania Privata</option>
+                    <option value="meeting_room">Sala Meeting</option>
+                    <option value="private_office">Ufficio Privato</option>
+                    <option value="phone_booth">Cabina Telefonica</option>
+                    <option value="event_space">Spazio Eventi</option>
+                  </select>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">Capienza *</label>
+                  <input type="number" class="form-control" id="spaceCapacity" min="1" max="100" required>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">Prezzo/Ora (€) *</label>
+                  <input type="number" class="form-control" id="spacePrice" step="0.50" min="0" required>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">Status *</label>
+                  <select class="form-select" id="spaceStatus" required>
+                    <option value="active">Attivo</option>
+                    <option value="inactive">Inattivo</option>
+                    <option value="maintenance">In Manutenzione</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Località -->
+              <div class="row mb-4">
+                <div class="col-12">
+                  <h6 class="text-primary border-bottom pb-2 mb-3">
+                    <i class="fas fa-map-marker-alt me-2"></i>Località
+                  </h6>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Città *</label>
+                  <select class="form-select" id="spaceCity" required>
+                    <option value="">Seleziona città</option>
+                    <option value="Milano">Milano</option>
+                    <option value="Roma">Roma</option>
+                    <option value="Torino">Torino</option>
+                    <option value="Bologna">Bologna</option>
+                    <option value="Napoli">Napoli</option>
+                    <option value="Firenze">Firenze</option>
+                    <option value="Genova">Genova</option>
+                    <option value="Palermo">Palermo</option>
+                  </select>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Indirizzo *</label>
+                  <input type="text" class="form-control" id="spaceAddress" required>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">CAP</label>
+                  <input type="text" class="form-control" id="spacePostalCode" pattern="[0-9]{5}">
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">Piano</label>
+                  <input type="text" class="form-control" id="spaceFloor" placeholder="es. 2°, PT, -1">
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">Numero Stanza</label>
+                  <input type="text" class="form-control" id="spaceRoom" placeholder="es. A1, 205, Open Space">
+                </div>
+              </div>
+
+              <!-- Servizi -->
+              <div class="row mb-4">
+                <div class="col-12">
+                  <h6 class="text-primary border-bottom pb-2 mb-3">
+                    <i class="fas fa-concierge-bell me-2"></i>Servizi Inclusi
+                  </h6>
+                </div>
+                <div class="col-md-3">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="wifiService">
+                    <label class="form-check-label" for="wifiService">
+                      <i class="fas fa-wifi me-2"></i>WiFi Gratuito
+                    </label>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="coffeeService">
+                    <label class="form-check-label" for="coffeeService">
+                      <i class="fas fa-coffee me-2"></i>Caffè/Tè
+                    </label>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="printerService">
+                    <label class="form-check-label" for="printerService">
+                      <i class="fas fa-print me-2"></i>Stampante
+                    </label>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="projectorService">
+                    <label class="form-check-label" for="projectorService">
+                      <i class="fas fa-video me-2"></i>Proiettore
+                    </label>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="whiteboardService">
+                    <label class="form-check-label" for="whiteboardService">
+                      <i class="fas fa-chalkboard me-2"></i>Lavagna
+                    </label>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="parkingService">
+                    <label class="form-check-label" for="parkingService">
+                      <i class="fas fa-parking me-2"></i>Parcheggio
+                    </label>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="airConditioningService">
+                    <label class="form-check-label" for="airConditioningService">
+                      <i class="fas fa-snowflake me-2"></i>Aria Condizionata
+                    </label>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="securityService">
+                    <label class="form-check-label" for="securityService">
+                      <i class="fas fa-shield-alt me-2"></i>Sicurezza 24h
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Descrizione e Note -->
+              <div class="row mb-4">
+                <div class="col-12">
+                  <h6 class="text-primary border-bottom pb-2 mb-3">
+                    <i class="fas fa-align-left me-2"></i>Descrizione
+                  </h6>
+                </div>
+                <div class="col-12">
+                  <label class="form-label">Descrizione Spazio</label>
+                  <textarea class="form-control" id="spaceDescription" rows="4"
+                            placeholder="Descrizione dettagliata dello spazio, atmosfera, particolarità..."></textarea>
+                </div>
+                <div class="col-12 mt-3">
+                  <label class="form-label">Note per Gestione</label>
+                  <textarea class="form-control" id="spaceNotes" rows="2"
+                            placeholder="Note interne per la gestione dello spazio (non visibili ai clienti)"></textarea>
+                </div>
+              </div>
+
+              <!-- Orari -->
+              <div class="row">
+                <div class="col-12">
+                  <h6 class="text-primary border-bottom pb-2 mb-3">
+                    <i class="fas fa-clock me-2"></i>Orari di Disponibilità
+                  </h6>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Orario Apertura</label>
+                  <input type="time" class="form-control" id="spaceOpenTime" value="08:00">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Orario Chiusura</label>
+                  <input type="time" class="form-control" id="spaceCloseTime" value="20:00">
+                </div>
+                <div class="col-12 mt-3">
+                  <label class="form-label">Giorni Disponibili</label>
+                  <div class="d-flex gap-3 flex-wrap">
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" id="dayMonday" checked>
+                      <label class="form-check-label" for="dayMonday">Lunedì</label>
+                    </div>
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" id="dayTuesday" checked>
+                      <label class="form-check-label" for="dayTuesday">Martedì</label>
+                    </div>
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" id="dayWednesday" checked>
+                      <label class="form-check-label" for="dayWednesday">Mercoledì</label>
+                    </div>
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" id="dayThursday" checked>
+                      <label class="form-check-label" for="dayThursday">Giovedì</label>
+                    </div>
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" id="dayFriday" checked>
+                      <label class="form-check-label" for="dayFriday">Venerdì</label>
+                    </div>
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" id="daySaturday">
+                      <label class="form-check-label" for="daySaturday">Sabato</label>
+                    </div>
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" id="daySunday">
+                      <label class="form-check-label" for="daySunday">Domenica</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+            <button type="button" class="btn btn-admin-primary" onclick="saveSpace()">
+              <i class="fas fa-save me-2"></i>Salva Spazio
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Dettagli Spazio -->
+    <div class="modal fade" id="spaceDetailsModal" tabindex="-1">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">
+              <i class="fas fa-eye me-2"></i>Dettagli Spazio
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body" id="spaceDetailsContent">
+            <!-- Contenuto sarà popolato dinamicamente -->
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
+            <button type="button" class="btn btn-primary" onclick="editSpaceFromDetails()">
+              <i class="fas fa-edit me-2"></i>Modifica
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // ==================== SPACES MANAGEMENT ====================
+
+      let currentSpacePage = 1;
+      let spacesData = [];
+
+      // Load spaces when section is shown
+      function loadSpaces(page = 1, filters = {}) {
+        // Implementation will be added to main admin dashboard
+        console.log('Loading spaces...', { page, filters });
+      }
+
+      // Space management functions
+      function showAddSpaceModal() {
+        document.getElementById('spaceModalTitle').textContent = 'Nuovo Spazio';
+        document.getElementById('spaceId').value = '';
+        document.getElementById('spaceForm').reset();
+
+        // Set default values
+        document.getElementById('spaceOpenTime').value = '08:00';
+        document.getElementById('spaceCloseTime').value = '20:00';
+        document.getElementById('wifiService').checked = true;
+
+        // Check weekdays by default
+        ['dayMonday', 'dayTuesday', 'dayWednesday', 'dayThursday', 'dayFriday'].forEach(day => {
+          document.getElementById(day).checked = true;
+        });
+
+        new bootstrap.Modal(document.getElementById('spaceModal')).show();
+      }
+
+      function applySpaceFilters() {
+        const filters = {
+          search: document.getElementById('spaceSearch').value,
+          city: document.getElementById('cityFilter').value,
+          type: document.getElementById('spaceTypeFilter').value,
+          status: document.getElementById('spaceStatusFilter').value
+        };
+
+        // Filter object removing empty values
+        const activeFilters = Object.fromEntries(
+                Object.entries(filters).filter(([_, value]) => value)
+        );
+
+        loadSpaces(1, activeFilters);
+      }
+
+      function resetSpaceFilters() {
+        document.getElementById('spaceSearch').value = '';
+        document.getElementById('cityFilter').value = '';
+        document.getElementById('spaceTypeFilter').value = '';
+        document.getElementById('spaceStatusFilter').value = '';
+        loadSpaces(1);
+      }
+
+      function exportSpacesData() {
+        // Implementation for exporting spaces data
+        console.log('Exporting spaces data...');
+        showNotification('Export in preparazione...', 'info');
+      }
+
+      function saveSpace() {
+        const form = document.getElementById('spaceForm');
+        if (!form.checkValidity()) {
+          form.reportValidity();
+          return;
+        }
+
+        // Collect form data
+        const spaceData = {
+          name: document.getElementById('spaceName').value,
+          type: document.getElementById('spaceType').value,
+          capacity: parseInt(document.getElementById('spaceCapacity').value),
+          price_per_hour: parseFloat(document.getElementById('spacePrice').value),
+          status: document.getElementById('spaceStatus').value,
+          city: document.getElementById('spaceCity').value,
+          address: document.getElementById('spaceAddress').value,
+          postal_code: document.getElementById('spacePostalCode').value,
+          floor: document.getElementById('spaceFloor').value,
+          room_number: document.getElementById('spaceRoom').value,
+          description: document.getElementById('spaceDescription').value,
+          notes: document.getElementById('spaceNotes').value,
+          open_time: document.getElementById('spaceOpenTime').value,
+          close_time: document.getElementById('spaceCloseTime').value,
+          available_days: getSelectedDays(),
+          services: getSelectedServices()
+        };
+
+        console.log('Saving space:', spaceData);
+        // Implementation will be added to main admin dashboard
+        showNotification('Spazio salvato con successo!', 'success');
+        bootstrap.Modal.getInstance(document.getElementById('spaceModal')).hide();
+      }
+
+      function getSelectedDays() {
+        const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+        const dayIds = ['dayMonday', 'dayTuesday', 'dayWednesday', 'dayThursday', 'dayFriday', 'daySaturday', 'daySunday'];
+
+        return days.filter((day, index) =>
+                document.getElementById(dayIds[index]).checked
+        );
+      }
+
+      function getSelectedServices() {
+        const services = [
+          { id: 'wifiService', name: 'wifi' },
+          { id: 'coffeeService', name: 'coffee' },
+          { id: 'printerService', name: 'printer' },
+          { id: 'projectorService', name: 'projector' },
+          { id: 'whiteboardService', name: 'whiteboard' },
+          { id: 'parkingService', name: 'parking' },
+          { id: 'airConditioningService', name: 'air_conditioning' },
+          { id: 'securityService', name: 'security' }
+        ];
+
+        return services
+                .filter(service => document.getElementById(service.id).checked)
+                .map(service => service.name);
+      }
+
+      console.log('📍 Admin Spaces Section loaded');
+    </script>
+    <div id="bookingsSection" class="admin-section" style="display: none;">
+      <h4>Gestione Prenotazioni</h4>
+      <p>Sezione in sviluppo...</p>
+    </div>
+
+    <div id="analyticsSection" class="admin-section" style="display: none;">
+      <h4>Analytics</h4>
+      <p>Sezione in sviluppo...</p>
+    </div>
+
+    <div id="settingsSection" class="admin-section" style="display: none;">
+      <h4>Impostazioni Sistema</h4>
+      <p>Sezione in sviluppo...</p>
+    </div>
+  </div>
+</div>
+
+<!-- Add/Edit User Modal -->
+<div class="modal fade" id="userModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="fas fa-user-plus me-2"></i>
+          <span id="userModalTitle">Nuovo Utente</span>
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="userForm">
+          <input type="hidden" id="userId">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Nome *</label>
+              <input type="text" class="form-control" id="firstName" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Cognome *</label>
+              <input type="text" class="form-control" id="lastName" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Email *</label>
+              <input type="email" class="form-control" id="email" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Telefono</label>
+              <input type="tel" class="form-control" id="phone">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Ruolo *</label>
+              <select class="form-select" id="role" required>
+                <option value="client">Client</option>
+                <option value="manager">Manager</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Status *</label>
+              <select class="form-select" id="status" required>
+                <option value="active">Attivo</option>
+                <option value="inactive">Inattivo</option>
+                <option value="suspended">Sospeso</option>
+              </select>
+            </div>
+            <div class="col-12" id="passwordSection">
+              <label class="form-label">Password *</label>
+              <input type="password" class="form-control" id="password">
+              <div class="form-text">Minimo 8 caratteri</div>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+        <button type="button" class="btn btn-admin-primary" onclick="saveUser()">
+          <i class="fas fa-save me-2"></i>Salva
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+  // Admin Dashboard JavaScript
+  let currentPage = 1;
+  let usersData = [];
+  let filteredUsers = [];
+
+  // Initialize dashboard
+  document.addEventListener('DOMContentLoaded', function() {
+    initializeDashboard();
+  });
+
+  function initializeDashboard() {
+    // Check admin authentication
+    const token = localStorage.getItem('auth_token');
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+    if (!token || user.role !== 'admin') {
+      alert('Accesso negato. Devi essere un amministratore.');
+      window.location.href = '../index.html';
+      return;
+    }
+
+    // Set admin name
+    document.getElementById('adminUserName').textContent = `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Admin';
+
+    // Load dashboard data
+    loadDashboardStats();
+    loadUsers();
+    initializeCharts();
+  }
+
+  // Navigation
+  function showSection(sectionName) {
+    // Hide all sections
+    document.querySelectorAll('.admin-section').forEach(section => {
+      section.style.display = 'none';
+    });
+
+    // Show selected section
+    document.getElementById(sectionName + 'Section').style.display = 'block';
+
+    // Update active menu item
+    document.querySelectorAll('.sidebar-link').forEach(link => {
+      link.classList.remove('active');
+    });
+    document.querySelector(`[onclick="showSection('${sectionName}')"]`).classList.add('active');
+
+    // Update page title
+    const titles = {
+      'dashboard': 'Dashboard',
+      'users': 'Gestione Utenti',
+      'spaces': 'Gestione Spazi',
+      'bookings': 'Prenotazioni',
+      'analytics': 'Analytics',
+      'settings': 'Impostazioni'
+    };
+    document.getElementById('pageTitle').textContent = titles[sectionName] || 'Dashboard';
+
+    // Load section-specific data
+    if (sectionName === 'users') {
+      loadUsers();
+    }
+  }
+
+  function toggleSidebar() {
+    const sidebar = document.getElementById('adminSidebar');
+    const main = document.getElementById('adminMain');
+
+    if (window.innerWidth <= 768) {
+      sidebar.classList.toggle('mobile-open');
+    } else {
+      sidebar.classList.toggle('collapsed');
+      main.classList.toggle('expanded');
+    }
+  }
+
+  // Dashboard Stats
+  async function loadDashboardStats() {
+    try {
+      const token = localStorage.getItem('auth_token');
+
+      // Load user stats
+      const userStatsResponse = await fetch('/api/users/stats', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (userStatsResponse.ok) {
+        const userStats = await userStatsResponse.json();
+        updateDashboardStats(userStats);
+      }
+
+    } catch (error) {
+      console.error('Error loading dashboard stats:', error);
+      showNotification('Errore nel caricamento delle statistiche', 'error');
+    }
+  }
+
+  function updateDashboardStats(stats) {
+    document.getElementById('totalUsers').textContent = stats.totalUsers || 0;
+    document.getElementById('activeSpaces').textContent = stats.activeSpaces || 0;
+    document.getElementById('totalBookings').textContent = stats.totalBookings || 0;
+    document.getElementById('monthlyRevenue').textContent = `€${stats.monthlyRevenue || 0}`;
+  }
+
+  // Users Management
+  async function loadUsers(page = 1, filters = {}) {
+    try {
+      const token = localStorage.getItem('auth_token');
+      const params = new URLSearchParams({
+        page: page,
+        limit: 10,
+        ...filters
+      });
+
+      const response = await fetch(`/api/users?${params}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        usersData = data.users || [];
+        currentPage = data.currentPage || 1;
+
+        renderUsersTable(usersData);
+        renderUsersPagination(data.totalPages || 1, data.totalUsers || 0);
+      } else {
+        throw new Error('Errore nel caricamento utenti');
+      }
+
+    } catch (error) {
+      console.error('Error loading users:', error);
+      showNotification('Errore nel caricamento degli utenti', 'error');
+
+      // Show empty state
+      document.getElementById('usersTableBody').innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center py-4">
+                            <i class="fas fa-exclamation-triangle text-warning fa-2x mb-3"></i>
+                            <p>Errore nel caricamento degli utenti</p>
+                        </td>
+                    </tr>
+                `;
+    }
+  }
+
+  function renderUsersTable(users) {
+    const tbody = document.getElementById('usersTableBody');
+
+    if (users.length === 0) {
+      tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center py-4">
+                            <i class="fas fa-users text-muted fa-2x mb-3"></i>
+                            <p>Nessun utente trovato</p>
+                        </td>
+                    </tr>
+                `;
+      return;
+    }
+
+    tbody.innerHTML = users.map(user => `
+                <tr>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <div class="avatar me-3">
+                                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                    ${(user.first_name?.[0] || user.firstName?.[0] || 'U').toUpperCase()}
+                                </div>
+                            </div>
+                            <div>
+                                <div class="fw-semibold">${user.first_name || user.firstName || ''} ${user.last_name || user.lastName || ''}</div>
+                                <small class="text-muted">ID: ${user.id}</small>
+                            </div>
+                        </div>
+                    </td>
+                    <td>${user.email}</td>
+                    <td><span class="role-badge role-${user.role}">${user.role}</span></td>
+                    <td><span class="status-badge status-${user.status}">${user.status}</span></td>
+                    <td>${new Date(user.created_at || user.createdAt).toLocaleDateString('it-IT')}</td>
+                    <td>
+                        <div class="btn-group" role="group">
+                            <button class="btn btn-sm btn-outline-primary" onclick="editUser('${user.id}')" title="Modifica">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-info" onclick="viewUser('${user.id}')" title="Visualizza">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-warning" onclick="toggleUserStatus('${user.id}', '${user.status}')" title="Cambia Status">
+                                <i class="fas fa-toggle-${user.status === 'active' ? 'on' : 'off'}"></i>
+                            </button>
+                            ${user.role !== 'admin' ? `
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteUser('${user.id}')" title="Elimina">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            ` : ''}
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+  }
+
+  function renderUsersPagination(totalPages, totalUsers) {
+    const pagination = document.getElementById('usersPagination');
+    const showing = document.getElementById('usersShowing');
+    const total = document.getElementById('usersTotal');
+
+    // Update counters
+    const startItem = ((currentPage - 1) * 10) + 1;
+    const endItem = Math.min(currentPage * 10, totalUsers);
+    showing.textContent = `${startItem}-${endItem}`;
+    total.textContent = totalUsers;
+
+    // Generate pagination
+    let paginationHTML = '';
+
+    // Previous button
+    paginationHTML += `
+                <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="loadUsers(${currentPage - 1})">
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+                </li>
+            `;
+
+    // Page numbers
+    const startPage = Math.max(1, currentPage - 2);
+    const endPage = Math.min(totalPages, currentPage + 2);
+
+    if (startPage > 1) {
+      paginationHTML += `<li class="page-item"><a class="page-link" href="#" onclick="loadUsers(1)">1</a></li>`;
+      if (startPage > 2) {
+        paginationHTML += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+      }
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      paginationHTML += `
+                    <li class="page-item ${i === currentPage ? 'active' : ''}">
+                        <a class="page-link" href="#" onclick="loadUsers(${i})">${i}</a>
+                    </li>
+                `;
+    }
+
+    if (endPage < totalPages) {
+      if (endPage < totalPages - 1) {
+        paginationHTML += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+      }
+      paginationHTML += `<li class="page-item"><a class="page-link" href="#" onclick="loadUsers(${totalPages})">${totalPages}</a></li>`;
+    }
+
+    // Next button
+    paginationHTML += `
+                <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="loadUsers(${currentPage + 1})">
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                </li>
+            `;
+
+    pagination.innerHTML = paginationHTML;
+  }
+
+  // User Management Actions
+  function showAddUserModal() {
+    document.getElementById('userModalTitle').textContent = 'Nuovo Utente';
+    document.getElementById('userId').value = '';
+    document.getElementById('userForm').reset();
+    document.getElementById('passwordSection').style.display = 'block';
+    document.getElementById('password').required = true;
+
+    new bootstrap.Modal(document.getElementById('userModal')).show();
+  }
+
+  function editUser(userId) {
+    const user = usersData.find(u => u.id === userId);
+    if (!user) return;
+
+    document.getElementById('userModalTitle').textContent = 'Modifica Utente';
+    document.getElementById('userId').value = user.id;
+    document.getElementById('firstName').value = user.first_name || user.firstName || '';
+    document.getElementById('lastName').value = user.last_name || user.lastName || '';
+    document.getElementById('email').value = user.email;
+    document.getElementById('phone').value = user.phone || '';
+    document.getElementById('role').value = user.role;
+    document.getElementById('status').value = user.status;
+
+    // Hide password section for edit
+    document.getElementById('passwordSection').style.display = 'none';
+    document.getElementById('password').required = false;
+
+    new bootstrap.Modal(document.getElementById('userModal')).show();
+  }
+
+  function viewUser(userId) {
+    // Implementation for viewing user details
+    const user = usersData.find(u => u.id === userId);
+    if (!user) return;
+
+    // Create a detailed view modal or navigate to user detail page
+    alert(`Dettagli utente:\nNome: ${user.first_name || user.firstName} ${user.last_name || user.lastName}\nEmail: ${user.email}\nRuolo: ${user.role}\nStatus: ${user.status}`);
+  }
+
+  async function toggleUserStatus(userId, currentStatus) {
+    const newStatus = currentStatus === 'active' ? 'suspended' : 'active';
+
+    if (!confirm(`Confermi di voler ${newStatus === 'active' ? 'attivare' : 'sospendere'} questo utente?`)) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`/api/users/${userId}/status`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      if (response.ok) {
+        showNotification(`Utente ${newStatus === 'active' ? 'attivato' : 'sospeso'} con successo`, 'success');
+        loadUsers(currentPage);
+      } else {
+        throw new Error('Errore nell\'aggiornamento dello status');
+      }
+    } catch (error) {
+      console.error('Error toggling user status:', error);
+      showNotification('Errore nell\'aggiornamento dello status', 'error');
+    }
+  }
+
+  async function deleteUser(userId) {
+    if (!confirm('Sei sicuro di voler eliminare questo utente? Questa azione non può essere annullata.')) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`/api/users/${userId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        showNotification('Utente eliminato con successo', 'success');
+        loadUsers(currentPage);
+      } else {
+        throw new Error('Errore nell\'eliminazione dell\'utente');
+      }
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      showNotification('Errore nell\'eliminazione dell\'utente', 'error');
+    }
+  }
+
+  async function saveUser() {
+    const form = document.getElementById('userForm');
+    if (!form.checkValidity()) {
+      form.reportValidity();
+      return;
+    }
+
+    const userId = document.getElementById('userId').value;
+    const isEdit = !!userId;
+
+    const userData = {
+      first_name: document.getElementById('firstName').value,
+      last_name: document.getElementById('lastName').value,
+      email: document.getElementById('email').value,
+      phone: document.getElementById('phone').value,
+      role: document.getElementById('role').value,
+      status: document.getElementById('status').value
+    };
+
+    if (!isEdit) {
+      userData.password = document.getElementById('password').value;
+    }
+
+    try {
+      const token = localStorage.getItem('auth_token');
+      const url = isEdit ? `/api/users/${userId}` : '/api/users';
+      const method = isEdit ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method: method,
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(userData)
+      });
+
+      if (response.ok) {
+        showNotification(`Utente ${isEdit ? 'aggiornato' : 'creato'} con successo`, 'success');
+        bootstrap.Modal.getInstance(document.getElementById('userModal')).hide();
+        loadUsers(currentPage);
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Errore nel salvataggio dell\'utente');
+      }
+    } catch (error) {
+      console.error('Error saving user:', error);
+      showNotification(error.message, 'error');
+    }
+  }
+
+  // Filters
+  function applyUserFilters() {
+    const search = document.getElementById('userSearch').value;
+    const role = document.getElementById('roleFilter').value;
+    const status = document.getElementById('statusFilter').value;
+
+    const filters = {};
+    if (search) filters.search = search;
+    if (role) filters.role = role;
+    if (status) filters.status = status;
+
+    loadUsers(1, filters);
+  }
+
+  function resetUserFilters() {
+    document.getElementById('userSearch').value = '';
+    document.getElementById('roleFilter').value = '';
+    document.getElementById('statusFilter').value = '';
+    loadUsers(1);
+  }
+
+  // Charts
+  function initializeCharts() {
+    initializeBookingsChart();
+    initializeUsersChart();
+  }
+
+  function initializeBookingsChart() {
+    const ctx = document.getElementById('bookingsChart');
+    if (!ctx) return;
+
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'],
+        datasets: [{
+          label: 'Prenotazioni',
+          data: [65, 59, 80, 81, 56, 55, 40, 65, 59, 80, 81, 56],
+          borderColor: '#667eea',
+          backgroundColor: 'rgba(102, 126, 234, 0.1)',
+          tension: 0.4,
+          fill: true
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: false
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            grid: {
+              color: '#f1f5f9'
+            }
+          },
+          x: {
+            grid: {
+              display: false
+            }
+          }
+        }
+      }
+    });
+  }
+
+  function initializeUsersChart() {
+    const ctx = document.getElementById('usersChart');
+    if (!ctx) return;
+
+    new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Clienti', 'Manager', 'Admin'],
+        datasets: [{
+          data: [75, 20, 5],
+          backgroundColor: ['#667eea', '#764ba2', '#f093fb']
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom'
+          }
+        }
+      }
+    });
+  }
+
+  // Utility Functions
+  function showNotification(message, type = 'info') {
+    // Remove existing notifications
+    const existingNotifications = document.querySelectorAll('.admin-notification');
+    existingNotifications.forEach(notification => notification.remove());
+
+    // Create new notification
+    const notification = document.createElement('div');
+    notification.className = `admin-notification alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show position-fixed`;
+    notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; max-width: 400px;';
+    notification.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
+            `;
+
+    document.body.appendChild(notification);
+
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+      if (notification.parentElement) {
+        notification.remove();
+      }
+    }, 5000);
+  }
+
+  function logout() {
+    if (confirm('Sei sicuro di voler uscire?')) {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('user');
+      window.location.href = '../index.html';
+    }
+  }
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', function(e) {
+    // Alt + U = Users section
+    if (e.altKey && e.key === 'u') {
+      e.preventDefault();
+      showSection('users');
+    }
+
+    // Alt + D = Dashboard
+    if (e.altKey && e.key === 'd') {
+      e.preventDefault();
+      showSection('dashboard');
+    }
+
+    // Ctrl + N = New user (when in users section)
+    if (e.ctrlKey && e.key === 'n' && document.getElementById('usersSection').style.display !== 'none') {
+      e.preventDefault();
+      showAddUserModal();
+    }
+  });
+
+  // Handle form submissions with Enter key
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      if (e.target.id === 'userSearch') {
+        e.preventDefault();
+        applyUserFilters();
+      }
+    }
+  });
+
+  // Responsive handling
+  window.addEventListener('resize', function() {
+    if (window.innerWidth > 768) {
+      document.getElementById('adminSidebar').classList.remove('mobile-open');
+    }
+  });
+
+  // Auto-refresh data every 30 seconds
+  setInterval(() => {
+    if (document.getElementById('dashboardSection').style.display !== 'none') {
+      loadDashboardStats();
+    }
+  }, 30000);
+
+  console.log('🚀 Admin Dashboard loaded successfully');
+</script>
+</body>
+</html>

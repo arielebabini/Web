@@ -77,43 +77,7 @@ window.Notifications = {
     },
 
     createNotificationDropdown() {
-        // Cerca navbar per aggiungere dropdown notifiche
-        const navbar = document.querySelector('.navbar .navbar-nav');
-        if (!navbar) return;
-
-        const notificationDropdown = document.createElement('li');
-        notificationDropdown.className = 'nav-item dropdown';
-        notificationDropdown.innerHTML = `
-            <a class="nav-link dropdown-toggle" href="#" id="notificationsDropdown" 
-               role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="fas fa-bell"></i>
-                <span class="notification-badge" id="notification-count" style="display: none;">0</span>
-            </a>
-            <div class="dropdown-menu dropdown-menu-end notifications-dropdown" 
-                 aria-labelledby="notificationsDropdown">
-                <div class="dropdown-header">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h6 class="mb-0">Notifiche</h6>
-                        <button class="btn btn-sm btn-link p-0" onclick="Notifications.markAllAsRead()">
-                            Segna tutte come lette
-                        </button>
-                    </div>
-                </div>
-                <div class="notifications-list" id="notifications-list">
-                    <div class="text-center p-3 text-muted">
-                        <i class="fas fa-bell-slash fa-2x mb-2"></i>
-                        <p>Nessuna notifica</p>
-                    </div>
-                </div>
-                <div class="dropdown-footer text-center">
-                    <a href="#" class="text-decoration-none" onclick="Notifications.showAllNotifications()">
-                        Vedi tutte le notifiche
-                    </a>
-                </div>
-            </div>
-        `;
-
-        navbar.appendChild(notificationDropdown);
+        return;
     },
 
     // ==================== GESTIONE NOTIFICHE ====================
