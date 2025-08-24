@@ -299,6 +299,5 @@ INSERT INTO users (
              'admin',
              TRUE
          );
-
 -- Commit delle modifiche
 COMMIT;

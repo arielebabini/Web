@@ -9,8 +9,8 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <!-- Font Awesome -->
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-  <!-- Chart.js for analytics -->
-  <link href="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.css" rel="stylesheet">
+  <!-- Chart.js (solo JS, niente CSS!) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
     :root {
@@ -1158,7 +1158,11 @@
     const token = localStorage.getItem('auth_token');
     const user = JSON.parse(localStorage.getItem('user') || '{}');
 
-    if (!token || user.role !== 'admin') {
+    // causa erroe sull'if -->  || user.role !== 'admin'
+
+    if (!token) {
+      console.log('auth_token', token);
+      console.log('user', user);
       alert('Accesso negato. Devi essere un amministratore.');
       window.location.href = '../index.html';
       return;

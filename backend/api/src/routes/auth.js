@@ -171,6 +171,64 @@ router.post('/create-default-admin', async (req, res) => {
 });
 
 /**
+ * @route   POST /api/auth/fix-admin-role
+ * @desc    Fix temporaneo per correggere il ruolo admin
+ * @access  Public (temporaneo)
+ */
+router.post('/fix-admin-role', async (req, res) => {
+    try {
+        console.log('Fix admin role request received:', req.body);
+
+        const { email } = req.body;
+
+        if (email !== 'admin@coworkspace.local') {
+            console.log('Email non autorizzata:', email);
+            return res.status(403).json({
+                success: false,
+                message: 'Non autorizzato'
+            });
+        }
+
+        console.log('Cercando utente con email:', email);
+
+        // Trova l'utente - adatta questo alla tua struttura del modello
+        const user = await User.findOne({ where: { email } });
+
+        if (!user) {
+            console.log('Utente non trovato');
+            return res.status(404).json({
+                success: false,
+                message: 'Utente non trovato'
+            });
+        }
+
+        console.log('Utente trovato:', user.email, 'ruolo attuale:', user.role);
+
+        // Aggiorna il ruolo
+        await user.update({ role: 'admin' });
+
+        console.log('Ruolo aggiornato a admin');
+
+        res.json({
+            success: true,
+            message: 'Ruolo admin corretto',
+            user: {
+                id: user.id,
+                email: user.email,
+                role: user.role
+            }
+        });
+
+    } catch (error) {
+        console.error('Errore completo:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Errore nel fix del ruolo: ' + error.message
+        });
+    }
+});
+
+/**
  * @route   POST /api/auth/register
  * @desc    Registra un nuovo utente
  * @access  Public
@@ -321,6 +379,9 @@ router.post('/login', authLimiter, loginValidation, async (req, res) => {
 
         // Rimuovi password_hash dalla risposta
         const { password_hash: _, ...userResponse } = user;
+
+        console.log('Dati utente inviati:', userResponse);
+        console.log('Token generato:', tokens);
 
         res.json({
             success: true,

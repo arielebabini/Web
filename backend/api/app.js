@@ -24,6 +24,8 @@ const bookingRoutes = require('./src/routes/bookings');
 const paymentRoutes = require('./src/routes/payments');
 const analyticsRoutes = require('./src/routes/analytics');
 const adminRoutes = require('./src/routes/admin');
+const User = require('./src/models/User'); // O il percorso corretto
+const bcrypt = require('bcryptjs');
 
 // ===== EXPRESS APP SETUP =====
 const app = express();
@@ -91,7 +93,9 @@ const corsOptions = {
     maxAge: 86400 // 24 hours
 };
 
-app.use(cors(corsOptions));
+app.use(cors({
+    origin: ['http://localhost:3000', 'null']
+}));
 
 // ===== SECURITY MIDDLEWARE =====
 if (process.env.ENABLE_HELMET !== 'false') {
@@ -145,6 +149,51 @@ app.use(compression({
     level: 6,
     threshold: 1024
 }));
+
+async function ensureDefaultAdmin() {
+    try {
+        // Controlla se esiste già un admin usando il metodo corretto
+        const adminExists = await User.findAll({ role: 'admin', limit: 1 });
+
+        if (!adminExists || adminExists.users.length === 0) {
+            console.log('Nessun admin trovato, creazione admin predefinito...');
+
+            const ADMIN_CREDENTIALS = {
+                email: 'admin@coworkspace.test',
+                password: 'Admin123',
+                first_name: 'Admin',
+                last_name: 'CoWorkSpace'
+            };
+
+            const hashedPassword = await bcrypt.hash(ADMIN_CREDENTIALS.password, 12);
+
+            const adminUser = await User.create({
+                email: ADMIN_CREDENTIALS.email,
+                password_hash: hashedPassword,
+                first_name: ADMIN_CREDENTIALS.first_name,
+                last_name: ADMIN_CREDENTIALS.last_name,
+                role: 'admin',
+                status: 'active',
+                email_verified: true,
+                company: 'CoWorkSpace System'
+            });
+
+            console.log('Admin predefinito creato:');
+            console.log('Email:', ADMIN_CREDENTIALS.email);
+            console.log('Password:', ADMIN_CREDENTIALS.password);
+
+            return adminUser;
+        } else {
+            const existingAdmin = adminExists.users[0];
+            console.log('Admin già esistente nel sistema');
+
+            return existingAdmin;
+        }
+    } catch (error) {
+        console.error('Errore nella creazione admin predefinito:', error);
+        throw error;
+    }
+}
 
 // ===== LOGGING =====
 if (process.env.ENABLE_REQUEST_LOGGING !== 'false') {
@@ -340,6 +389,13 @@ const startServer = async () => {
         process.exit(1);
     }
 
+    // Assicura che esista un admin predefinito
+    try {
+        await ensureDefaultAdmin();
+    } catch (error) {
+        logger.error('Failed to ensure admin exists:', error);
+    }
+
     // Start HTTP server
     const server = app.listen(PORT, HOST, () => {
         logger.info(`🚀 CoWorkSpace API Server started`);
@@ -352,6 +408,8 @@ const startServer = async () => {
             logger.info(`🎨 Frontend URL: ${process.env.FRONTEND_URL}`);
         }
     });
+
+    // ... resto del codice graceful shutdown ...
 
     // Graceful shutdown handling
     const gracefulShutdown = (signal) => {

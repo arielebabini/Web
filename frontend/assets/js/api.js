@@ -482,27 +482,41 @@ class ApiClient {
         const result = await this.post(this.config.endpoints.auth.login, credentials, { skipAuth: true });
 
         if (result.success && result.data) {
-            this.setToken(result.data.token);
+            const accessToken = result.data.tokens?.accessToken;
 
-            // Store refresh token
-            if (result.data.refreshToken) {
-                localStorage.setItem('refresh_token', result.data.refreshToken);
+            if (accessToken) {
+                this.setToken(accessToken);
             }
 
-            // Store user data
+            const refreshToken = result.data.tokens?.refreshToken;
+            if (refreshToken) {
+                localStorage.setItem('refresh_token', refreshToken);
+            }
+
             if (result.data.user) {
                 localStorage.setItem('user_data', JSON.stringify(result.data.user));
             }
 
-            console.log('✅ Login successful for user:', result.data.user?.email);
+            console.log('✅ Login successful!');
+
+            // ✅ Aggiungi la logica di reindirizzamento qui
+            // Dopo aver salvato i dati, reindirizza l'utente
+            if (result.data.user.role === 'admin') {
+                window.location.href = '/template/admin-dashboard.html';
+            } else {
+                // Reindirizza altrove se non è un admin
+                window.location.href = '/template/user-dashboard.html';
+            }
 
             // Trigger login event
             window.dispatchEvent(new CustomEvent('auth:login', {
                 detail: {
                     user: result.data.user,
-                    token: result.data.token
+                    token: accessToken
                 }
             }));
+        } else {
+            console.error('❌ Login fallito:', result.message);
         }
 
         return result;
