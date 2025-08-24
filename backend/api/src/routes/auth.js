@@ -79,6 +79,98 @@ const generateTokens = (user) => {
 };
 
 /**
+ * @route   GET /api/auth/setup-status
+ * @desc    Verifica se esiste già un admin nel sistema
+ * @access  Public
+ */
+router.get('/setup-status', async (req, res) => {
+    try {
+        const adminExists = await User.count({ where: { role: 'admin' } });
+
+        res.json({
+            success: true,
+            needsSetup: adminExists === 0,
+            hasAdmin: adminExists > 0
+        });
+
+    } catch (error) {
+        logger.error('Error checking admin setup status:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Errore interno del server'
+        });
+    }
+});
+
+/**
+ * @route   POST /api/auth/setup-admin
+ * @desc    Crea il primo admin del sistema
+ * @access  Public (solo se non esistono admin)
+ */
+router.post('/create-default-admin', async (req, res) => {
+    try {
+        // Verifica che non esistano già admin
+        const adminExists = await User.findOne({ where: { role: 'admin' } });
+        if (adminExists) {
+            return res.status(403).json({
+                success: false,
+                message: 'Admin già esistente nel sistema'
+            });
+        }
+
+        // CREDENZIALI ADMIN FISSE - MODIFICA QUESTE
+        const ADMIN_CREDENTIALS = {
+            email: 'admin@coworkspace.local',
+            password: 'Admin123456',
+            first_name: 'Administrator',
+            last_name: 'System'
+        };
+
+        // Hash della password fissa
+        const hashedPassword = await bcrypt.hash(ADMIN_CREDENTIALS.password, 12);
+
+        // Crea l'admin predefinito
+        const adminUser = await User.create({
+            email: ADMIN_CREDENTIALS.email,
+            password_hash: hashedPassword,
+            first_name: ADMIN_CREDENTIALS.first_name,
+            last_name: ADMIN_CREDENTIALS.last_name,
+            role: 'admin',
+            status: 'active',
+            email_verified: true,
+            phone: null,
+            company: 'CoWorkSpace System',
+            created_at: new Date(),
+            updated_at: new Date()
+        });
+
+        logger.info('Default admin created', {
+            adminId: adminUser.id,
+            email: ADMIN_CREDENTIALS.email,
+            ip: req.ip,
+            userAgent: req.get('User-Agent')
+        });
+
+        res.status(201).json({
+            success: true,
+            message: 'Admin predefinito creato con successo',
+            credentials: {
+                email: ADMIN_CREDENTIALS.email,
+                // Non restituire mai la password in risposta
+                note: 'Usa le credenziali predefinite per il login'
+            }
+        });
+
+    } catch (error) {
+        logger.error('Error creating default admin:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Errore durante la creazione dell\'admin'
+        });
+    }
+});
+
+/**
  * @route   POST /api/auth/register
  * @desc    Registra un nuovo utente
  * @access  Public

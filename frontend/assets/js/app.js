@@ -256,11 +256,16 @@ class CoWorkSpaceApp {
     }
 
     updateAuthUI() {
+        console.log('Current user object:', this.state.currentUser);
+        console.log('User role:', this.state.currentUser?.role);
+        console.log('All user properties:', Object.keys(this.state.currentUser || {}));
+
         const authButtons = document.getElementById('authButtons');
         const userMenu = document.getElementById('userMenu');
         const userInitial = document.getElementById('userInitial');
         const userFullName = document.getElementById('userFullName');
         const userEmail = document.getElementById('userEmail');
+        const adminMenuItem = document.getElementById('adminMenuItem'); // Aggiungi questa riga
 
         if (this.state.isAuthenticated && this.state.currentUser) {
             if (authButtons) authButtons.style.display = 'none';
@@ -281,9 +286,20 @@ class CoWorkSpaceApp {
             if (userEmail) {
                 userEmail.textContent = this.state.currentUser.email;
             }
+
+            // Controllo visibilità pannello admin
+            if (adminMenuItem) {
+                if (this.state.currentUser.role === 'admin') {
+                    adminMenuItem.style.display = 'block';
+                } else {
+                    adminMenuItem.style.display = 'none';
+                }
+            }
+
         } else {
             if (authButtons) authButtons.style.display = 'block';
             if (userMenu) userMenu.style.display = 'none';
+            if (adminMenuItem) adminMenuItem.style.display = 'none';
         }
     }
 
@@ -353,6 +369,11 @@ class CoWorkSpaceApp {
 
             const result = await this.state.api.login(credentials);
 
+            // DEBUG: Aggiungi questo log per vedere la risposta completa
+            console.log('Login response from backend:', result);
+            console.log('User data in response:', result.data?.user || result.user);
+            console.log('User role:', (result.data?.user || result.user)?.role);
+
             if (result.success) {
                 // Prova diverse strutture possibili
                 const userData = result.data?.user || result.user;
@@ -360,6 +381,9 @@ class CoWorkSpaceApp {
                 const refreshToken = result.data?.refreshToken || result.tokens?.refreshToken || result.refreshToken;
 
                 console.log('Extracted - User:', userData, 'Token:', tokenData);
+
+                // DEBUG: Controlla il ruolo dell'utente estratto
+                console.log('Final user role being saved:', userData?.role);
 
                 if (tokenData) {
                     this.state.api.setToken(tokenData);
@@ -383,7 +407,7 @@ class CoWorkSpaceApp {
                 }
 
                 this.updateAuthUI();
-                this.showNotification('Login effettuato con successo', 'success'); // CAMBIATO: 'success' invece di 'error'
+                this.showNotification('Login effettuato con successo', 'success');
             } else {
                 this.showNotification(result.message || 'Credenziali non valide', 'error');
             }
@@ -392,6 +416,10 @@ class CoWorkSpaceApp {
         } finally {
             this.showFormLoading(form, false);
         }
+
+        // RIMUOVI QUESTE DUE RIGHE - causano l'errore
+        // const result = await response.json();
+        // console.log('Login response from backend:', result);
     }
 
     async handleRegister(form) {
@@ -412,7 +440,7 @@ class CoWorkSpaceApp {
             company: formData.get('registerCompany')?.trim() || formData.get('company')?.trim()
         };
 
-        const confirmPassword = formData.get('confirmPassword');
+        const confirmPassword = formData.get('registerPasswordConfirm');
 
         console.log('🔍 Extracted user data:', { ...userData, password: '***' });
 
@@ -493,6 +521,52 @@ class CoWorkSpaceApp {
             this.showNotification('Errore durante la registrazione: ' + error.message, 'error');
         } finally {
             this.showFormLoading(form, false);
+        }
+    }
+
+    // Controlla se serve setup admin all'avvio
+    async checkAdminSetup() {
+        try {
+            const response = await fetch('/api/auth/setup-status');
+            const data = await response.json();
+
+            if (data.needsSetup) {
+                // Mostra modal setup
+                const setupModal = new bootstrap.Modal(document.getElementById('adminSetupModal'));
+                setupModal.show();
+
+                // Gestisci form setup
+                document.getElementById('adminSetupForm').onsubmit = async (e) => {
+                    e.preventDefault();
+                    await this.handleAdminSetup(e.target);
+                };
+            }
+        } catch (error) {
+            console.error('Setup check failed:', error);
+        }
+    }
+
+    async handleAdminSetup(form) {
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData);
+
+        try {
+            const response = await fetch('/api/auth/setup-admin', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert('Admin creato! Ora puoi fare login.');
+                bootstrap.Modal.getInstance(document.getElementById('adminSetupModal')).hide();
+            } else {
+                alert(result.message);
+            }
+        } catch (error) {
+            alert('Errore durante la creazione admin');
         }
     }
 
