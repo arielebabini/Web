@@ -94,7 +94,10 @@ const corsOptions = {
 };
 
 app.use(cors({
-    origin: ['http://localhost:3000', 'null']
+    origin: '*',
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 // ===== SECURITY MIDDLEWARE =====

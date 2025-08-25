@@ -6,7 +6,7 @@
 
 // ==================== CONFIGURATION ====================
 const API_CONFIG = {
-    baseUrl: (() => {
+    /*baseUrl: (() => {
         // Auto-detect backend URL based on environment
         const hostname = window.location.hostname;
 
@@ -16,7 +16,8 @@ const API_CONFIG = {
 
         // For Docker or production
         return `http://${hostname}:3000`;
-    })(),
+    })(),*/
+    baseUrl: 'http://localhost:3000',
 
     endpoints: {
         // System

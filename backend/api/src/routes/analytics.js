@@ -28,57 +28,131 @@ router.get('/health', requireAuth, (req, res) => {
  * @desc    Dashboard completa per amministratori
  * @access  Private (Admin)
  */
-router.get('/dashboard/admin', requireAuth, async (req, res) => {
+router.get('/dashboard/admin', async (req, res) => {
     try {
-        if (req.user.role !== 'admin') {
-            return res.status(403).json({
-                success: false,
-                message: 'Accesso riservato agli amministratori'
-            });
-        }
+        console.log('Dashboard admin endpoint called');
 
-        const { timeRange = '30d' } = req.query;
+        const { query } = require('../config/database');
 
-        // Dati mock per demo
-        const mockDashboardData = {
-            timeRange,
+        // Query database reali
+        const userCount = await query('SELECT COUNT(*) as total FROM users');
+        const spaceCount = await query('SELECT COUNT(*) as total FROM spaces');
+        const bookingCount = await query('SELECT COUNT(*) as total FROM bookings');
+        const revenueQuery = await query(`
+            SELECT COALESCE(SUM(amount), 0) as total_revenue, COUNT(*) as total_payments, COALESCE(AVG(amount), 0) as avg_transaction
+            FROM payments 
+        `);
+        const confirmedBookingsQuery = await query(`
+            SELECT COUNT(*) as confirmed 
+            FROM bookings 
+            WHERE status = 'confirmed'
+        `);
+
+        // Dopo le query esistenti, aggiungi:
+        const dailyRevenueQuery = await query(`
+            SELECT 
+            DATE(created_at) as date,
+            COALESCE(SUM(amount), 0) as revenue,
+            COUNT(*) as payments
+            FROM payments
+            WHERE created_at >= CURRENT_DATE - INTERVAL '365 days'
+            GROUP BY DATE(created_at)
+            ORDER BY date ASC
+        `);
+
+        const dailyRevenue = dailyRevenueQuery.rows.map(row => ({
+            date: row.date,
+            revenue: parseFloat(row.revenue),
+            payments: parseInt(row.payments)
+        }));
+
+        // Dopo le query esistenti, aggiungi:
+        const currentPeriodQuery = await query(`
+            SELECT COALESCE(SUM(amount), 0) as current_revenue
+            FROM payments
+            WHERE created_at >= CURRENT_DATE - INTERVAL '365 days'
+        `);
+
+        const previousPeriodQuery = await query(`
+            SELECT COALESCE(SUM(amount), 0) as previous_revenue
+            FROM payments
+            WHERE created_at >= CURRENT_DATE - INTERVAL '120 days'
+              AND created_at < CURRENT_DATE - INTERVAL '365 days'
+        `);
+
+        const currentRevenue = parseFloat(currentPeriodQuery.rows[0].current_revenue);
+        const previousRevenue = parseFloat(previousPeriodQuery.rows[0].previous_revenue);
+        const growthRate = previousRevenue > 0 ? ((currentRevenue - previousRevenue) / previousRevenue) * 100 : 0;
+
+        const realData = {
+            timeRange: '30d',
             period: {
                 startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
                 endDate: new Date().toISOString()
             },
             general: {
-                users: { total: 125, new: 8 },
-                spaces: { total: 15 },
-                bookings: { total: 89, new: 12, confirmed: 10, conversionRate: 83.33 },
-                revenue: { total: 2450.00, payments: 45, averageTransaction: 54.44 }
+                users: { total: parseInt(userCount.rows[0].total), new: 0 },
+                spaces: { total: parseInt(spaceCount.rows[0].total) },
+                bookings: {
+                    total: parseInt(bookingCount.rows[0].total),
+                    confirmed: parseInt(confirmedBookingsQuery.rows[0].confirmed),
+                    conversionRate: bookingCount.rows[0].total > 0 ?
+                        (confirmedBookingsQuery.rows[0].confirmed / bookingCount.rows[0].total * 100).toFixed(1) : 0
+                },
+                revenue: {
+                    total: parseFloat(revenueQuery.rows[0].total_revenue),
+                    payments: parseInt(revenueQuery.rows[0].total_payments),
+                    averageTransaction: parseFloat(revenueQuery.rows[0].avg_transaction).toFixed(2)
+                }
             },
+
             revenue: {
-                dailyRevenue: [
-                    { date: '2025-01-15', revenue: 150.00, payments: 3 },
-                    { date: '2025-01-16', revenue: 200.00, payments: 4 },
-                    { date: '2025-01-17', revenue: 180.00, payments: 2 }
-                ].slice(-7),
-                totals: { current: 2450.00, previous: 2100.00, growthRate: 16.67 }
+                dailyRevenue: dailyRevenue,
+                totals: {
+                    current: currentRevenue,
+                    previous: previousRevenue,
+                    growthRate: Math.round(growthRate * 100) / 100
+                }
             },
-            topSpaces: [
-                { id: '1', name: 'Creative Hub Milano', location: 'Milano Centro', revenue: 850.00, bookings: { total: 25, confirmed: 23 } },
-                { id: '2', name: 'Tech Space Roma', location: 'Roma EUR', revenue: 720.00, bookings: { total: 18, confirmed: 17 } }
-            ]
+
+            topSpaces: []
+
+
         };
 
-        logger.info(`Admin dashboard accessed by user ${req.user.id}`);
+        console.log('Real data:', realData);
 
         res.json({
             success: true,
             message: 'Dashboard admin data retrieved successfully',
-            data: mockDashboardData
+            data: realData
         });
 
     } catch (error) {
-        logger.error('Error getting admin dashboard:', error);
+        console.error('Dashboard error:', error);
         res.status(500).json({
             success: false,
             message: 'Errore nel recupero delle statistiche dashboard'
+        });
+    }
+});
+
+module.exports = router;
+
+router.get('/db-test', async (req, res) => {
+    try {
+        const { query } = require('../config/database');
+        const result = await query('SELECT NOW() as current_time');
+
+        res.json({
+            success: true,
+            message: 'Database connected!',
+            time: result.rows[0].current_time
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Database error: ' + error.message
         });
     }
 });
@@ -189,6 +263,43 @@ router.get('/export', requireAuth, async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Errore nell\'esportazione del report'
+        });
+    }
+});
+
+// Aggiungi questa rotta se non c'è già
+router.get('/dashboard/admin', async (req, res) => {
+    try {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({
+                success: false,
+                message: 'Accesso riservato agli amministratori'
+            });
+        }
+
+        // Dati mock per test rapido
+        const mockData = {
+            general: {
+                users: { total: 15, new: 3 },
+                spaces: { total: 8 },
+                bookings: { total: 42, confirmed: 38, conversionRate: 90.5 },
+                revenue: { total: 2847.50, payments: 35, averageTransaction: 81.36 }
+            },
+            topSpaces: [
+                { id: '1', name: 'Creative Hub Milano', location: 'Milano Centro', revenue: 850.00, bookings: { total: 25, confirmed: 23 } }
+            ]
+        };
+
+        res.json({
+            success: true,
+            data: mockData
+        });
+
+    } catch (error) {
+        console.error('Error in admin dashboard:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Errore nel caricamento dashboard'
         });
     }
 });

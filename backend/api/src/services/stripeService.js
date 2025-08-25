@@ -1,15 +1,21 @@
-// api/src/services/stripeService.js
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const stripeClient = require('../config/stripeConfig');
 const logger = require('../utils/logger');
 const Payment = require('../models/Payment');
+const Booking = require('../models/Booking');
 
 class StripeService {
     /**
      * Crea un Payment Intent per una prenotazione
      */
-    static async createPaymentIntent(booking, user) {
+    static async createPaymentIntent(bookingData, userData) {
         try {
-            const paymentIntent = await stripe.paymentIntents.create({
+            // Recupera i dati reali della prenotazione
+            const booking = await Booking.findById(bookingData.id);
+            if (!booking) {
+                throw new Error('Prenotazione non trovata');
+            }
+
+            const paymentIntent = await stripeClient.paymentIntents.create({
                 amount: Math.round(booking.total_price * 100), // Stripe usa centesimi
                 currency: 'eur',
                 automatic_payment_methods: {
@@ -17,282 +23,148 @@ class StripeService {
                 },
                 metadata: {
                     booking_id: booking.id,
-                    user_id: user.id,
-                    user_email: user.email,
+                    user_id: userData.id,
+                    user_email: userData.email,
                     space_name: booking.space_name || 'Spazio Coworking'
                 },
-                description: `Prenotazione spazio coworking - ${booking.space_name}`,
-                receipt_email: user.email,
+                description: `Prenotazione ${booking.space_name} - ${booking.start_date}`,
+                receipt_email: userData.email,
+            });
+
+            // Salva il pagamento nel database
+            await Payment.create({
+                booking_id: booking.id,
+                stripe_payment_intent_id: paymentIntent.id,
+                amount: booking.total_price,
+                currency: 'EUR',
+                status: 'pending',
+                payment_method: {}
             });
 
             logger.info(`Payment Intent created: ${paymentIntent.id} for booking: ${booking.id}`);
             return paymentIntent;
         } catch (error) {
             logger.error('Error creating payment intent:', error);
-            throw new Error('Errore nella creazione del pagamento');
-        }
-    }
-
-    /**
-     * Conferma un Payment Intent
-     */
-    static async confirmPaymentIntent(paymentIntentId, paymentMethodId) {
-        try {
-            const paymentIntent = await stripe.paymentIntents.confirm(paymentIntentId, {
-                payment_method: paymentMethodId,
-                return_url: `${process.env.FRONTEND_URL}/booking/success`,
-            });
-
-            logger.info(`Payment Intent confirmed: ${paymentIntentId}`);
-            return paymentIntent;
-        } catch (error) {
-            logger.error('Error confirming payment intent:', error);
-            throw new Error('Errore nella conferma del pagamento');
-        }
-    }
-
-    /**
-     * Recupera un Payment Intent
-     */
-    static async retrievePaymentIntent(paymentIntentId) {
-        try {
-            const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
-            return paymentIntent;
-        } catch (error) {
-            logger.error('Error retrieving payment intent:', error);
-            throw new Error('Errore nel recupero del pagamento');
-        }
-    }
-
-    /**
-     * Verifica lo stato di un pagamento
-     */
-    static async getPaymentStatus(paymentIntentId) {
-        try {
-            const paymentIntent = await this.retrievePaymentIntent(paymentIntentId);
-
-            return {
-                status: paymentIntent.status,
-                amount: paymentIntent.amount / 100,
-                currency: paymentIntent.currency,
-                created: new Date(paymentIntent.created * 1000),
-                metadata: paymentIntent.metadata
-            };
-        } catch (error) {
-            logger.error('Error getting payment status:', error);
             throw error;
         }
     }
 
     /**
-     * Gestisce i webhook di Stripe
+     * Conferma un Payment Intent (simulazione per ambiente test)
+     */
+    static async confirmPaymentIntent(paymentIntentId, paymentData) {
+        try {
+            // In ambiente test, simula la conferma
+            const paymentIntent = await stripeClient.paymentIntents.retrieve(paymentIntentId);
+
+            // Simula successo del pagamento
+            const mockPaymentMethod = {
+                id: `pm_test_${Date.now()}`,
+                type: 'card',
+                card: {
+                    brand: 'visa',
+                    last4: paymentData.cardNumber.slice(-4),
+                    exp_month: parseInt(paymentData.expiry.split('/')[0]),
+                    exp_year: parseInt('20' + paymentData.expiry.split('/')[1])
+                }
+            };
+
+            // Aggiorna il pagamento nel database
+            await Payment.updateByStripeIntent(paymentIntentId, {
+                status: 'completed',
+                payment_method: mockPaymentMethod,
+                completed_at: new Date()
+            });
+
+            // Simula response di Stripe
+            return {
+                id: paymentIntentId,
+                status: 'succeeded',
+                amount: paymentIntent.amount,
+                currency: paymentIntent.currency,
+                metadata: paymentIntent.metadata,
+                payment_method: mockPaymentMethod
+            };
+
+        } catch (error) {
+            logger.error('Error confirming payment intent:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Webhook handler per eventi Stripe
      */
     static async handleWebhook(signature, payload) {
         try {
-            if (!process.env.STRIPE_WEBHOOK_SECRET) {
-                logger.warn('STRIPE_WEBHOOK_SECRET not configured, skipping signature verification');
-                // Per sviluppo, permettiamo il webhook senza verifica
-                const event = JSON.parse(payload);
-                await this.processWebhookEvent(event);
-                return;
-            }
+            let event;
 
-            // Verifica la firma del webhook
-            const event = stripe.webhooks.constructEvent(
-                payload,
-                signature,
-                process.env.STRIPE_WEBHOOK_SECRET
-            );
+            if (process.env.STRIPE_WEBHOOK_SECRET) {
+                event = stripeClient.webhooks.constructEvent(
+                    payload,
+                    signature,
+                    process.env.STRIPE_WEBHOOK_SECRET
+                );
+            } else {
+                // Per sviluppo senza webhook secret
+                event = JSON.parse(payload.toString());
+            }
 
             await this.processWebhookEvent(event);
+            return { received: true };
 
         } catch (error) {
-            logger.error('Error handling webhook:', error);
+            logger.error('Webhook signature verification failed:', error);
             throw error;
         }
     }
 
     /**
-     * Processa l'evento del webhook
+     * Processa gli eventi del webhook
      */
     static async processWebhookEvent(event) {
-        try {
-            logger.info(`Processing webhook event: ${event.type}`);
+        logger.info(`Processing webhook event: ${event.type}`);
 
-            switch (event.type) {
-                case 'payment_intent.succeeded':
-                    await this.handlePaymentSucceeded(event.data.object);
-                    break;
-
-                case 'payment_intent.payment_failed':
-                    await this.handlePaymentFailed(event.data.object);
-                    break;
-
-                case 'payment_intent.processing':
-                    await this.handlePaymentProcessing(event.data.object);
-                    break;
-
-                case 'payment_intent.canceled':
-                    await this.handlePaymentCanceled(event.data.object);
-                    break;
-
-                default:
-                    logger.info(`Unhandled webhook event type: ${event.type}`);
-            }
-
-        } catch (error) {
-            logger.error('Error processing webhook event:', error);
-            throw error;
+        switch (event.type) {
+            case 'payment_intent.succeeded':
+                await this.handlePaymentSucceeded(event.data.object);
+                break;
+            case 'payment_intent.payment_failed':
+                await this.handlePaymentFailed(event.data.object);
+                break;
+            default:
+                logger.info(`Unhandled event type: ${event.type}`);
         }
     }
 
-    /**
-     * Gestisce pagamento riuscito
-     */
     static async handlePaymentSucceeded(paymentIntent) {
         try {
-            const payment = await Payment.findByStripeIntent(paymentIntent.id);
-            if (!payment) {
-                logger.warn(`Payment not found for intent: ${paymentIntent.id}`);
-                return;
-            }
-
-            await Payment.updateStatus(payment.id, 'completed', {
-                completed_at: new Date(),
-                stripe_payment_method: paymentIntent.payment_method
+            // Aggiorna pagamento
+            await Payment.updateByStripeIntent(paymentIntent.id, {
+                status: 'completed',
+                completed_at: new Date()
             });
 
-            logger.info(`Payment ${payment.id} marked as completed`);
-
-            // Qui potresti aggiungere logica per:
-            // - Confermare automaticamente la prenotazione
-            // - Inviare email di conferma
-            // - Aggiornare lo stato della prenotazione
+            // Conferma automaticamente la prenotazione
+            const payment = await Payment.findByStripeIntent(paymentIntent.id);
+            if (payment && payment.booking_id) {
+                await Booking.confirm(payment.booking_id);
+                logger.info(`Booking ${payment.booking_id} automatically confirmed after payment`);
+            }
 
         } catch (error) {
             logger.error('Error handling payment succeeded:', error);
         }
     }
 
-    /**
-     * Gestisce pagamento fallito
-     */
     static async handlePaymentFailed(paymentIntent) {
         try {
-            const payment = await Payment.findByStripeIntent(paymentIntent.id);
-            if (!payment) {
-                logger.warn(`Payment not found for intent: ${paymentIntent.id}`);
-                return;
-            }
-
-            await Payment.updateStatus(payment.id, 'failed', {
-                failure_reason: paymentIntent.last_payment_error?.message || 'Payment failed'
+            await Payment.updateByStripeIntent(paymentIntent.id, {
+                status: 'failed',
+                failure_reason: paymentIntent.last_payment_error?.message
             });
-
-            logger.info(`Payment ${payment.id} marked as failed`);
-
         } catch (error) {
             logger.error('Error handling payment failed:', error);
-        }
-    }
-
-    /**
-     * Gestisce pagamento in elaborazione
-     */
-    static async handlePaymentProcessing(paymentIntent) {
-        try {
-            const payment = await Payment.findByStripeIntent(paymentIntent.id);
-            if (!payment) {
-                logger.warn(`Payment not found for intent: ${paymentIntent.id}`);
-                return;
-            }
-
-            await Payment.updateStatus(payment.id, 'processing');
-            logger.info(`Payment ${payment.id} marked as processing`);
-
-        } catch (error) {
-            logger.error('Error handling payment processing:', error);
-        }
-    }
-
-    /**
-     * Gestisce pagamento cancellato
-     */
-    static async handlePaymentCanceled(paymentIntent) {
-        try {
-            const payment = await Payment.findByStripeIntent(paymentIntent.id);
-            if (!payment) {
-                logger.warn(`Payment not found for intent: ${paymentIntent.id}`);
-                return;
-            }
-
-            await Payment.updateStatus(payment.id, 'canceled');
-            logger.info(`Payment ${payment.id} marked as canceled`);
-
-        } catch (error) {
-            logger.error('Error handling payment canceled:', error);
-        }
-    }
-
-    /**
-     * Test connection per verificare Stripe
-     */
-    static async testConnection() {
-        try {
-            const testIntent = await this.createPaymentIntent(
-                {
-                    id: 'test-booking',
-                    total_price: 10.00,
-                    space_name: 'Test Space'
-                },
-                {
-                    id: 'test-user',
-                    email: 'test@example.com',
-                    first_name: 'Test',
-                    last_name: 'User'
-                }
-            );
-            return testIntent;
-        } catch (error) {
-            logger.error('Stripe connection test failed:', error);
-            throw error;
-        }
-    }
-
-    /**
-     * Cancella un Payment Intent
-     */
-    static async cancelPaymentIntent(paymentIntentId) {
-        try {
-            const paymentIntent = await stripe.paymentIntents.cancel(paymentIntentId);
-            logger.info(`Payment Intent canceled: ${paymentIntentId}`);
-            return paymentIntent;
-        } catch (error) {
-            logger.error('Error canceling payment intent:', error);
-            throw error;
-        }
-    }
-
-    /**
-     * Crea un rimborso
-     */
-    static async createRefund(paymentIntentId, amount = null, reason = 'requested_by_customer') {
-        try {
-            const refundData = {
-                payment_intent: paymentIntentId,
-                reason: reason
-            };
-
-            if (amount) {
-                refundData.amount = Math.round(amount * 100); // Stripe usa centesimi
-            }
-
-            const refund = await stripe.refunds.create(refundData);
-            logger.info(`Refund created: ${refund.id} for payment: ${paymentIntentId}`);
-            return refund;
-        } catch (error) {
-            logger.error('Error creating refund:', error);
-            throw error;
         }
     }
 }

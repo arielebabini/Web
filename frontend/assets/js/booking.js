@@ -1,15 +1,21 @@
 class Booking {
     constructor() {
+        // Properties from Booking
         this.currentSpace = null;
         this.selectedDates = null;
         this.bookingData = null;
 
-        this.stripe = null;
+        // Properties from BookingPaymentManager merged
+        this.stripe = Stripe('pk_test_51Rs7kdJ9mfmkNGem1gP2uTZlLw6POAlDwMAlnFPxhINseQfj7nAPL7O0YDgsslmC5htPU47wIbx88IkfGktkB59q00Ua9AmYBj');
         this.elements = null;
         this.cardElement = null;
+        this.currentBooking = null;
+        this.clientSecret = null;
 
+        // Stripe key from Booking
         this.STRIPE_PUBLISHABLE_KEY = 'pk_test_51Rs7kdJ9mfmkNGem1gP2uTZlLw6POAlDwMAlnFPxhINseQfj7nAPL7O0YDgsslmC5htPU47wIbx88IkfGktkB59q00Ua9AmYBj';
 
+        // Initializer from Booking
         this.initializeStripe();
     }
 
@@ -127,7 +133,6 @@ class Booking {
                         </div>
                         
                         <div class="modal-body">
-                            <!-- Informazioni Spazio -->
                             <div class="space-info-card mb-4">
                                 <div class="row">
                                     <div class="col-md-4">
@@ -151,17 +156,14 @@ class Booking {
                                 </div>
                             </div>
 
-                            <!-- Form Prenotazione -->
                             <form id="bookingForm">
                                 <div class="row">
-                                    <!-- Data Inizio -->
                                     <div class="col-md-6 mb-3">
                                         <label for="startDate" class="form-label">Data Inizio *</label>
                                         <input type="date" class="form-control" id="startDate" required>
                                         <div class="invalid-feedback"></div>
                                     </div>
                                     
-                                    <!-- Data Fine -->
                                     <div class="col-md-6 mb-3">
                                         <label for="endDate" class="form-label">Data Fine *</label>
                                         <input type="date" class="form-control" id="endDate" required>
@@ -170,7 +172,6 @@ class Booking {
                                 </div>
 
                                 <div class="row">
-                                    <!-- Ora Inizio -->
                                     <div class="col-md-6 mb-3">
                                         <label for="startTime" class="form-label">Ora Inizio *</label>
                                         <select class="form-select" id="startTime" required>
@@ -179,7 +180,6 @@ class Booking {
                                         <div class="invalid-feedback"></div>
                                     </div>
                                     
-                                    <!-- Ora Fine -->
                                     <div class="col-md-6 mb-3">
                                         <label for="endTime" class="form-label">Ora Fine *</label>
                                         <select class="form-select" id="endTime" required>
@@ -189,7 +189,6 @@ class Booking {
                                     </div>
                                 </div>
 
-                                <!-- Numero Persone -->
                                 <div class="mb-3">
                                     <label for="peopleCount" class="form-label">Numero Persone *</label>
                                     <input type="number" class="form-control" id="peopleCount" 
@@ -198,14 +197,12 @@ class Booking {
                                     <div class="invalid-feedback"></div>
                                 </div>
 
-                                <!-- Note -->
                                 <div class="mb-3">
                                     <label for="bookingNotes" class="form-label">Note (facoltativo)</label>
                                     <textarea class="form-control" id="bookingNotes" rows="3" 
                                               placeholder="Aggiungi eventuali note o richieste speciali..."></textarea>
                                 </div>
 
-                                <!-- Riepilogo Prezzo -->
                                 <div class="booking-summary p-3 bg-light rounded">
                                     <h6>Riepilogo Prenotazione</h6>
                                     <div class="row">
@@ -292,6 +289,156 @@ class Booking {
             }
         }
         return slots;
+    }
+
+    /**
+     * Inizializza il form di pagamento
+     */
+    async initializePaymentForm(booking) {
+        this.currentBooking = booking;
+
+        try {
+            // Crea Payment Intent
+            const paymentIntent = await this.createPaymentIntent(booking.id);
+            this.clientSecret = paymentIntent.client_secret;
+
+            // Inizializza Stripe Elements
+            this.setupStripeElements();
+
+            // Mostra il form di pagamento
+            this.showPaymentModal(booking, paymentIntent);
+
+        } catch (error) {
+            console.error('Error initializing payment:', error);
+            this.showError('Errore nell\'inizializzazione del pagamento');
+        }
+    }
+
+    /**
+     * Configura Stripe Elements
+     */
+    setupStripeElements() {
+        const appearance = {
+            theme: 'stripe',
+            variables: {
+                colorPrimary: '#667eea',
+                colorBackground: '#ffffff',
+                colorText: '#30313d',
+                colorDanger: '#df1b41',
+                borderRadius: '8px',
+                spacingUnit: '4px'
+            }
+        };
+
+        this.elements = this.stripe.elements({
+            clientSecret: this.clientSecret,
+            appearance: appearance
+        });
+
+        // Crea il Payment Element
+        this.cardElement = this.elements.create('payment');
+    }
+
+    /**
+     * Mostra il modal di pagamento
+     */
+    showPaymentModal(booking, paymentIntent) {
+        const modalHtml = `
+            <div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="paymentModalLabel">
+                                <i class="fas fa-credit-card me-2"></i>Pagamento Prenotazione
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="booking-summary mb-4">
+                                <h6 class="fw-bold mb-3">Riepilogo Prenotazione</h6>
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-8">
+                                                <h6 class="mb-1">${booking.space_name}</h6>
+                                                <p class="text-muted mb-2">${booking.space_address}</p>
+                                                <p class="mb-0">
+                                                    <i class="fas fa-calendar me-2"></i>
+                                                    ${this.formatDate(booking.start_date)} - ${this.formatDate(booking.end_date)}
+                                                </p>
+                                                <p class="mb-0">
+                                                    <i class="fas fa-users me-2"></i>
+                                                    ${booking.people_count} persone
+                                                </p>
+                                            </div>
+                                            <div class="col-md-4 text-end">
+                                                <div class="total-amount">
+                                                    <span class="amount">€${booking.total_price}</span>
+                                                    <small class="text-muted d-block">Totale</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="payment-section">
+                                <h6 class="fw-bold mb-3">Metodo di Pagamento</h6>
+                                <div id="payment-element" class="mb-3">
+                                    </div>
+                                <div id="payment-errors" role="alert" class="text-danger mb-3" style="display: none;"></div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                            <button type="button" class="btn btn-primary" id="submitPaymentBtn">
+                                <i class="fas fa-lock me-2"></i>Paga €${booking.total_price}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Rimuovi modal esistente
+        const existingModal = document.getElementById('paymentModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+
+        // Aggiungi nuovo modal
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+        // Mostra modal
+        const modal = new bootstrap.Modal(document.getElementById('paymentModal'));
+        modal.show();
+
+        // Monta Stripe Elements dopo che il modal è visibile
+        setTimeout(() => {
+            this.cardElement.mount('#payment-element');
+            this.setupEventListeners();
+        }, 300);
+    }
+
+    /**
+     * Configura gli event listeners
+     */
+    setupEventListeners() {
+        // Gestione submit pagamento
+        document.getElementById('submitPaymentBtn').addEventListener('click', () => {
+            this.processPayment();
+        });
+
+        // Gestione errori Stripe Elements
+        this.cardElement.on('change', ({error}) => {
+            const displayError = document.getElementById('payment-errors');
+            if (error) {
+                displayError.textContent = error.message;
+                displayError.style.display = 'block';
+            } else {
+                displayError.style.display = 'none';
+            }
+        });
     }
 
     setupModalEventListeners() {
@@ -503,6 +650,95 @@ class Booking {
         }
     }
 
+    /**
+     * Elabora il pagamento
+     */
+    async processPayment() {
+        const submitBtn = document.getElementById('submitPaymentBtn');
+        const originalBtnText = submitBtn.innerHTML;
+
+        try {
+            // Loading
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Elaborazione...';
+            submitBtn.disabled = true;
+
+            // Conferma pagamento con Stripe
+            const {error, paymentIntent} = await this.stripe.confirmPayment({
+                elements: this.elements,
+                redirect: 'if_required'
+            });
+
+            if (error) {
+                throw error;
+            }
+
+            if (paymentIntent.status === 'succeeded') {
+                await this.handlePaymentSuccess(paymentIntent);
+            } else {
+                throw new Error(`Pagamento in stato: ${paymentIntent.status}`);
+            }
+
+        } catch (error) {
+            console.error('Payment error:', error);
+            this.showError(error.message || 'Errore durante il pagamento');
+        } finally {
+            submitBtn.innerHTML = originalBtnText;
+            submitBtn.disabled = false;
+        }
+    }
+
+    /**
+     * Crea Payment Intent tramite API
+     */
+    async createPaymentIntent(bookingId) {
+        const response = await fetch('/api/payments/create-intent', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+            },
+            body: JSON.stringify({ bookingId })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.message || 'Errore nella creazione del pagamento');
+        }
+
+        return data.data.payment_intent;
+    }
+
+    /**
+     * Gestisce il successo del pagamento
+     */
+    async handlePaymentSuccess(paymentIntent) {
+        // Chiudi modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('paymentModal'));
+        modal.hide();
+
+        // Mostra messaggio di successo
+        this.showSuccess('Pagamento completato con successo! La tua prenotazione è stata confermata.');
+
+        // Ricarica la lista delle prenotazioni
+        if (typeof window.bookingManager !== 'undefined') {
+            setTimeout(() => {
+                window.bookingManager.loadBookings();
+            }, 2000);
+        }
+    }
+
+    /**
+     * Formatta data per visualizzazione
+     */
+    formatDate(dateString) {
+        return new Date(dateString).toLocaleDateString('it-IT', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
+    }
+
     handleBookingSuccess(booking) {
         // Salva i dati della prenotazione per il pagamento
         this.bookingData = booking;
@@ -515,9 +751,6 @@ class Booking {
             this.openPaymentFlow(booking);
         }, 1500);
     }
-
-    // AGGIUNGI queste funzioni DENTRO la classe BookingManager
-// Trova la fine della classe (prima dell'ultima }) e aggiungi:
 
     openPaymentFlow(booking) {
         console.log('💳 Opening payment flow for booking:', booking);
@@ -560,7 +793,6 @@ class Booking {
                     </div>
                     
                     <div class="modal-body">
-                        <!-- Riepilogo Prenotazione -->
                         <div class="payment-summary mb-4">
                             <h6><i class="fas fa-file-invoice me-2"></i>Riepilogo</h6>
                             <div class="summary-card p-3 bg-light rounded">
@@ -587,28 +819,23 @@ class Booking {
                             </div>
                         </div>
 
-                        <!-- Stripe Elements -->
                         <div class="stripe-section">
                             <h6><i class="fab fa-cc-stripe me-2"></i>Dettagli Pagamento</h6>
                             
-                            <!-- Nome titolare -->
                             <div class="mb-3">
                                 <label class="form-label">Nome Titolare Carta *</label>
                                 <input type="text" class="form-control" id="cardholderName" 
                                        placeholder="Mario Rossi" required>
                             </div>
                             
-                            <!-- Stripe Card Element -->
                             <div class="mb-3">
                                 <label class="form-label">Dati Carta *</label>
                                 <div id="stripe-card-element" class="stripe-card-element">
-                                    <!-- Stripe inserirà qui il form carta -->
-                                </div>
+                                    </div>
                                 <div id="stripe-card-errors" class="text-danger mt-2"></div>
                             </div>
                         </div>
                         
-                        <!-- Sicurezza -->
                         <div class="payment-security text-center">
                             <div class="alert alert-success d-flex align-items-center justify-content-center">
                                 <i class="fas fa-shield-alt me-2"></i>
@@ -794,152 +1021,6 @@ class Booking {
         });
     }
 
-    async processPayment(booking) {
-        const paymentBtn = document.getElementById('processPaymentBtn');
-
-        // Valida tutti i campi
-        const fields = document.querySelectorAll('.stripe-input');
-        let allValid = true;
-
-        fields.forEach(field => {
-            if (!this.validatePaymentField(field) || !field.value.trim()) {
-                allValid = false;
-            }
-        });
-
-        if (!allValid) {
-            this.showError('Completa tutti i campi obbligatori');
-            return;
-        }
-
-        try {
-            // Mostra loading
-            paymentBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Elaborazione...';
-            paymentBtn.disabled = true;
-
-            console.log('💳 Starting real Stripe payment process...');
-
-            // STEP 1: Crea Payment Intent sul backend
-            const paymentIntent = await this.createStripePaymentIntent(booking);
-            console.log('✅ Payment Intent created:', paymentIntent.client_secret);
-
-            // STEP 2: Conferma pagamento con Stripe
-            const paymentResult = await this.confirmStripePayment(paymentIntent);
-            console.log('✅ Payment confirmed:', paymentResult);
-
-            // STEP 3: Verifica stato finale
-            await this.verifyPaymentStatus(paymentIntent.id);
-
-            // Successo!
-            this.handlePaymentSuccess(booking, paymentIntent);
-
-        } catch (error) {
-            console.error('❌ Payment error:', error);
-            this.handlePaymentError(error.message);
-        } finally {
-            paymentBtn.innerHTML = `<i class="fas fa-lock me-1"></i>Paga €${booking.total_price}`;
-            paymentBtn.disabled = false;
-        }
-    }
-
-    handlePaymentSuccess(booking, paymentResult) {
-        // Nascondi modal di pagamento
-        this.hidePaymentModal();
-
-        // Salva dati pagamento per riferimento
-        const paymentData = {
-            paymentIntentId: paymentResult.id,
-            bookingId: booking.id,
-            amount: booking.total_price,
-            timestamp: new Date().toISOString(),
-            simulated: true
-        };
-
-        // Salva in localStorage per la pagina di successo
-        localStorage.setItem('payment_success', JSON.stringify(paymentData));
-
-        // Mostra modal di successo
-        setTimeout(() => {
-            this.showSuccessModal(booking, paymentResult);
-        }, 300);
-
-        // Invia evento di successo (per analytics)
-        this.trackPaymentSuccess(paymentData);
-    }
-
-    showSuccessModal(booking, paymentIntent) {
-        const successHTML = `
-        <div class="modal fade" id="successModal" tabindex="-1">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-body text-center p-5">
-                        <div class="success-animation mb-4">
-                            <i class="fas fa-check-circle text-success" style="font-size: 4rem;"></i>
-                        </div>
-                        <h3 class="text-success mb-3">Pagamento Completato!</h3>
-                        <p class="mb-4">La tua prenotazione è stata confermata e il pagamento è andato a buon fine.</p>
-                        
-                        <div class="payment-details mb-4">
-                            <div class="alert alert-success">
-                                <strong>Dettagli Pagamento:</strong><br>
-                                <small>ID Transazione: ${paymentIntent.id}</small><br>
-                                <small>Importo: €${booking.total_price}</small><br>
-                                <small>Spazio: ${this.currentSpace.name}</small>
-                            </div>
-                        </div>
-                        
-                        <div class="booking-confirmation">
-                            <div class="confirmation-number">
-                                <strong>Prenotazione Confermata:</strong> #${booking.id.substring(0, 8).toUpperCase()}
-                            </div>
-                        </div>
-                        
-                        <div class="mt-4">
-                            <button class="btn btn-primary me-2" onclick="window.location.href='bookings.html'">
-                                <i class="fas fa-calendar me-1"></i>
-                                Le Mie Prenotazioni
-                            </button>
-                            <button class="btn btn-outline-secondary" onclick="window.location.href='spaces.html'">
-                                <i class="fas fa-search me-1"></i>
-                                Altri Spazi
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-
-        document.body.insertAdjacentHTML('beforeend', successHTML);
-        const modal = new bootstrap.Modal(document.getElementById('successModal'));
-        modal.show();
-
-        // Rimuovi modal dopo chiusura
-        document.getElementById('successModal').addEventListener('hidden.bs.modal', function() {
-            this.remove();
-        });
-    }
-
-    trackPaymentSuccess(paymentData) {
-        console.log('📊 Payment success tracked:', paymentData);
-
-        // Se hai Google Analytics
-        if (typeof gtag !== 'undefined') {
-            gtag('event', 'purchase', {
-                transaction_id: paymentData.paymentIntentId,
-                value: paymentData.amount,
-                currency: 'EUR',
-                items: [{
-                    item_id: paymentData.bookingId,
-                    item_name: 'Coworking Space Booking',
-                    category: 'Booking',
-                    quantity: 1,
-                    price: paymentData.amount
-                }]
-            });
-        }
-    }
-
     handlePaymentError(message) {
         console.error('💥 Payment failed:', message);
 
@@ -1082,7 +1163,6 @@ class Booking {
         };
     }
 
-// 6. AGGIUNGI messaggi errore carte
     getCardErrorMessage(errorCode) {
         const messages = {
             'card_declined': 'La tua carta è stata declinata. Verifica i dati o prova con una carta diversa.',
@@ -1098,7 +1178,6 @@ class Booking {
         return messages[errorCode] || 'Errore durante il pagamento. Riprova.';
     }
 
-// 7. AGGIUNGI verifica stato pagamento
     async verifyPaymentStatus(paymentIntentId) {
         try {
             console.log('🔍 Verifying payment status...');
@@ -1124,11 +1203,6 @@ class Booking {
             console.warn('⚠️ Payment verification failed:', error.message);
             // Non lanciare errore, il pagamento potrebbe essere comunque riuscito
         }
-    }
-
-    showPaymentModal() {
-        const modal = new bootstrap.Modal(document.getElementById('paymentModal'));
-        modal.show();
     }
 
     hidePaymentModal() {
@@ -1166,19 +1240,25 @@ class Booking {
     }
 
     showError(message) {
-        if (window.showNotification) {
-            window.showNotification(message, 'error');
-        } else {
-            alert('Errore: ' + message);
-        }
+        const alert = `
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+        document.getElementById('alerts-container').innerHTML = alert;
     }
 
     showSuccess(message) {
-        if (window.showNotification) {
-            window.showNotification(message, 'success');
-        } else {
-            alert(message);
-        }
+        const alert = `
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="fas fa-check-circle me-2"></i>
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+        document.getElementById('alerts-container').innerHTML = alert;
     }
 
     showWarning(message) {
@@ -1212,5 +1292,5 @@ window.bookSpace = function(spaceId) {
     }
 
     // Apri il modal di prenotazione
-    window.Booking.openBookingModal(spaceId);
+    window.BookingManager.openBookingModal(spaceId);
 };

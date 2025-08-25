@@ -532,7 +532,7 @@ class Space {
                 FROM spaces s
                 LEFT JOIN users u ON s.manager_id = u.id
                 LEFT JOIN bookings b ON s.id = b.space_id 
-                    AND b.created_at >= CURRENT_DATE - INTERVAL '30 days'
+                    AND b.created_at >= CURRENT_DATE - INTERVAL '365 days'
                 ${whereClause}
                 GROUP BY s.id, u.first_name, u.last_name
                 ORDER BY total_bookings DESC, s.rating DESC
