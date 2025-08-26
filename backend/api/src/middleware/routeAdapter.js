@@ -3,7 +3,7 @@
  * Adatta le chiamate tra le rotte e i controller per garantire compatibilità
  */
 
-const UserController = require('../controllers/userController');
+const { UserController } = require('../controllers/userController');
 const { validationResult } = require('express-validator');
 const logger = require('../utils/logger');
 
@@ -84,7 +84,7 @@ const adaptUserController = {
 
     createUser: async (req, res) => {
         try {
-            await userController.createUser(req, res);
+            await UserController.createUser(req, res);
         } catch (error) {
             logger.error('Error in adaptUserController.createUser:', error);
             res.status(500).json({
@@ -96,7 +96,7 @@ const adaptUserController = {
 
     deleteUser: async (req, res) => {
         try {
-            await userController.deleteUser(req, res);
+            await UserController.deleteUser(req, res);
         } catch (error) {
             logger.error('Error in adaptUserController.deleteUser:', error);
             res.status(500).json({
@@ -108,7 +108,7 @@ const adaptUserController = {
 
     updateUserStatus: async (req, res) => {
         try {
-            await userController.updateUserStatus(req, res);
+            await UserController.updateUserStatus(req, res);
         } catch (error) {
             logger.error('Error in adaptUserController.updateUserStatus:', error);
             res.status(500).json({

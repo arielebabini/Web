@@ -1543,7 +1543,7 @@
                 ...filters
             });
 
-            const response = await fetch(`/api/users?${params}`, {
+            const response = await fetch(`http://localhost:3000/api/users?${params}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'

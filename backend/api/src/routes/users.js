@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { body, param, query } = require('express-validator');
+const { UserController } = require('../controllers/userController');
 
 // Import del middleware AUTH corretto e adapter
 const { requireAuth } = require('../middleware/auth');
@@ -204,6 +205,8 @@ router.get('/:userId',
     adapterLogger('UserController.getUserById'),
     adaptUserController.getUserById
 );
+
+router.get('/users', UserController.getAllUsers);
 
 /**
  * @route   PUT /api/users/:userId/role

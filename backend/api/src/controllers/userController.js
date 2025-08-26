@@ -2,6 +2,9 @@ const User = require('../models/User');
 const { validationResult } = require('express-validator');
 const logger = require('../utils/logger');
 
+const bcrypt = require('bcryptjs');
+const { query } = require('../config/database');
+
 /**
  * Controller per la gestione degli utenti
  */
@@ -113,6 +116,163 @@ class UserController {
     }
 
     /**
+     * Crea nuovo utente (solo per admin/manager)
+     */
+    static async createUser(req, res) {
+        try {
+            const { first_name, last_name, email, password, role = 'client', status = 'active' } = req.body;
+
+            // Validazione dati
+            if (!first_name || !last_name || !email || !password) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Nome, cognome, email e password sono obbligatori'
+                });
+            }
+
+            // Verifica se email già esiste
+            const existingUser = await query(
+                'SELECT id FROM users WHERE email = $1',
+                [email]
+            );
+
+            if (existingUser.rows.length > 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Email già esistente'
+                });
+            }
+
+            // Hash password
+            const hashedPassword = await bcrypt.hash(password, 10);
+
+            // Inserisci nuovo utente
+            const result = await query(`
+            INSERT INTO users (first_name, last_name, email, password, role, status, created_at, updated_at)
+            VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+            RETURNING id, first_name, last_name, email, role, status, created_at
+        `, [first_name, last_name, email, hashedPassword, role, status]);
+
+            const newUser = result.rows[0];
+
+            res.status(201).json({
+                success: true,
+                message: 'Utente creato con successo',
+                data: newUser
+            });
+
+        } catch (error) {
+            console.error('Error creating user:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Errore interno del server'
+            });
+        }
+    }
+
+    /**
+     * Elimina utente (solo per admin)
+     */
+    static async deleteUser(req, res) {
+        try {
+            const { userId } = req.params;
+            const currentUserId = req.user.id;
+
+            // Non permettere auto-eliminazione
+            if (userId == currentUserId) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Non puoi eliminare il tuo account'
+                });
+            }
+
+            // Verifica se utente esiste
+            const userExists = await query(
+                'SELECT id, role FROM users WHERE id = $1',
+                [userId]
+            );
+
+            if (userExists.rows.length === 0) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Utente non trovato'
+                });
+            }
+
+            // Non permettere eliminazione admin (sicurezza)
+            if (userExists.rows[0].role === 'admin' && req.user.role !== 'admin') {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Non autorizzato a eliminare amministratori'
+                });
+            }
+
+            // Prima elimina i record collegati o impostali a null
+            await query('UPDATE bookings SET user_id = NULL WHERE user_id = $1', [userId]);
+            await query('DELETE FROM payments WHERE user_id = $1', [userId]);
+
+            // Poi elimina l'utente
+            await query('DELETE FROM users WHERE id = $1', [userId]);
+
+            res.json({
+                success: true,
+                message: 'Utente eliminato con successo'
+            });
+
+        } catch (error) {
+            console.error('Error deleting user:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Errore interno del server'
+            });
+        }
+    }
+
+    /**
+     * Aggiorna status utente
+     */
+    static async updateUserStatus(req, res) {
+        try {
+            const { userId } = req.params;
+            const { status } = req.body;
+
+            if (!['active', 'inactive', 'suspended'].includes(status)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Status non valido'
+                });
+            }
+
+            const result = await query(`
+            UPDATE users 
+            SET status = $1, updated_at = NOW()
+            WHERE id = $2
+            RETURNING id, first_name, last_name, email, role, status, updated_at
+        `, [status, userId]);
+
+            if (result.rows.length === 0) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Utente non trovato'
+                });
+            }
+
+            res.json({
+                success: true,
+                message: 'Status utente aggiornato',
+                data: result.rows[0]
+            });
+
+        } catch (error) {
+            console.error('Error updating user status:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Errore interno del server'
+            });
+        }
+    }
+
+    /**
      * Ottiene un utente specifico per ID (admin/manager)
      */
     static async getUserById(req, res) {
@@ -193,99 +353,6 @@ class UserController {
             res.status(500).json({
                 success: false,
                 message: 'Errore durante l\'aggiornamento del ruolo'
-            });
-        }
-    }
-
-    /**
-     * Aggiorna lo status di un utente (admin/manager)
-     */
-    static async updateUserStatus(req, res) {
-        try {
-            const errors = validationResult(req);
-            if (!errors.isEmpty()) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Dati non validi',
-                    errors: errors.array()
-                });
-            }
-
-            const { userId } = req.params;
-            const { status } = req.body;
-
-            // Verifica che non sia l'utente stesso
-            if (userId === req.user.id) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Non puoi modificare il tuo stesso status'
-                });
-            }
-
-            const updatedUser = await User.updateStatus(userId, status);
-
-            res.json({
-                success: true,
-                message: 'Status utente aggiornato con successo',
-                user: updatedUser
-            });
-        } catch (error) {
-            logger.error('Error updating user status:', error);
-
-            if (error.message === 'User not found') {
-                return res.status(404).json({
-                    success: false,
-                    message: 'Utente non trovato'
-                });
-            }
-
-            if (error.message === 'Invalid status') {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Status non valido'
-                });
-            }
-
-            res.status(500).json({
-                success: false,
-                message: 'Errore durante l\'aggiornamento dello status'
-            });
-        }
-    }
-
-    /**
-     * Elimina un utente (soft delete, solo admin)
-     */
-    static async deleteUser(req, res) {
-        try {
-            const { userId } = req.params;
-
-            // Verifica che non sia l'utente stesso
-            if (userId === req.user.id) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Non puoi eliminare il tuo stesso account'
-                });
-            }
-
-            const deleted = await User.softDelete(userId);
-
-            if (!deleted) {
-                return res.status(404).json({
-                    success: false,
-                    message: 'Utente non trovato'
-                });
-            }
-
-            res.json({
-                success: true,
-                message: 'Utente eliminato con successo'
-            });
-        } catch (error) {
-            logger.error('Error deleting user:', error);
-            res.status(500).json({
-                success: false,
-                message: 'Errore durante l\'eliminazione dell\'utente'
             });
         }
     }
@@ -403,172 +470,6 @@ class UserController {
     }
 }
 
-/**
- * Crea nuovo utente (solo per admin/manager)
- * @param {Object} req - Request object
- * @param {Object} res - Response object
- */
-async function createUser(req, res) {
-    try {
-        const { first_name, last_name, email, password, role = 'client', status = 'active' } = req.body;
-
-        // Validazione dati
-        if (!first_name || !last_name || !email || !password) {
-            return res.status(400).json({
-                success: false,
-                message: 'Nome, cognome, email e password sono obbligatori'
-            });
-        }
-
-        // Verifica se email già esiste
-        const existingUser = await query(
-            'SELECT id FROM users WHERE email = $1',
-            [email]
-        );
-
-        if (existingUser.rows.length > 0) {
-            return res.status(400).json({
-                success: false,
-                message: 'Email già esistente'
-            });
-        }
-
-        // Hash password
-        const hashedPassword = await bcrypt.hash(password, 10);
-
-        // Inserisci nuovo utente
-        const result = await query(`
-            INSERT INTO users (first_name, last_name, email, password, role, status, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
-            RETURNING id, first_name, last_name, email, role, status, created_at
-        `, [first_name, last_name, email, hashedPassword, role, status]);
-
-        const newUser = result.rows[0];
-
-        res.status(201).json({
-            success: true,
-            message: 'Utente creato con successo',
-            data: newUser
-        });
-
-    } catch (error) {
-        console.error('Error creating user:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Errore interno del server'
-        });
-    }
-}
-
-/**
- * Elimina utente (solo per admin)
- * @param {Object} req - Request object
- * @param {Object} res - Response object
- */
-async function deleteUser(req, res) {
-    try {
-        const { userId } = req.params;
-        const currentUserId = req.user.id;
-
-        // Non permettere auto-eliminazione
-        if (userId == currentUserId) {
-            return res.status(400).json({
-                success: false,
-                message: 'Non puoi eliminare il tuo account'
-            });
-        }
-
-        // Verifica se utente esiste
-        const userExists = await query(
-            'SELECT id, role FROM users WHERE id = $1',
-            [userId]
-        );
-
-        if (userExists.rows.length === 0) {
-            return res.status(404).json({
-                success: false,
-                message: 'Utente non trovato'
-            });
-        }
-
-        // Non permettere eliminazione admin (sicurezza)
-        if (userExists.rows[0].role === 'admin' && req.user.role !== 'admin') {
-            return res.status(403).json({
-                success: false,
-                message: 'Non autorizzato a eliminare amministratori'
-            });
-        }
-
-        // Prima elimina i record collegati o impostali a null
-        await query('UPDATE bookings SET user_id = NULL WHERE user_id = $1', [userId]);
-        await query('DELETE FROM payments WHERE user_id = $1', [userId]);
-
-        // Poi elimina l'utente
-        await query('DELETE FROM users WHERE id = $1', [userId]);
-
-        res.json({
-            success: true,
-            message: 'Utente eliminato con successo'
-        });
-
-    } catch (error) {
-        console.error('Error deleting user:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Errore interno del server'
-        });
-    }
-}
-
-/**
- * Aggiorna status utente
- * @param {Object} req - Request object
- * @param {Object} res - Response object
- */
-async function updateUserStatus(req, res) {
-    try {
-        const { userId } = req.params;
-        const { status } = req.body;
-
-        if (!['active', 'inactive', 'suspended'].includes(status)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Status non valido'
-            });
-        }
-
-        const result = await query(`
-            UPDATE users 
-            SET status = $1, updated_at = NOW()
-            WHERE id = $2
-            RETURNING id, first_name, last_name, email, role, status, updated_at
-        `, [status, userId]);
-
-        if (result.rows.length === 0) {
-            return res.status(404).json({
-                success: false,
-                message: 'Utente non trovato'
-            });
-        }
-
-        res.json({
-            success: true,
-            message: 'Status utente aggiornato',
-            data: result.rows[0]
-        });
-
-    } catch (error) {
-        console.error('Error updating user status:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Errore interno del server'
-        });
-    }
-}
-
 module.exports = {
-    UserController,
-    createUser,
-    deleteUser,
-    updateUserStatus
+    UserController
 };

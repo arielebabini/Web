@@ -31,44 +31,87 @@ class AdminDashboardLoader {
     async loadDashboardData(timeRange = '30d') {
         if (this.isLoading) return;
 
+        const token = localStorage.getItem('auth_token');
+        if (!token) {
+            console.error('❌ Token non trovato. Reindirizzamento alla pagina di login.');
+            window.location.href = '/login.html';
+            return;
+        }
+
         this.isLoading = true;
         this.currentTimeRange = timeRange;
 
         try {
             this.showLoading();
-
             console.log(`📊 Loading dashboard data for ${timeRange}...`);
 
-            // Chiama l'API per i dati della dashboard admin
-            const response = await fetch(`http://localhost:3000/api/analytics/dashboard/admin?timeRange=${timeRange}`, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                    'Content-Type': 'application/json'
-                }
-            });
+            // Effettua due richieste separate in parallelo
+            const [statsResponse, usersResponse] = await Promise.all([
+                fetch(`http://localhost:3000/api/analytics/dashboard/admin?timeRange=${timeRange}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                }),
+                fetch('http://localhost:3000/api/admin/users', { // Nuova chiamata per gli utenti
+                    headers: { 'Authorization': `Bearer ${token}` }
+                })
+            ]);
 
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
+            const statsData = await statsResponse.json();
+            const usersData = await usersResponse.json(); // Estrai i dati degli utenti
 
-            const result = await response.json();
+            if (!statsResponse.ok) throw new Error(statsData.message || 'Errore durante il caricamento delle statistiche');
+            if (!usersResponse.ok) throw new Error(usersData.message || 'Errore durante il caricamento degli utenti');
 
-            if (result.success) {
-                this.dashboardData = result.data;
-                this.renderDashboard();
-                console.log('✅ Dashboard data loaded successfully:', this.dashboardData);
-            } else {
-                throw new Error(result.message || 'Errore nel caricamento dei dati');
-            }
+            this.dashboardData = statsData.data;
+            this.usersData = usersData.data; // Salva i dati degli utenti
 
+            this.renderDashboard();
         } catch (error) {
             console.error('❌ Error loading dashboard data:', error);
-            this.showError('Errore nel caricamento delle statistiche: ' + error.message);
+            showNotification(error.message, 'error');
         } finally {
-            this.isLoading = false;
             this.hideLoading();
+            this.isLoading = false;
         }
+    }
+
+    async renderUsersTable() {
+        if (!this.usersData || !Array.isArray(this.usersData.users)) {
+            console.error('❌ Dati utenti non validi o mancanti.');
+            return;
+        }
+
+        const tableBody = document.querySelector('#users-table tbody');
+        const totalUsersCountEl = document.getElementById('total-users-count');
+        tableBody.innerHTML = ''; // Pulisci la tabella esistente
+
+        // Aggiorna il conteggio totale
+        totalUsersCountEl.textContent = `${this.usersData.totalUsers} Utenti`;
+
+        this.usersData.users.forEach(user => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>
+                    <div class="d-flex align-items-center">
+                        <img src="https://ui-avatars.com/api/?name=${user.first_name}+${user.last_name}&background=random&color=fff&rounded=true&bold=true"
+                             alt="Avatar" class="rounded-circle me-2" style="width: 38px; height: 38px;">
+                        <div>
+                            <p class="fw-bold mb-1">${user.first_name} ${user.last_name}</p>
+                            <p class="text-muted mb-0">${user.email_verified ? '<i class="fas fa-check-circle text-success me-1"></i>Verificato' : '<i class="fas fa-exclamation-triangle text-warning me-1"></i>Non Verificato'}</p>
+                        </div>
+                    </div>
+                </td>
+                <td>${user.email}</td>
+                <td><span class="badge ${this.getRoleBadge(user.role)}">${user.role}</span></td>
+                <td><span class="badge ${this.getStatusBadge(user.status)}">${user.status}</span></td>
+                <td>${new Date(user.created_at).toLocaleDateString()}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-danger delete-user-btn" data-user-id="${user.id}" title="Elimina Utente">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            `;
+            tableBody.appendChild(row);
+        });
     }
 
     /**
@@ -90,12 +133,18 @@ class AdminDashboardLoader {
 
         // Aggiorna il periodo visualizzato
         this.updatePeriodInfo(data.period);
+
+        this.renderUsersTable();
     }
 
     /**
      * Aggiorna le statistiche generali nel DOM
      */
     updateGeneralStats(general) {
+        const totalUsersElement = document.getElementById('total-users');
+        if (totalUsersElement) {
+            this.animateNumber(totalUsersElement, general.users.total);
+        }
         // Utenti
         this.updateStatCard('total-users', general.users.total);
         this.updateStatCard('new-users', general.users.new);
@@ -361,19 +410,44 @@ class AdminDashboardLoader {
 
 // Inizializza il loader quando il DOM è pronto
 document.addEventListener('DOMContentLoaded', () => {
-    // Aspetta che la dashboard admin sia visibile
     const checkDashboard = () => {
         const dashboardSection = document.getElementById('dashboardSection');
         if (dashboardSection && dashboardSection.style.display !== 'none') {
             window.adminDashboardLoader = new AdminDashboardLoader();
         } else {
-            // Riprova tra 100ms se la dashboard non è ancora visibile
             setTimeout(checkDashboard, 100);
         }
     };
-
     checkDashboard();
 });
 
-// Esporta per uso globale
+// Aggiungi qui gli event listener per i pulsanti (se non sono già nel tuo file HTML)
+document.addEventListener('click', async (event) => {
+    if (event.target.closest('.delete-user-btn')) {
+        const button = event.target.closest('.delete-user-btn');
+        const userId = button.dataset.userId;
+        if (confirm(`Sei sicuro di voler eliminare l'utente con ID: ${userId}?`)) {
+            try {
+                const token = localStorage.getItem('auth_token');
+                const response = await fetch(`http://localhost:3000/api/admin/users/${userId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    showNotification('Utente eliminato con successo', 'success');
+                    if (window.adminDashboardLoader) {
+                        window.adminDashboardLoader.loadDashboardData();
+                    }
+                } else {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Errore durante l\'eliminazione dell\'utente');
+                }
+            } catch (error) {
+                console.error('Error deleting user:', error);
+                showNotification(error.message, 'error');
+            }
+        }
+    }
+});
+
 window.AdminDashboardLoader = AdminDashboardLoader;
