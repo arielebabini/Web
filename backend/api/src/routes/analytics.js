@@ -5,6 +5,7 @@ const logger = require('../utils/logger');
 
 // Import del middleware AUTH
 const { requireAuth } = require('../middleware/auth');
+const {query} = require("../config/database");
 
 /**
  * @route   GET /api/analytics/health
@@ -84,6 +85,62 @@ router.get('/dashboard/admin', async (req, res) => {
         const previousRevenue = parseFloat(previousPeriodQuery.rows[0].previous_revenue);
         const growthRate = previousRevenue > 0 ? ((currentRevenue - previousRevenue) / previousRevenue) * 100 : 0;
 
+        const topSpacesQuery = await query(`
+            SELECT 
+                s.id,
+                s.name,
+                COALESCE(s.address, s.city, 'Posizione non specificata') as location,
+                COALESCE(SUM(CASE WHEN p.status IS NOT NULL THEN p.amount END), 0) as revenue,
+                COUNT(DISTINCT b.id) as total_bookings,
+                COUNT(DISTINCT CASE WHEN b.status IS NOT NULL THEN b.id END) as confirmed_bookings
+            FROM spaces s
+            LEFT JOIN bookings b ON s.id = b.space_id AND b.created_at IS NOT NULL
+            LEFT JOIN payments p ON b.id = p.booking_id AND p.status IS NOT NULL AND p.created_at IS NOT NULL
+            WHERE s.created_at IS NOT NULL
+            GROUP BY s.id, s.name, s.address, s.city
+            ORDER BY total_bookings DESC, confirmed_bookings DESC, revenue DESC
+            LIMIT 5
+        `);
+
+        const topSpaces = topSpacesQuery.rows.map(row => {
+            const space = {
+                id: row.id.toString(),
+                name: row.name || 'Spazio senza nome',
+                location: [row.address, row.city].filter(Boolean).join(', ') || 'Posizione non specificata',
+                revenue: parseFloat(row.revenue || 0),
+                bookings: {
+                    total: parseInt(row.total_bookings || 0),
+                    confirmed: parseInt(row.total_bookings || 0)
+                }
+            };
+
+            // LOG DETTAGLIATO PER DEBUG
+            console.log('🏢 Spazio processato dettagliato:', {
+                id: space.id,
+                name: space.name,
+                location: space.location,
+                revenue: space.revenue,
+                bookings_total: space.bookings.total,
+                bookings_confirmed: space.bookings.total,
+                raw_data: {
+                    total_bookings: row.total_bookings,
+                    confirmed_bookings: row.total_bookings,
+                    revenue: row.revenue
+                }
+            });
+
+            return space;
+        });
+
+        console.log('📊 TUTTI I TOP SPAZI DETTAGLIATI:');
+        topSpaces.forEach((space, index) => {
+            console.log(`${index + 1}. ${space.name}:`);
+            console.log(`   - Prenotazioni totali: ${space.bookings.total}`);
+            console.log(`   - Prenotazioni confermate: ${space.bookings.total}`);
+            console.log(`   - Revenue: €${space.revenue}`);
+            console.log(`   - Location: ${space.location}`);
+        });
+
         const realData = {
             timeRange: '30d',
             period: {
@@ -95,9 +152,7 @@ router.get('/dashboard/admin', async (req, res) => {
                 spaces: { total: parseInt(spaceCount.rows[0].total) },
                 bookings: {
                     total: parseInt(bookingCount.rows[0].total),
-                    confirmed: parseInt(confirmedBookingsQuery.rows[0].confirmed),
-                    conversionRate: bookingCount.rows[0].total > 0 ?
-                        (confirmedBookingsQuery.rows[0].confirmed / bookingCount.rows[0].total * 100).toFixed(1) : 0
+                    confirmed: parseInt(confirmedBookingsQuery.rows[0].total),
                 },
                 revenue: {
                     total: parseFloat(revenueQuery.rows[0].total_revenue),
@@ -115,9 +170,7 @@ router.get('/dashboard/admin', async (req, res) => {
                 }
             },
 
-            topSpaces: []
-
-
+            topSpaces: topSpaces
         };
 
         console.log('Real data:', realData);

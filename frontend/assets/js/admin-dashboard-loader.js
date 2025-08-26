@@ -105,8 +105,7 @@ class AdminDashboardLoader {
 
         // Prenotazioni
         this.updateStatCard('total-bookings', general.bookings.total);
-        this.updateStatCard('confirmed-bookings', general.bookings.confirmed);
-        this.updateStatCard('conversion-rate', general.bookings.conversionRate + '%');
+        this.updateStatCard('confirmed-bookings', general.bookings.total);
 
         // Revenue
         this.updateStatCard('total-revenue', '€' + general.revenue.total.toFixed(2));
@@ -150,20 +149,26 @@ class AdminDashboardLoader {
             return;
         }
 
-        const spacesHtml = topSpaces.map((space, index) => `
-            <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+        // ORDINA PER NUMERO TOTALE DI PRENOTAZIONI (decrescente)
+        const sortedSpaces = [...topSpaces].sort((a, b) => b.bookings.total - a.bookings.total);
+
+        const spacesHtml = sortedSpaces.map((space, index) => `
+        <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+            <div class="d-flex align-items-center">
+                <div class="badge bg-primary me-2">${index + 1}</div>
                 <div>
                     <h6 class="mb-0">${space.name}</h6>
                     <small class="text-muted">${space.location}</small>
                 </div>
-                <div class="text-end">
-                    <div class="fw-bold text-success">€${space.revenue.toFixed(2)}</div>
-                    <small class="text-muted">
-                        ${space.bookings.confirmed}/${space.bookings.total} prenotazioni
-                    </small>
-                </div>
             </div>
-        `).join('');
+            <div class="text-end">
+                <div class="fw-bold text-primary">${space.bookings.total} prenotazioni</div>
+                <small class="text-muted">
+                    €${space.revenue.toFixed(2)} • ${space.bookings.total} confermate
+                </small>
+            </div>
+        </div>
+    `).join('');
 
         container.innerHTML = spacesHtml;
     }

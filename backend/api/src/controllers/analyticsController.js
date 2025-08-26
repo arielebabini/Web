@@ -40,9 +40,7 @@ class AnalyticsController {
                     spaces: { total: parseInt(spaceCount.rows[0].total) },
                     bookings: {
                         total: parseInt(bookingCount.rows[0].total),
-                        confirmed: parseInt(confirmedBookingsQuery.rows[0].confirmed),
-                        conversionRate: bookingCount.rows[0].total > 0 ?
-                            (confirmedBookingsQuery.rows[0].confirmed / bookingCount.rows[0].total * 100).toFixed(1) : 0
+                        confirmed: parseInt(confirmedBookingsQuery.rows[0].total),
                     },
                     revenue: {
                         total: parseFloat(revenueQuery.rows[0].total_revenue),

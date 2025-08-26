@@ -81,8 +81,7 @@ class AnalyticsService {
         const stats = result.rows[0];
 
         const totalBookings = parseInt(stats.total_bookings);
-        const confirmedBookings = parseInt(stats.confirmed_bookings);
-        const conversionRate = totalBookings > 0 ? (confirmedBookings / totalBookings) * 100 : 0;
+        const confirmedBookings = parseInt(stats.total_bookings);
 
         const totalRevenue = parseFloat(stats.total_revenue);
         const totalPayments = parseInt(stats.total_payments);
@@ -100,7 +99,6 @@ class AnalyticsService {
                 total: totalBookings,
                 new: totalBookings, // Nel periodo selezionato
                 confirmed: confirmedBookings,
-                conversionRate: Math.round(conversionRate * 100) / 100
             },
             revenue: {
                 total: totalRevenue,
@@ -202,7 +200,7 @@ class AnalyticsService {
      */
     static async getTopSpaces(startDate, endDate, limit = 5) {
         const query = `
-            SELECT 
+            SELECT
                 s.id,
                 s.name,
                 s.location,
@@ -210,17 +208,17 @@ class AnalyticsService {
                 COUNT(DISTINCT b.id) as total_bookings,
                 COUNT(DISTINCT CASE WHEN b.status = 'confirmed' THEN b.id END) as confirmed_bookings
             FROM spaces s
-            LEFT JOIN bookings b ON s.id = b.space_id 
-                AND b.created_at >= $1 
-                AND b.created_at <= $2 
+                     LEFT JOIN bookings b ON s.id = b.space_id
+                AND b.created_at >= $1
+                AND b.created_at <= $2
                 AND b.deleted_at IS NULL
-            LEFT JOIN payments p ON b.id = p.booking_id 
-                AND p.status = 'completed' 
+                     LEFT JOIN payments p ON b.id = p.booking_id
+                AND p.status = 'completed'
                 AND p.deleted_at IS NULL
             WHERE s.deleted_at IS NULL
             GROUP BY s.id, s.name, s.location
-            ORDER BY revenue DESC, total_bookings DESC
-            LIMIT $3
+            ORDER BY total_bookings DESC, confirmed_bookings DESC, revenue DESC
+                LIMIT $3
         `;
 
         const result = await db.query(query, [startDate, endDate, limit]);
@@ -232,7 +230,7 @@ class AnalyticsService {
             revenue: parseFloat(row.revenue),
             bookings: {
                 total: parseInt(row.total_bookings),
-                confirmed: parseInt(row.confirmed_bookings)
+                confirmed: parseInt(row.total_bookings)
             }
         }));
     }
@@ -280,7 +278,7 @@ class AnalyticsService {
             general: {
                 bookings: {
                     total: parseInt(stats.total_bookings),
-                    confirmed: parseInt(stats.confirmed_bookings),
+                    confirmed: parseInt(stats.total_bookings),
                     cancelled: parseInt(stats.cancelled_bookings)
                 },
                 revenue: parseFloat(stats.revenue),
@@ -324,7 +322,7 @@ class AnalyticsService {
         return {
             bookings: {
                 total: parseInt(stats.total_bookings),
-                confirmed: parseInt(stats.confirmed_bookings),
+                confirmed: parseInt(stats.total_bookings),
                 cancelled: parseInt(stats.cancelled_bookings),
                 totalHours: parseFloat(stats.total_hours)
             },

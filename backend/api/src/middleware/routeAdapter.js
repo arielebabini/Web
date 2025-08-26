@@ -82,19 +82,39 @@ const adaptUserController = {
         }
     },
 
-    updateUserStatus: async (req, res, next) => {
+    createUser: async (req, res) => {
         try {
-            await UserController.updateUserStatus(req, res);
+            await userController.createUser(req, res);
         } catch (error) {
-            next(error);
+            logger.error('Error in adaptUserController.createUser:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Errore interno del server'
+            });
         }
     },
 
-    deleteUser: async (req, res, next) => {
+    deleteUser: async (req, res) => {
         try {
-            await UserController.deleteUser(req, res);
+            await userController.deleteUser(req, res);
         } catch (error) {
-            next(error);
+            logger.error('Error in adaptUserController.deleteUser:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Errore interno del server'
+            });
+        }
+    },
+
+    updateUserStatus: async (req, res) => {
+        try {
+            await userController.updateUserStatus(req, res);
+        } catch (error) {
+            logger.error('Error in adaptUserController.updateUserStatus:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Errore interno del server'
+            });
         }
     }
 };
