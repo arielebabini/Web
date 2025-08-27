@@ -452,7 +452,7 @@ class CoWorkSpaceApp {
                         console.log('🚀 Redirecting user to dashboard...');
                         window.location.href = './template/user-dashboard.html';
                     }
-                }, 1000);
+                }, 10);
 
             } else {
                 console.error('❌ Login failed:', result.message);

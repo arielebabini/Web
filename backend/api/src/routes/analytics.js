@@ -114,32 +114,9 @@ router.get('/dashboard/admin', async (req, res) => {
                 }
             };
 
-            // LOG DETTAGLIATO PER DEBUG
-            console.log('🏢 Spazio processato dettagliato:', {
-                id: space.id,
-                name: space.name,
-                location: space.location,
-                revenue: space.revenue,
-                bookings_total: space.bookings.total,
-                bookings_confirmed: space.bookings.total,
-                raw_data: {
-                    total_bookings: row.total_bookings,
-                    confirmed_bookings: row.total_bookings,
-                    revenue: row.revenue
-                }
-            });
-
             return space;
         });
 
-        console.log('📊 TUTTI I TOP SPAZI DETTAGLIATI:');
-        topSpaces.forEach((space, index) => {
-            console.log(`${index + 1}. ${space.name}:`);
-            console.log(`   - Prenotazioni totali: ${space.bookings.total}`);
-            console.log(`   - Prenotazioni confermate: ${space.bookings.total}`);
-            console.log(`   - Revenue: €${space.revenue}`);
-            console.log(`   - Location: ${space.location}`);
-        });
 
         const realData = {
             timeRange: '30d',

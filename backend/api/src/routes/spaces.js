@@ -195,6 +195,17 @@ const optionalAuth = (req, res, next) => {
 // ===============================================
 
 /**
+ * @route   GET /api/spaces/all
+ * @desc    Ottiene tutti gli spazi per la dashboard amministrativa
+ * @access  Private (admin/manager)
+ */
+router.get('/all',
+    requireAuth,
+    requireManager,
+    SpaceController.getAllSpaces
+);
+
+/**
  * @route   GET /api/spaces
  * @desc    Lista tutti gli spazi con filtri e paginazione
  * @access  Public/Private (diversi livelli di accesso)

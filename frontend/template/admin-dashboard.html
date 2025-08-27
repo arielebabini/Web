@@ -1404,7 +1404,7 @@
             loadUsers(); // Carica gli utenti quando la sezione viene mostrata
         } else if (section === 'spaces') {
             console.log('🏢 Loading spaces section...');
-            // loadSpaces(); // Implementare se necessario
+            loadSpaces(); // Implementare se necessario
         }
 
         // Update active menu
@@ -2740,6 +2740,109 @@
             })
             .catch(err => console.error('❌ Dashboard error:', err));
     }, 1000);
+</script>
+
+<script>
+    // Sezione spazi
+    const spacesTableBody = document.getElementById('spacesTableBody');
+    const totalSpacesCountEl = document.getElementById('totalSpacesCount');
+    const activeSpacesCountEl = document.getElementById('activeSpacesCount');
+
+    // Funzione per caricare gli spazi
+    async function loadSpaces() {
+        showLoadingState();
+        try {
+            const token = localStorage.getItem('auth_token'); // Recupera il token da localStorage
+            if (!token) {
+                console.error('Token di autenticazione mancante.');
+                showErrorState('Accesso negato. Effettua il login.');
+                return;
+            }
+
+            const response = await fetch('http://localhost:3000/api/spaces/all', {
+                headers: {
+                    'Authorization': `Bearer ${token}` // Invia il token nell'header
+                }
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                renderSpacesTable(data.spaces);
+                updateSpacesStats(data.spaces);
+            } else {
+                showErrorState(data.message || 'Errore durante il caricamento degli spazi.');
+            }
+        } catch (error) {
+            console.error('Errore nel caricamento degli spazi:', error);
+            showErrorState('Impossibile caricare gli spazi. Riprova più tardi.');
+        }
+    }
+
+    // Funzione per renderizzare la tabella
+    function renderSpacesTable(spaces) {
+        spacesTableBody.innerHTML = ''; // Pulisce la tabella
+        if (spaces.length === 0) {
+            spacesTableBody.innerHTML = `<tr><td colspan="7" class="text-center text-muted">Nessun spazio trovato.</td></tr>`;
+            return;
+        }
+
+        spaces.forEach(space => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${space.name}</td>
+                <td>${space.city}</td>
+                <td>${formatSpaceType(space.type)}</td>
+                <td>${space.capacity}</td>
+                <td>€${typeof space.price_per_day === 'number' ? space.price_per_day.toFixed(2) : parseFloat(space.price_per_day).toFixed(2)}</td>
+                <td><span class="status-badge status-${space.status}">${space.status}</span></td>
+                <td>
+                    <button class="btn btn-sm btn-info me-1" onclick="editSpace('${space._id}')"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteSpace('${space._id}')"><i class="fas fa-trash"></i></button>
+                </td>
+            `;
+            spacesTableBody.appendChild(row);
+        });
+    }
+
+    // Funzione per aggiornare le statistiche
+    function updateSpacesStats(spaces) {
+        totalSpacesCountEl.textContent = spaces.length;
+        const activeSpaces = spaces.filter(s => s.status === 'active').length;
+        activeSpacesCountEl.textContent = activeSpaces;
+        document.getElementById('spacesTotal').textContent = spaces.length;
+        document.getElementById('spacesShowing').textContent = spaces.length;
+    }
+
+    // Funzione di formattazione del tipo di spazio
+    function formatSpaceType(type) {
+        const types = {
+            'desk': 'Scrivania',
+            'meeting_room': 'Sala Meeting',
+            'private_office': 'Ufficio Privato',
+            'coworking': 'Coworking',
+            'hot-desk': 'Hot-Desk',
+            'private-desk': 'Scrivania Privata',
+            'phone-booth': 'Cabina Telefonica',
+            'event-space': 'Spazio Eventi'
+        };
+        return types[type] || type;
+    }
+
+    // Funzioni per gestire lo stato di caricamento/errore
+    function showLoadingState() {
+        spacesTableBody.innerHTML = `<tr><td class="text-center py-4" colspan="7"><div class="spinner-border text-primary" role="status"></div><div class="mt-2">Caricamento spazi...</div></td></tr>`;
+    }
+
+    function showErrorState(message) {
+        spacesTableBody.innerHTML = `<tr><td class="text-center text-danger py-4" colspan="7"><i class="fas fa-exclamation-triangle me-2"></i>${message}</td></tr>`;
+    }
+
+    // Carica gli spazi all'avvio della pagina se la sezione spaces è attiva
+    document.addEventListener('DOMContentLoaded', () => {
+        if (window.location.hash === '#spaces') {
+            loadSpaces();
+        }
+    });
 </script>
 </body>
 </html>
