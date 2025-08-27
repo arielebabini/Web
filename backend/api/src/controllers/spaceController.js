@@ -509,6 +509,107 @@ class SpaceController {
     }
 
     /**
+     * @route   GET /api/spaces/all
+     * @desc    Ottiene tutti gli spazi con filtri
+     * @access  Private (tutti gli utenti autenticati)
+     * @param {object} req - Oggetto request
+     * @param {object} res - Oggetto response
+     * @returns {Promise<void>}
+     */
+    static async getSpaces(req, res) {
+        try {
+            // Estrai i parametri di query dalla richiesta
+            const { type, city, search } = req.query;
+
+            // Logica per costruire i filtri per il database
+            const filters = {};
+            if (type) {
+                // Aggiungi un controllo di validità per il tipo
+                const validTypes = ['hot-desk', 'private-office', 'meeting-room', 'event-space'];
+                if (validTypes.includes(type)) {
+                    filters.type = type;
+                } else {
+                    // Se il tipo non è valido, restituisci un errore 400
+                    return res.status(400).json({
+                        success: false,
+                        message: `Tipo di spazio non valido: ${type}. Tipi supportati: ${validTypes.join(', ')}`
+                    });
+                }
+            }
+            if (city) {
+                filters.city = city;
+            }
+            if (search) {
+                // Aggiunge la logica per la ricerca testuale
+                // Nota: Assicurati che il tuo database supporti questa sintassi
+                filters.$or = [
+                    { name: { $regex: search, $options: 'i' } },
+                    { address: { $regex: search, $options: 'i' } }
+                ];
+            }
+
+            // Simula il recupero degli spazi dal database con i filtri
+            // Sostituisci questo con la tua logica di database
+            // Esempio: const spaces = await Space.find(filters);
+            const spaces = [
+                { id: '1', name: 'Ufficio Privato 1', type: 'private-office', city: 'Milano' },
+                { id: '2', name: 'Sala Meeting 1', type: 'meeting-room', city: 'Roma' },
+                { id: '3', name: 'Hot Desk 1', type: 'hot-desk', city: 'Milano' },
+            ].filter(space => {
+                let match = true;
+                if (filters.type && space.type !== filters.type) {
+                    match = false;
+                }
+                if (filters.city && space.city !== filters.city) {
+                    match = false;
+                }
+                if (filters.$or) {
+                    let searchMatch = false;
+                    if (space.name.toLowerCase().includes(search.toLowerCase()) || space.address?.toLowerCase().includes(search.toLowerCase())) {
+                        searchMatch = true;
+                    }
+                    if (!searchMatch) {
+                        match = false;
+                    }
+                }
+                return match;
+            });
+
+            res.json({
+                success: true,
+                spaces
+            });
+        } catch (error) {
+            logger.error('Error getting spaces:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Errore durante il recupero degli spazi'
+            });
+        }
+    }
+
+    /**
+     * Ottiene le statistiche complessive degli spazi per la dashboard
+     */
+    static async getStats(req, res) {
+        try{
+            const managerId = req.user && req.user.role === 'manager' ? req.user.id : null;
+            const stats = await Space.getStats(managerId);
+
+            res.json({
+                success: true,
+                stats
+            });
+        } catch (error) {
+            logger.error('Error getting space stats:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Errore durante il recupero delle statistiche'
+            });
+        }
+    }
+
+    /**
      * Ottiene gli slot occupati per uno spazio
      */
     static async getOccupiedSlots(req, res) {

@@ -387,61 +387,6 @@ class Space {
     }
 
     /**
-     * Ottiene statistiche spazi
-     * @param {string} managerId - ID manager (opzionale, per filtrare)
-     * @returns {Promise<Object>} Statistiche
-     */
-    static async getStats(managerId = null) {
-        try {
-            let whereClause = 'WHERE s.is_active = true';
-            const params = [];
-
-            if (managerId) {
-                whereClause += ' AND s.manager_id = $1';
-                params.push(managerId);
-            }
-
-            const result = await query(`
-                SELECT 
-                    COUNT(*) as total_spaces,
-                    COUNT(CASE WHEN s.is_featured THEN 1 END) as featured_spaces,
-                    AVG(s.rating) as avg_rating,
-                    AVG(s.price_per_day) as avg_price,
-                    s.type,
-                    COUNT(*) as count_by_type
-                FROM spaces s
-                ${whereClause}
-                GROUP BY ROLLUP(s.type)
-                ORDER BY s.type
-            `, params);
-
-            const stats = {
-                total: 0,
-                featured: 0,
-                avgRating: 0,
-                avgPrice: 0,
-                byType: {}
-            };
-
-            result.rows.forEach(row => {
-                if (!row.type) {
-                    stats.total = parseInt(row.total_spaces);
-                    stats.featured = parseInt(row.featured_spaces);
-                    stats.avgRating = parseFloat(row.avg_rating || 0);
-                    stats.avgPrice = parseFloat(row.avg_price || 0);
-                } else {
-                    stats.byType[row.type] = parseInt(row.count_by_type);
-                }
-            });
-
-            return stats;
-        } catch (error) {
-            logger.error('Error getting space stats:', error);
-            throw error;
-        }
-    }
-
-    /**
      * Ottiene disponibilità per un range di date
      * @param {string} spaceId - ID dello spazio
      * @param {string} startDate - Data inizio

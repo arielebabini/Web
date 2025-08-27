@@ -318,18 +318,6 @@
                 <span>Prenotazioni</span>
             </a>
         </div>
-        <div class="sidebar-item">
-            <a class="sidebar-link" href="#analytics" onclick="showSection('analytics')">
-                <i class="fas fa-chart-bar sidebar-icon"></i>
-                <span>Analytics</span>
-            </a>
-        </div>
-        <div class="sidebar-item">
-            <a class="sidebar-link" href="#settings" onclick="showSection('settings')">
-                <i class="fas fa-cog sidebar-icon"></i>
-                <span>Impostazioni</span>
-            </a>
-        </div>
         <div class="sidebar-item mt-4">
             <a class="sidebar-link" href="../index.html">
                 <i class="fas fa-arrow-left sidebar-icon"></i>
@@ -769,46 +757,6 @@
                                 <i class="fas fa-refresh"></i> Reset
                             </button>
                         </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Statistiche Rapide -->
-            <div class="row mb-4">
-                <div class="col-md-3">
-                    <div class="admin-card text-center">
-                        <div class="text-primary mb-2">
-                            <i class="fas fa-building fa-2x"></i>
-                        </div>
-                        <h5 class="mb-1" id="totalSpacesCount">0</h5>
-                        <small class="text-muted">Spazi Totali</small>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="admin-card text-center">
-                        <div class="text-success mb-2">
-                            <i class="fas fa-check-circle fa-2x"></i>
-                        </div>
-                        <h5 class="mb-1" id="activeSpacesCount">0</h5>
-                        <small class="text-muted">Spazi Attivi</small>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="admin-card text-center">
-                        <div class="text-warning mb-2">
-                            <i class="fas fa-calendar-check fa-2x"></i>
-                        </div>
-                        <h5 class="mb-1" id="bookedSpacesCount">0</h5>
-                        <small class="text-muted">Prenotati Oggi</small>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="admin-card text-center">
-                        <div class="text-info mb-2">
-                            <i class="fas fa-euro-sign fa-2x"></i>
-                        </div>
-                        <h5 class="mb-1" id="spacesRevenue">€0</h5>
-                        <small class="text-muted">Ricavi Mensili</small>
                     </div>
                 </div>
             </div>
@@ -1380,6 +1328,7 @@
         } else if (section === 'spaces') {
             console.log('🏢 Loading spaces section...');
             loadSpaces(); // Implementare se necessario
+            fetchDashboardStats();
         }
 
         // Update active menu
@@ -2724,7 +2673,7 @@
     const activeSpacesCountEl = document.getElementById('activeSpacesCount');
 
     // Funzione per caricare gli spazi
-    async function loadSpaces() {
+    async function loadSpaces(filters = {}) {
         showLoadingState();
         try {
             const token = localStorage.getItem('auth_token'); // Recupera il token da localStorage
@@ -2734,11 +2683,11 @@
                 return;
             }
 
-            await loadDashboardStats();
+            // Costruisce la stringa di query dai filtri
+            const queryString = new URLSearchParams(filters).toString();
 
-            loadTopSpaces();
-
-            const response = await fetch('http://localhost:3000/api/spaces/all', {
+            // Aggiunge la stringa di query all'URL della tua API
+            const response = await fetch(`http://localhost:3000/api/spaces/all?${queryString}`, {
                 headers: {
                     'Authorization': `Bearer ${token}` // Invia il token nell'header
                 }
@@ -2815,6 +2764,32 @@
         }
     }
 
+    async function fetchDashboardStats() {
+        const loadingEl = document.getElementById('dashboard-loading');
+        const errorEl = document.getElementById('dashboard-error');
+
+        loadingEl.style.display = 'flex';
+        errorEl.style.display = 'none';
+
+        try {
+            const response = await fetch('/api/spaces/stats');
+            const data = await response.json();
+
+            if (data.success) {
+                updateSpacesStats(data.stats);
+            } else {
+                errorEl.textContent = data.message || 'Errore sconosciuto durante il caricamento delle statistiche.';
+                errorEl.style.display = 'block';
+            }
+        } catch (error) {
+            console.error('Errore nel fetch delle statistiche:', error);
+            errorEl.textContent = 'Impossibile connettersi al server. Riprova più tardi.';
+            errorEl.style.display = 'block';
+        } finally {
+            loadingEl.style.display = 'none';
+        }
+    }
+
     // Funzione per renderizzare la tabella
     function renderSpacesTable(spaces) {
         spacesTableBody.innerHTML = ''; // Pulisce la tabella
@@ -2854,6 +2829,42 @@
             'event-space': 'Spazio Eventi'
         };
         return types[type] || type;
+    }
+
+    /**
+     * Funzione per applicare i filtri e avviare la ricerca
+     * @description Legge i valori dai campi di ricerca e filtra i dati mock degli spazi.
+     */
+    function applySpaceFilters() {
+        // Ottiene i valori dei campi di input e select
+        const searchInput = document.getElementById('spaceSearch').value;
+        const cityFilter = document.getElementById('cityFilter').value;
+        const typeFilter = document.getElementById('spaceTypeFilter').value;
+
+        // Crea un oggetto con i filtri da applicare
+        const filters = {};
+        if (searchInput) filters.search = searchInput;
+        if (cityFilter) filters.city = cityFilter;
+        if (typeFilter) filters.type = typeFilter;
+
+        // Resetta la paginazione e ricarica gli spazi con i nuovi filtri
+        currentPageSpaces = 1;
+        loadSpaces(filters);
+    }
+
+    /**
+     * Funzione per resettare i filtri di ricerca
+     * @description Resetta i valori dei campi di input e ricarica tutti gli spazi.
+     */
+    function resetSpaceFilters() {
+        // Resetta i campi del form
+        document.getElementById('spaceSearch').value = '';
+        document.getElementById('cityFilter').value = '';
+        document.getElementById('spaceTypeFilter').value = '';
+
+        // Resetta la paginazione e ricarica senza filtri
+        currentPageSpaces = 1;
+        loadSpaces();
     }
 
     // Funzioni per gestire lo stato di caricamento/errore

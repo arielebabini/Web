@@ -412,4 +412,15 @@ router.use((error, req, res, next) => {
     next(error);
 });
 
+/**
+ * @route   GET /api/spaces/stats
+ * @desc    Ottiene le statistiche degli spazi
+ * @access  Private (manager/admin)
+ */
+router.get('/stats',
+    requireAuth,
+    requireManager,
+    SpaceController.getStats
+);
+
 module.exports = router;
