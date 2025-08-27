@@ -974,9 +974,6 @@ function loadPreferitiSection(container) {
                     <button class="btn btn-outline-primary btn-sm me-2" onclick="sortFavorites()">
                         <i class="fas fa-sort me-1"></i>Ordina
                     </button>
-                    <button class="btn btn-outline-info btn-sm me-2" onclick="exportFavorites()">
-                        <i class="fas fa-download me-1"></i>Esporta
-                    </button>
                     <button class="btn btn-outline-danger btn-sm" onclick="clearAllFavorites()">
                         <i class="fas fa-trash me-1"></i>Svuota Tutto
                     </button>

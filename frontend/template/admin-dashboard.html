@@ -759,15 +759,6 @@
                             <option value="coworking">Coworking</option>
                         </select>
                     </div>
-                    <div class="col-md-2">
-                        <label class="form-label">Status</label>
-                        <select class="form-select" id="spaceStatusFilter">
-                            <option value="">Tutti</option>
-                            <option value="active">Attivo</option>
-                            <option value="inactive">Inattivo</option>
-                            <option value="maintenance">Manutenzione</option>
-                        </select>
-                    </div>
                     <div class="col-md-3">
                         <label class="form-label">&nbsp;</label>
                         <div class="d-flex gap-2">
@@ -776,9 +767,6 @@
                             </button>
                             <button class="btn btn-outline-secondary" onclick="resetSpaceFilters()">
                                 <i class="fas fa-refresh"></i> Reset
-                            </button>
-                            <button class="btn btn-outline-success" onclick="exportSpacesData()">
-                                <i class="fas fa-download"></i> Esporta
                             </button>
                         </div>
                     </div>
@@ -835,8 +823,6 @@
                         <th>Tipo</th>
                         <th>Capienza</th>
                         <th>Prezzo/h</th>
-                        <th>Status</th>
-                        <th>Prenotazioni</th>
                         <th>Azioni</th>
                     </tr>
                     </thead>
@@ -895,12 +881,10 @@
                                     <label class="form-label">Tipo Spazio *</label>
                                     <select class="form-select" id="spaceType" required>
                                         <option value="">Seleziona tipo</option>
-                                        <option value="desk">Scrivania Condivisa</option>
-                                        <option value="private_desk">Scrivania Privata</option>
-                                        <option value="meeting_room">Sala Meeting</option>
-                                        <option value="private_office">Ufficio Privato</option>
-                                        <option value="phone_booth">Cabina Telefonica</option>
-                                        <option value="event_space">Spazio Eventi</option>
+                                        <option value="hot-desk">Scrivania Condivisa</option>
+                                        <option value="private-office">Ufficio Privato</option>
+                                        <option value="meeting-room">Sala Meeting</option>
+                                        <option value="event-space">Spazio Eventi</option>
                                     </select>
                                 </div>
                                 <div class="col-md-4">
@@ -912,14 +896,6 @@
                                     <label class="form-label">Prezzo/Ora (€) *</label>
                                     <input class="form-control" id="spacePrice" min="0" required step="0.50"
                                            type="number">
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">Status *</label>
-                                    <select class="form-select" id="spaceStatus" required>
-                                        <option value="active">Attivo</option>
-                                        <option value="inactive">Inattivo</option>
-                                        <option value="maintenance">In Manutenzione</option>
-                                    </select>
                                 </div>
                             </div>
 
@@ -1045,9 +1021,9 @@
                                     </h6>
                                 </div>
                                 <div class="col-12">
-                                    <label class="form-label">Descrizione Spazio</label>
+                                    <label class="form-label">Descrizione Spazio *</label>
                                     <textarea class="form-control" id="spaceDescription" placeholder="Descrizione dettagliata dello spazio, atmosfera, particolarità..."
-                                              rows="4"></textarea>
+                                              rows="4" required></textarea>
                                 </div>
                                 <div class="col-12 mt-3">
                                     <label class="form-label">Note per Gestione</label>
@@ -1214,7 +1190,6 @@
                     type: document.getElementById('spaceType').value,
                     capacity: parseInt(document.getElementById('spaceCapacity').value),
                     price_per_hour: parseFloat(document.getElementById('spacePrice').value),
-                    status: document.getElementById('spaceStatus').value,
                     city: document.getElementById('spaceCity').value,
                     address: document.getElementById('spaceAddress').value,
                     postal_code: document.getElementById('spacePostalCode').value,
@@ -2794,10 +2769,10 @@
                 <td>${formatSpaceType(space.type)}</td>
                 <td>${space.capacity}</td>
                 <td>€${typeof space.price_per_day === 'number' ? space.price_per_day.toFixed(2) : parseFloat(space.price_per_day).toFixed(2)}</td>
-                <td><span class="status-badge status-${space.status}">${space.status}</span></td>
                 <td>
                     <button class="btn btn-sm btn-info me-1" onclick="editSpace('${space._id}')"><i class="fas fa-edit"></i></button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteSpace('${space._id}')"><i class="fas fa-trash"></i></button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteSpace('${space.id}')"><i class="fas fa-trash-alt"></i>
+                    </button>
                 </td>
             `;
             spacesTableBody.appendChild(row);
@@ -2835,6 +2810,99 @@
 
     function showErrorState(message) {
         spacesTableBody.innerHTML = `<tr><td class="text-center text-danger py-4" colspan="7"><i class="fas fa-exclamation-triangle me-2"></i>${message}</td></tr>`;
+    }
+
+    async function saveSpace() {
+        const spaceForm = document.getElementById('spaceForm');
+        if (!spaceForm.checkValidity()) {
+            spaceForm.reportValidity();
+            return;
+        }
+
+        const amenities = [];
+        document.querySelectorAll('#spaceForm .form-check-input[type="checkbox"]').forEach(checkbox => {
+            if (checkbox.checked) {
+                amenities.push(checkbox.id.replace('Service', ''));
+            }
+        });
+
+        const spaceData = {
+            name: document.getElementById('spaceName').value,
+            type: document.getElementById('spaceType').value,
+            capacity: parseInt(document.getElementById('spaceCapacity').value),
+            price_per_day: parseFloat(document.getElementById('spacePrice').value),
+            city: document.getElementById('spaceCity').value,
+            address: document.getElementById('spaceAddress').value,
+            postal_code: document.getElementById('spacePostalCode').value,
+            floor: document.getElementById('spaceFloor').value,
+            room: document.getElementById('spaceRoom').value,
+            description: document.getElementById('spaceDescription').value,
+            notes: document.getElementById('spaceNotes').value,
+            open_time: document.getElementById('spaceOpenTime').value,
+            close_time: document.getElementById('spaceCloseTime').value,
+            days_available: amenities,
+            amenities: amenities,
+        };
+
+        try {
+            const token = localStorage.getItem('auth_token');
+            const response = await fetch('http://localhost:3000/api/spaces', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(spaceData),
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                showNotification('Spazio creato con successo!', 'success');
+
+                // Chiudi il modal solo al successo
+                const modalElement = document.getElementById('spaceModal');
+                const modal = bootstrap.Modal.getInstance(modalElement) || new bootstrap.Modal(modalElement);
+                modal.hide();
+
+                loadSpaces();
+            } else {
+                const errorMessage = result.message || 'Errore nella creazione dello spazio.';
+                showNotification(errorMessage, 'error');
+            }
+
+        } catch (error) {
+            console.error('Errore durante la creazione dello spazio:', error);
+            showNotification('Errore di connessione. Riprova più tardi.', 'error');
+        }
+    }
+
+    async function deleteSpace(spaceId) {
+        // Chiedi conferma all'utente
+        if (!confirm('Sei sicuro di voler eliminare questo spazio?')) {
+            return;
+        }
+
+        try {
+            const token = localStorage.getItem('auth_token'); // Recupera il token
+            const response = await fetch(`http://localhost:3000/api/spaces/${spaceId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}` // Invia il token nell'header
+                },
+            });
+
+            if (response.ok) {
+                showNotification('Spazio eliminato con successo!', 'success');
+                loadSpaces(); // Ricarica la tabella per aggiornare la vista
+            } else {
+                const errorData = await response.json();
+                showNotification(errorData.message || 'Errore durante l\'eliminazione dello spazio.', 'error');
+            }
+        } catch (error) {
+            console.error('Errore durante la cancellazione:', error);
+            showNotification('Errore di connessione. Riprova più tardi.', 'error');
+        }
     }
 
     // Carica gli spazi all'avvio della pagina se la sezione spaces è attiva
