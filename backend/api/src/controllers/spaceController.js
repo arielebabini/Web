@@ -305,6 +305,31 @@ class SpaceController {
     }
 
     /**
+     * Ottiene statistiche dashboard spazi
+     */
+    static async getDashboardStats(req, res) {
+        try {
+            // Se l'utente è un manager, filtra solo i suoi spazi
+            const managerId = req.user && req.user.role === 'manager'
+                ? req.user.id
+                : null;
+
+            const stats = await Space.getDashboardStats(managerId);
+
+            res.json({
+                success: true,
+                stats
+            });
+        } catch (error) {
+            logger.error('Error getting dashboard stats:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Errore durante il recupero delle statistiche dashboard'
+            });
+        }
+    }
+
+    /**
      * Ottiene il calendario di disponibilità
      */
     static async getAvailabilityCalendar(req, res) {

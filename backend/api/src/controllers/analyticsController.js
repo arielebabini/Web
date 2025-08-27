@@ -305,47 +305,147 @@ class AnalyticsController {
     }
 
     /**
-     * Esporta report in formato CSV
+     * Dashboard admin - Statistiche precise per i tre indicatori
      */
-    static async exportReport(req, res) {
+    static async getSpaceData(req, res) {
         try {
-            if (!['admin', 'manager'].includes(req.user.role)) {
-                return res.status(403).json({
-                    success: false,
-                    message: 'Accesso riservato a manager e amministratori'
-                });
-            }
+            const { timeRange = '30d' } = req.query;
+            const { query } = require('../config/database');
 
-            const { type, startDate, endDate } = req.query;
+            // 1. SPAZI ATTIVI - Count di tutti gli spazi attivi (non eliminati)
+            const spaziAttiviQuery = await query(`
+            SELECT COUNT(*) as total 
+            FROM spaces 
+            WHERE deleted_at IS NULL 
+            AND (status = 'active' OR status IS NULL)
+        `);
 
-            if (!type || !startDate || !endDate) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Parametri type, startDate e endDate richiesti'
-                });
-            }
+            // 2. PRENOTATI OGGI - Count delle prenotazioni create oggi
+            const prenotatiOggiQuery = await query(`
+            SELECT COUNT(*) as total 
+            FROM bookings 
+            WHERE DATE(created_at) = CURRENT_DATE
+            AND deleted_at IS NULL
+        `);
 
-            // TODO: Implementare export CSV dal database
-            // Per ora response di placeholder
+            // 3. RICAVI MENSILI - Somma ricavi del mese corrente
+            const ricaviMensiliQuery = await query(`
+            SELECT COALESCE(SUM(amount), 0) as total_revenue
+            FROM payments 
+            WHERE EXTRACT(MONTH FROM created_at) = EXTRACT(MONTH FROM CURRENT_DATE)
+            AND EXTRACT(YEAR FROM created_at) = EXTRACT(YEAR FROM CURRENT_DATE)
+            AND (status = 'completed' OR status = 'success')
+            AND deleted_at IS NULL
+        `);
+
+            // Query aggiuntive esistenti (mantieni quelle che ci sono già)
+            const userCount = await query('SELECT COUNT(*) as total FROM users WHERE deleted_at IS NULL');
+            const totalSpaceCount = await query('SELECT COUNT(*) as total FROM spaces WHERE deleted_at IS NULL');
+            const bookingCount = await query('SELECT COUNT(*) as total FROM bookings WHERE deleted_at IS NULL');
+
+            // Ricavi giornalieri per grafici
+            const dailyRevenueQuery = await query(`
+            SELECT 
+                DATE(created_at) as date,
+                COALESCE(SUM(amount), 0) as revenue,
+                COUNT(*) as payments
+            FROM payments
+            WHERE created_at >= CURRENT_DATE - INTERVAL '30 days'
+            AND (status = 'completed' OR status = 'success')
+            AND deleted_at IS NULL
+            GROUP BY DATE(created_at)
+            ORDER BY date ASC
+        `);
+
+            // Top spazi per prenotazioni
+            const topSpacesQuery = await query(`
+            SELECT 
+                s.id,
+                s.name,
+                COALESCE(s.address, s.city, 'Posizione non specificata') as location,
+                COALESCE(SUM(CASE WHEN p.status IN ('completed', 'success') THEN p.amount END), 0) as revenue,
+                COUNT(DISTINCT b.id) as total_bookings
+            FROM spaces s
+            LEFT JOIN bookings b ON s.id = b.space_id 
+                AND b.created_at >= CURRENT_DATE - INTERVAL '30 days'
+                AND b.deleted_at IS NULL
+            LEFT JOIN payments p ON b.id = p.booking_id 
+                AND p.deleted_at IS NULL
+            WHERE s.deleted_at IS NULL
+            GROUP BY s.id, s.name, s.address, s.city
+            ORDER BY total_bookings DESC, revenue DESC
+            LIMIT 5
+        `);
+
+            // Costruisci la risposta
+            const dashboardData = {
+                timeRange: timeRange,
+                period: {
+                    startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+                    endDate: new Date().toISOString()
+                },
+                // DATI PRINCIPALI PER LA DASHBOARD
+                main_stats: {
+                    spazi_attivi: parseInt(spaziAttiviQuery.rows[0].total),
+                    prenotati_oggi: parseInt(prenotatiOggiQuery.rows[0].total),
+                    ricavi_mensili: parseFloat(ricaviMensiliQuery.rows[0].total_revenue)
+                },
+                // DATI GENERALI (per compatibilità con codice esistente)
+                general: {
+                    users: { total: parseInt(userCount.rows[0].total) },
+                    spaces: {
+                        total: parseInt(totalSpaceCount.rows[0].total),
+                        active: parseInt(spaziAttiviQuery.rows[0].total)
+                    },
+                    bookings: {
+                        total: parseInt(bookingCount.rows[0].total),
+                        today: parseInt(prenotatiOggiQuery.rows[0].total)
+                    },
+                    revenue: {
+                        monthly: parseFloat(ricaviMensiliQuery.rows[0].total_revenue)
+                    }
+                },
+                // GRAFICI E DETTAGLI
+                revenue: {
+                    dailyRevenue: dailyRevenueQuery.rows.map(row => ({
+                        date: row.date,
+                        revenue: parseFloat(row.revenue),
+                        payments: parseInt(row.payments)
+                    }))
+                },
+                topSpaces: topSpacesQuery.rows.map(row => ({
+                    id: row.id.toString(),
+                    name: row.name || 'Spazio senza nome',
+                    location: row.location,
+                    revenue: parseFloat(row.revenue),
+                    bookings: {
+                        total: parseInt(row.total_bookings)
+                    }
+                }))
+            };
+
+            console.log('Dashboard data generated:', {
+                spazi_attivi: dashboardData.main_stats.spazi_attivi,
+                prenotati_oggi: dashboardData.main_stats.prenotati_oggi,
+                ricavi_mensili: dashboardData.main_stats.ricavi_mensili
+            });
+
             res.json({
                 success: true,
-                message: `Export ${type} in sviluppo`,
-                data: {
-                    type,
-                    startDate,
-                    endDate,
-                    status: 'pending'
-                }
+                message: 'Dashboard data retrieved successfully',
+                data: dashboardData
             });
 
         } catch (error) {
-            logger.error('Error exporting report:', error);
+            console.error('Error getting admin dashboard:', error);
             res.status(500).json({
                 success: false,
-                message: 'Errore nell\'esportazione del report'
+                message: 'Errore nel recupero delle statistiche dashboard',
+                error: process.env.NODE_ENV === 'development' ? error.message : undefined
             });
         }
     }
+
 }
 
 module.exports = AnalyticsController;

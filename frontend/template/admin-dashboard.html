@@ -2734,6 +2734,10 @@
                 return;
             }
 
+            await loadDashboardStats();
+
+            loadTopSpaces();
+
             const response = await fetch('http://localhost:3000/api/spaces/all', {
                 headers: {
                     'Authorization': `Bearer ${token}` // Invia il token nell'header
@@ -2750,6 +2754,64 @@
         } catch (error) {
             console.error('Errore nel caricamento degli spazi:', error);
             showErrorState('Impossibile caricare gli spazi. Riprova più tardi.');
+        }
+    }
+
+    async function loadTopSpaces() {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                console.error('Token non trovato. Impossibile caricare i top spazi.');
+                return;
+            }
+
+            const topSpacesResponse = await fetch('/api/spaces/top-spaces', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!topSpacesResponse.ok) {
+                throw new Error('Errore nel caricamento dei top spazi');
+            }
+
+            const topSpacesData = await topSpacesResponse.json();
+            const topSpacesList = document.getElementById('top-spaces-list');
+            topSpacesList.innerHTML = ''; // Pulisce il messaggio di caricamento
+
+            if (topSpacesData.success && topSpacesData.spaces.length > 0) {
+                topSpacesData.spaces.forEach(space => {
+                    const spaceItem = document.createElement('div');
+                    spaceItem.className = 'd-flex align-items-center mb-3';
+                    spaceItem.innerHTML = `
+                    <div class="me-3 text-warning">
+                        <i class="fas fa-trophy fa-2x"></i>
+                    </div>
+                    <div>
+                        <h6 class="mb-0">${space.name}</h6>
+                        <small class="text-muted">Prenotazioni: ${space.bookings_count}</small>
+                    </div>
+                `;
+                    topSpacesList.appendChild(spaceItem);
+                });
+            } else {
+                topSpacesList.innerHTML = `
+                <div class="text-center text-muted py-4">
+                    <i class="fas fa-exclamation-circle fa-2x mb-2"></i>
+                    <p>Nessun top spazio trovato.</p>
+                </div>
+            `;
+            }
+
+        } catch (error) {
+            console.error('Errore nel caricamento dei top spazi:', error);
+            const topSpacesList = document.getElementById('top-spaces-list');
+            topSpacesList.innerHTML = `
+            <div class="text-center text-danger py-4">
+                <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                <p>Errore. Impossibile caricare i top spazi.</p>
+            </div>
+        `;
         }
     }
 
@@ -2777,15 +2839,6 @@
             `;
             spacesTableBody.appendChild(row);
         });
-    }
-
-    // Funzione per aggiornare le statistiche
-    function updateSpacesStats(spaces) {
-        totalSpacesCountEl.textContent = spaces.length;
-        const activeSpaces = spaces.filter(s => s.status === 'active').length;
-        activeSpacesCountEl.textContent = activeSpaces;
-        document.getElementById('spacesTotal').textContent = spaces.length;
-        document.getElementById('spacesShowing').textContent = spaces.length;
     }
 
     // Funzione di formattazione del tipo di spazio
@@ -2902,6 +2955,81 @@
         } catch (error) {
             console.error('Errore durante la cancellazione:', error);
             showNotification('Errore di connessione. Riprova più tardi.', 'error');
+        }
+    }
+
+    async function loadSpacesStats() {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                console.warn('⚠️ Token mancante');
+                showErrorState('Accesso negato. Effettua il login.');
+                return;
+            }
+
+            // Carica statistiche dashboard
+            const statsResponse = await fetch('http://localhost:3000/api/spaces/dashboard-stats', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            const statsData = await statsResponse.json();
+            if (statsData.success) {
+                updateSpacesStats(statsData.stats);
+            }
+
+            // Carica lista spazi
+            const spacesResponse = await fetch('http://localhost:3000/api/spaces/all', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            const spacesData = await spacesResponse.json();
+            if (spacesData.success) {
+                renderSpacesTable(spacesData.spaces);
+            } else {
+                showErrorState(spacesData.message || 'Errore durante il caricamento degli spazi.');
+            }
+        } catch (error) {
+            console.error('Errore nel caricamento degli spazi:', error);
+            showErrorState('Impossibile caricare gli spazi. Riprova più tardi.');
+        }
+    }
+
+    function updateSpacesStats(stats) {
+        // Spazi totali
+        const totalSpacesCountEl = document.getElementById('totalSpacesCount');
+        if (totalSpacesCountEl) {
+            totalSpacesCountEl.textContent = stats.total || 0;
+        }
+
+        // Spazi attivi
+        const activeSpacesCountEl = document.getElementById('activeSpacesCount');
+        if (activeSpacesCountEl) {
+            activeSpacesCountEl.textContent = stats.active || 0;
+        }
+
+        // Spazi prenotati oggi
+        const bookedSpacesCountEl = document.getElementById('bookedSpacesCount');
+        if (bookedSpacesCountEl) {
+            bookedSpacesCountEl.textContent = stats.bookedToday || 0;
+        }
+
+        // Ricavi mensili
+        const spacesRevenueEl = document.getElementById('spacesRevenue');
+        if (spacesRevenueEl) {
+            spacesRevenueEl.textContent = `€${(stats.monthlyRevenue || 0).toLocaleString('it-IT', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            })}`;
+        }
+
+        // Aggiorna anche i totali della paginazione
+        const spacesTotalEl = document.getElementById('spacesTotal');
+        if (spacesTotalEl) {
+            spacesTotalEl.textContent = stats.total || 0;
         }
     }
 

@@ -293,6 +293,17 @@ router.get('/:spaceId/availability',
 );
 
 /**
+ * @route   GET /api/spaces/dashboard-stats
+ * @desc    Ottiene statistiche per dashboard spazi
+ * @access  Private (admin/manager)
+ */
+router.get('/dashboard-stats',
+    requireAuth,
+    requireManager,
+    SpaceController.getDashboardStats
+);
+
+/**
  * @route   GET /api/spaces/:spaceId/calendar
  * @desc    Ottiene calendario disponibilità
  * @access  Public

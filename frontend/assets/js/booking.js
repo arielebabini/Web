@@ -17,6 +17,8 @@ class Booking {
 
         // Initializer from Booking
         this.initializeStripe();
+
+        this.ensureAlertsContainer();
     }
 
     async initializeStripe() {
@@ -291,6 +293,30 @@ class Booking {
         return slots;
     }
 
+    ensureAlertsContainer() {
+        let alertsContainer = document.getElementById('alerts-container');
+
+        if (!alertsContainer) {
+            // Crea il container se non esiste
+            alertsContainer = document.createElement('div');
+            alertsContainer.id = 'alerts-container';
+            alertsContainer.className = 'alerts-container position-fixed';
+            alertsContainer.style.cssText = `
+            top: 100px;
+            right: 20px;
+            z-index: 9999;
+            max-width: 400px;
+        `;
+
+            // Aggiungilo al body
+            document.body.appendChild(alertsContainer);
+            console.log('✅ Alert container created');
+        }
+
+        return alertsContainer;
+    }
+
+
     /**
      * Inizializza il form di pagamento
      */
@@ -343,6 +369,9 @@ class Booking {
      * Mostra il modal di pagamento
      */
     showPaymentModal(booking, paymentIntent) {
+        console.log('DEBUG - showPaymentModal called with:', booking);
+        console.log('DEBUG - this.currentSpace:', this.currentSpace);
+
         const modalHtml = `
             <div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel" aria-hidden="true">
                 <div class="modal-dialog modal-lg">
@@ -360,11 +389,11 @@ class Booking {
                                     <div class="card-body">
                                         <div class="row">
                                             <div class="col-md-8">
-                                                <h6 class="mb-1">${booking.space_name}</h6>
-                                                <p class="text-muted mb-2">${booking.space_address}</p>
+                                                <h6 class="mb-1">${booking.space_name || this.currentSpace?.name || 'Spazio Coworking'}</h6>
+                                                <p class="text-muted mb-2">${booking.space_address || this.currentSpace?.address || ''}</p>
                                                 <p class="mb-0">
                                                     <i class="fas fa-calendar me-2"></i>
-                                                    ${this.formatDate(booking.start_date)} - ${this.formatDate(booking.end_date)}
+                                                    ${this.formatDate(booking.start_date || booking.startDate)} - ${this.formatDate(booking.end_date || booking.endDate)}
                                                 </p>
                                                 <p class="mb-0">
                                                     <i class="fas fa-users me-2"></i>
@@ -418,6 +447,51 @@ class Booking {
             this.cardElement.mount('#payment-element');
             this.setupEventListeners();
         }, 300);
+    }
+
+    showAlert(message, type = 'info') {
+        const container = this.ensureAlertsContainer();
+
+        // Mappa i tipi
+        const typeMap = {
+            'success': 'alert-success',
+            'error': 'alert-danger',
+            'danger': 'alert-danger',
+            'warning': 'alert-warning',
+            'info': 'alert-info'
+        };
+
+        const iconMap = {
+            'success': 'fas fa-check-circle',
+            'error': 'fas fa-exclamation-triangle',
+            'danger': 'fas fa-exclamation-triangle',
+            'warning': 'fas fa-exclamation-triangle',
+            'info': 'fas fa-info-circle'
+        };
+
+        const alertClass = typeMap[type] || 'alert-info';
+        const iconClass = iconMap[type] || 'fas fa-info-circle';
+
+        // Crea l'alert
+        const alertId = 'alert-' + Date.now();
+        const alertHTML = `
+            <div class="alert ${alertClass} alert-dismissible fade show mb-3" role="alert" id="${alertId}">
+                <i class="${iconClass} me-2"></i>
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        `;
+
+        // Aggiungi l'alert
+        container.insertAdjacentHTML('beforeend', alertHTML);
+
+        // Auto-rimozione dopo 5 secondi
+        setTimeout(() => {
+            const alert = document.getElementById(alertId);
+            if (alert) {
+                alert.remove();
+            }
+        }, 5000);
     }
 
     /**
@@ -662,7 +736,7 @@ class Booking {
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Elaborazione...';
             submitBtn.disabled = true;
 
-            // Conferma pagamento con Stripe
+            // Conferma il pagamento con Stripe Elements reale
             const {error, paymentIntent} = await this.stripe.confirmPayment({
                 elements: this.elements,
                 redirect: 'if_required'
@@ -673,7 +747,11 @@ class Booking {
             }
 
             if (paymentIntent.status === 'succeeded') {
-                await this.handlePaymentSuccess(paymentIntent);
+                // Conferma il pagamento al backend
+                await this.confirmPaymentWithBackend(paymentIntent);
+
+                // Gestisci successo
+                this.handlePaymentSuccess(paymentIntent);
             } else {
                 throw new Error(`Pagamento in stato: ${paymentIntent.status}`);
             }
@@ -687,11 +765,38 @@ class Booking {
         }
     }
 
+    async confirmPaymentWithBackend(paymentIntent) {
+        const response = await fetch('http://localhost:3000/api/payments/confirm', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+            },
+            body: JSON.stringify({
+                payment_intent_id: paymentIntent.id,
+                payment_data: {
+                    cardNumber: '4242424242424242', // Carta di test
+                    expiry: '12/25',
+                    cvc: '123',
+                    name: 'Test User'
+                }
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.message || 'Errore nella conferma del pagamento');
+        }
+
+        return data;
+    }
+
     /**
      * Crea Payment Intent tramite API
      */
     async createPaymentIntent(bookingId) {
-        const response = await fetch('/api/payments/create-intent', {
+        const response = await fetch('http://localhost:3000/api/payments/create-intent', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -714,8 +819,17 @@ class Booking {
      */
     async handlePaymentSuccess(paymentIntent) {
         // Chiudi modal
-        const modal = bootstrap.Modal.getInstance(document.getElementById('paymentModal'));
-        modal.hide();
+        const modalElement = document.getElementById('paymentModal');
+        if (modalElement) {
+            const modal = bootstrap.Modal.getInstance(modalElement);
+            if (modal) {
+                modal.hide();
+            } else {
+                modalElement.remove();
+            }
+        } else {
+            console.log('Payment modal not found - probably already closed');
+        }
 
         // Mostra messaggio di successo
         this.showSuccess('Pagamento completato con successo! La tua prenotazione è stata confermata.');
@@ -739,7 +853,7 @@ class Booking {
         });
     }
 
-    handleBookingSuccess(booking) {
+    async handleBookingSuccess(booking) {
         // Salva i dati della prenotazione per il pagamento
         this.bookingData = booking;
 
@@ -747,24 +861,32 @@ class Booking {
         this.showSuccess('Prenotazione creata con successo!');
 
         // Reindirizza al pagamento o mostra il modal di pagamento
-        setTimeout(() => {
-            this.openPaymentFlow(booking);
-        }, 1500);
-    }
-
-    openPaymentFlow(booking) {
-        console.log('💳 Opening payment flow for booking:', booking);
-
-        // Chiudi il modal di prenotazione
-        this.hideBookingModal();
-
-        // Apri il modal di pagamento
-        setTimeout(() => {
-            this.createPaymentModal(booking);
+        setTimeout(async () => {
+            try {
+                await this.openPaymentFlow(booking);
+            } catch (error) {
+                console.error('Error in payment flow:', error);
+                this.showError('Errore nel processo di pagamento');
+            }
         }, 300);
     }
 
-    createPaymentModal(booking) {
+    async openPaymentFlow(booking) {
+        console.log('Opening payment flow for booking:', booking);
+
+        this.hideBookingModal();
+
+        setTimeout(async () => {
+            try {
+                await this.createPaymentModal(booking);
+            } catch (error) {
+                console.error('Error in payment flow:', error);
+                this.showError('Errore nel processo di pagamento');
+            }
+        }, 300);
+    }
+
+    async createPaymentModal(booking) {
         // Rimuovi modal esistente se presente
         const existingModal = document.getElementById('paymentModal');
         if (existingModal) {
@@ -774,9 +896,14 @@ class Booking {
         const modalHTML = this.generatePaymentModalHTML(booking);
         document.body.insertAdjacentHTML('beforeend', modalHTML);
 
-        // Inizializza il modal
-        this.initializePaymentModal(booking);
-        this.showPaymentModal();
+        try {
+            // Aspetta che l'inizializzazione sia completata
+            await this.initializePaymentForm(booking);
+            // showPaymentModal viene già chiamato dentro initializePaymentModal
+        } catch (error) {
+            console.error('Error initializing payment modal:', error);
+            this.showError('Errore nell\'inizializzazione del pagamento');
+        }
     }
 
     generatePaymentModalHTML(booking) {
@@ -864,28 +991,30 @@ class Booking {
     async initializePaymentModal(booking) {
         try {
             console.log('🔄 Initializing payment modal...');
+            console.log('Booking data:', booking);
 
-            // Per la simulazione, non serve inizializzare Stripe Elements reali
-            // Nascondi l'elemento stripe e mostra un messaggio
-            const stripeElement = document.getElementById('stripe-card-element');
-            if (stripeElement) {
-                stripeElement.innerHTML = `
-                <div class="alert alert-info">
-                    <i class="fas fa-info-circle me-2"></i>
-                    <strong>Modalità Simulazione Stripe</strong><br>
-                    <small>I dati della carta vengono simulati. Inserisci qualsiasi nome per testare il pagamento.</small>
-                </div>
-            `;
+            // STEP 1: Crea Payment Intent
+            console.log('Step 1: Creating payment intent...');
+            const paymentIntent = await this.createStripePaymentIntent(booking);
+            console.log('Step 1 completed:', paymentIntent);
+
+            // STEP 2: Simula il pagamento (se stai usando simulazione)
+            console.log('Step 2: Processing payment simulation...');
+            const paymentResult = await this.simulateStripePayment('Test User');
+            console.log('Step 2 completed:', paymentResult);
+
+            // STEP 3: Gestisci successo
+            if (paymentResult.status === 'succeeded') {
+                console.log('Step 3: Handling payment success...');
+                this.handlePaymentSuccess(booking, paymentResult);
+                console.log('✅ Payment modal initialization completed');
+            } else {
+                throw new Error(`Pagamento in stato: ${paymentResult.status}`);
             }
-
-            // Gestisci pagamento
-            document.getElementById('processPaymentBtn').addEventListener('click', () => {
-                this.processStripePayment(booking);
-            });
 
         } catch (error) {
             console.error('❌ Error initializing payment modal:', error);
-            alert('Errore inizializzazione pagamento: ' + error.message);
+            this.showError('Errore inizializzazione pagamento: ' + error.message);
         }
     }
 
@@ -1239,34 +1368,49 @@ class Booking {
         }
     }
 
-    showError(message) {
-        const alert = `
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                <i class="fas fa-exclamation-triangle me-2"></i>
-                ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        `;
-        document.getElementById('alerts-container').innerHTML = alert;
+    showSuccess(message) {
+        console.log('Success:', message);
+
+        if (window.showNotification) {
+            window.showNotification(message, 'success');
+            return;
+        }
+
+        // Fallback sicuro
+        alert('Successo: ' + message);
     }
 
-    showSuccess(message) {
-        const alert = `
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                <i class="fas fa-check-circle me-2"></i>
-                ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        `;
-        document.getElementById('alerts-container').innerHTML = alert;
+    showError(message) {
+        console.error('Error:', message);
+
+        if (window.showNotification) {
+            window.showNotification(message, 'error');
+            return;
+        }
+
+        // Fallback sicuro
+        alert('Errore: ' + message);
     }
 
     showWarning(message) {
+        console.warn('⚠️ Warning:', message);
+
+        if (window.Notifications && window.Notifications.show) {
+            window.Notifications.show({
+                message: message,
+                type: 'warning',
+                duration: 5000
+            });
+            return;
+        }
+
         if (window.showNotification) {
             window.showNotification(message, 'warning');
-        } else {
-            alert(message);
+            return;
         }
+
+        // Fallback: usa alert container
+        this.showAlert(message, 'warning');
     }
 }
 

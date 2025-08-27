@@ -616,6 +616,71 @@ class Space {
             throw error;
         }
     }
+
+    /**
+     * Ottiene statistiche dashboard per gli spazi
+     * @param {string|null} managerId - ID del manager (null per admin)
+     * @returns {Promise<Object>} Statistiche spazi
+     */
+    static async getDashboardStats(managerId = null) {
+        try {
+            const result = await query(`
+            WITH space_stats AS (
+              SELECT 
+                COUNT(*) as total_spaces,
+                COUNT(CASE WHEN s.is_active = true AND s.status IN ('active', 'available') THEN 1 END) as active_spaces
+              FROM spaces s
+              WHERE s.deleted_at IS NULL
+                AND ($1::UUID IS NULL OR s.manager_id = $1)
+            ),
+            booking_stats AS (
+              SELECT 
+                COUNT(DISTINCT s.id) as booked_today
+              FROM spaces s
+              INNER JOIN bookings b ON s.id = b.space_id
+              WHERE s.deleted_at IS NULL
+                AND b.deleted_at IS NULL
+                AND b.status IN ('confirmed', 'checked_in')
+                AND b.start_date <= CURRENT_DATE
+                AND b.end_date >= CURRENT_DATE
+                AND ($1::UUID IS NULL OR s.manager_id = $1)
+            ),
+            revenue_stats AS (
+              SELECT 
+                COALESCE(SUM(p.amount), 0) as monthly_revenue
+              FROM spaces s
+              INNER JOIN bookings b ON s.id = b.space_id
+              INNER JOIN payments p ON b.id = p.booking_id
+              WHERE s.deleted_at IS NULL
+                AND b.deleted_at IS NULL
+                AND p.deleted_at IS NULL
+                AND p.status = 'completed'
+                AND DATE_TRUNC('month', p.created_at) = DATE_TRUNC('month', CURRENT_DATE)
+                AND ($1::UUID IS NULL OR s.manager_id = $1)
+            )
+            SELECT 
+              ss.total_spaces,
+              ss.active_spaces,
+              COALESCE(bs.booked_today, 0) as booked_today,
+              rs.monthly_revenue
+            FROM space_stats ss
+            CROSS JOIN booking_stats bs
+            CROSS JOIN revenue_stats rs
+        `, [managerId]);
+
+            const stats = result.rows[0];
+
+            return {
+                total: parseInt(stats.total_spaces || 0),
+                active: parseInt(stats.active_spaces || 0),
+                bookedToday: parseInt(stats.booked_today || 0),
+                monthlyRevenue: parseFloat(stats.monthly_revenue || 0)
+            };
+        } catch (error) {
+            logger.error('Error getting dashboard stats:', error);
+            throw error;
+        }
+    }
 }
 
 module.exports = Space;
