@@ -634,6 +634,90 @@
             </div>
         </div>
 
+        <!-- Modal Nuovo/Modifica Utente -->
+        <div class="modal fade" id="userModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-user-plus me-2"></i>
+                            <span id="userModalTitle">Nuovo Utente</span>
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="userForm">
+                            <input type="hidden" id="userId">
+
+                            <!-- Nome e Cognome -->
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Nome *</label>
+                                    <input type="text" class="form-control" id="firstName" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Cognome *</label>
+                                    <input type="text" class="form-control" id="lastName" required>
+                                </div>
+                            </div>
+
+                            <!-- Email e Telefono -->
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Email *</label>
+                                    <input type="email" class="form-control" id="email" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Telefono</label>
+                                    <input type="tel" class="form-control" id="phone">
+                                </div>
+                            </div>
+
+                            <!-- Password (solo per nuovo utente) -->
+                            <div class="row mb-3" id="passwordSection">
+                                <div class="col-md-6">
+                                    <label class="form-label">Password *</label>
+                                    <input type="password" class="form-control" id="password" required>
+                                    <small class="text-muted">Min 8 caratteri con maiuscola, minuscola e numero</small>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Conferma Password *</label>
+                                    <input type="password" class="form-control" id="confirmPassword" required>
+                                </div>
+                            </div>
+
+                            <!-- Ruolo e Status -->
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Ruolo *</label>
+                                    <select class="form-select" id="role" required>
+                                        <option value="">Seleziona ruolo</option>
+                                        <option value="client">Client</option>
+                                        <option value="manager">Manager</option>
+                                        <option value="admin">Admin</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Status *</label>
+                                    <select class="form-select" id="status" required>
+                                        <option value="active">Attivo</option>
+                                        <option value="inactive">Inattivo</option>
+                                        <option value="suspended">Sospeso</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                        <button type="button" class="btn btn-primary" onclick="saveUser()">
+                            <i class="fas fa-save me-2"></i>Crea Utente
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- SEZIONE GESTIONE SPAZI PER ADMIN DASHBOARD -->
         <div class="admin-section" id="spacesSection" style="display: none;">
             <div class="d-flex justify-content-between align-items-center mb-4">
@@ -1263,46 +1347,84 @@
     });
 
     function initializeDashboard() {
-        // Check admin authentication
-        const token = localStorage.getItem('auth_token');
-        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        console.log('🚀 Initializing admin dashboard...');
 
-        // causa erroe sull'if -->  || user.role !== 'admin'
-
-        if (!token) {
-            console.log('auth_token', token);
-            console.log('user', user);
-            alert('Accesso negato. Devi essere un amministratore.');
-            window.location.href = '../index.html';
-            return;
+        // Debug: mostra tutto il contenuto del localStorage
+        console.log('🔍 localStorage contents:');
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            const value = localStorage.getItem(key);
+            console.log(`  ${key}:`, key.includes('token') ? value.substring(0, 20) + '...' : value);
         }
 
-        // Set admin name
-        document.getElementById('adminUserName').textContent = `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Admin';
+        // Verifica token all'avvio
+        if (!validateAuthToken()) {
+            return; // La validazione ha già gestito l'errore
+        }
 
-        // Load dashboard data
-        //loadDashboardStats();
-        //loadUsers();
-        //initializeCharts();
+        const userJson = localStorage.getItem('user');
+        const user = JSON.parse(userJson);
+
+        // Set admin name
+        const adminUserNameEl = document.getElementById('adminUserName');
+        if (adminUserNameEl && user) {
+            const fullName = `${user.first_name || ''} ${user.last_name || ''}`.trim();
+            adminUserNameEl.textContent = fullName || user.email || 'Admin';
+            console.log('👤 Admin name set to:', adminUserNameEl.textContent);
+        }
+
+        // Carica dati iniziali
+        loadDashboardStats();
+
+        console.log('✅ Dashboard initialized successfully');
     }
 
     // Navigation
     function showSection(section) {
+        // Verifica token prima di cambiare sezione
+        if (!validateAuthToken()) {
+            return;
+        }
+
         // Nasconde tutte le sezioni
         document.querySelectorAll('.admin-section').forEach(s => s.style.display = 'none');
 
         // Mostra la sezione richiesta
-        document.getElementById(section + 'Section').style.display = 'block';
+        const targetSection = document.getElementById(section + 'Section');
+        if (targetSection) {
+            targetSection.style.display = 'block';
+        }
 
-         //RIMUOVI QUESTA PARTE:
+        // Carica i dati specifici per ogni sezione
         if (section === 'dashboard') {
             console.log('🎯 Loading dashboard section...');
             loadDashboardStats();
+        } else if (section === 'users') {
+            console.log('👥 Loading users section...');
+            loadUsers(); // Carica gli utenti quando la sezione viene mostrata
+        } else if (section === 'spaces') {
+            console.log('🏢 Loading spaces section...');
+            // loadSpaces(); // Implementare se necessario
         }
 
         // Update active menu
         document.querySelectorAll('.sidebar-link').forEach(link => link.classList.remove('active'));
-        document.querySelector(`[onclick="showSection('${section}')"]`).classList.add('active');
+        const activeLink = document.querySelector(`[onclick="showSection('${section}')"]`);
+        if (activeLink) activeLink.classList.add('active');
+
+        // Aggiorna il titolo della pagina
+        const pageTitle = document.getElementById('pageTitle');
+        if (pageTitle) {
+            const titles = {
+                'dashboard': 'Dashboard',
+                'users': 'Gestione Utenti',
+                'spaces': 'Gestione Spazi',
+                'bookings': 'Prenotazioni',
+                'analytics': 'Analytics',
+                'settings': 'Impostazioni'
+            };
+            pageTitle.textContent = titles[section] || 'Dashboard';
+        }
     }
 
     function toggleSidebar() {
@@ -1483,23 +1605,6 @@
         });
     }
 
-    function showSection(section) {
-        // Il tuo codice esistente per nascondere/mostrare sezioni
-        document.querySelectorAll('.admin-section').forEach(s => s.style.display = 'none');
-        document.getElementById(section + 'Section').style.display = 'block';
-
-        // Carica i dati quando si apre la dashboard
-        if (section === 'dashboard') {
-            console.log('🎯 Dashboard section opened, loading stats...');
-            setTimeout(loadDashboardStats, 200); // Piccolo delay per assicurarsi che il DOM sia pronto
-        }
-
-        // Aggiorna menu attivo
-        document.querySelectorAll('.sidebar-link').forEach(link => link.classList.remove('active'));
-        const activeLink = document.querySelector(`[onclick="showSection('${section}')"]`);
-        if (activeLink) activeLink.classList.add('active');
-    }
-
     // Auto-refresh ogni 2 minuti (opzionale)
     let dashboardRefreshInterval;
 
@@ -1536,101 +1641,424 @@
     // Users Management
     async function loadUsers(page = 1, filters = {}) {
         try {
+            // Verifica token prima di fare la chiamata
+            if (!validateAuthToken()) {
+                return; // La validazione ha già gestito l'errore
+            }
+
             const token = localStorage.getItem('auth_token');
+
+            // Mostra loading
+            showUsersLoading();
+
             const params = new URLSearchParams({
                 page: page,
                 limit: 10,
                 ...filters
             });
 
+            console.log('🔄 Loading users with params:', params.toString());
+
             const response = await fetch(`http://localhost:3000/api/users?${params}`, {
+                method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
                 }
             });
 
-            if (response.ok) {
-                const data = await response.json();
-                usersData = data.users || [];
-                currentPage = data.currentPage || 1;
+            console.log('📊 Users API response status:', response.status);
 
-                renderUsersTable(usersData);
-                renderUsersPagination(data.totalPages || 1, data.totalUsers || 0);
+            // Gestione specifica per errore 401
+            if (response.status === 401) {
+                const errorData = await response.json().catch(() => ({}));
+                console.error('❌ 401 Unauthorized:', errorData);
+
+                // Token non valido o scaduto
+                clearAuthAndRedirect(errorData.message || 'Token non valido');
+                return;
+            }
+
+            // Gestione altri errori HTTP
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            console.log('📊 Users data received:', data);
+
+            if (data.success && data.users) {
+                usersData = data.users;
+                currentPage = data.currentPage || page;
+
+                renderUsersTable(data.users);
+                renderUsersPagination(data.totalPages || 1, data.total || data.totalUsers || 0);
+
+                console.log('✅ Users loaded successfully');
             } else {
-                throw new Error('Errore nel caricamento utenti');
+                throw new Error(data.message || 'Errore nel formato dei dati');
             }
 
         } catch (error) {
-            console.error('Error loading users:', error);
-            showNotification('Errore nel caricamento degli utenti', 'error');
+            console.error('❌ Error loading users:', error);
 
-            // Show empty state
-            document.getElementById('usersTableBody').innerHTML = `
-                    <tr>
-                        <td colspan="6" class="text-center py-4">
-                            <i class="fas fa-exclamation-triangle text-warning fa-2x mb-3"></i>
-                            <p>Errore nel caricamento degli utenti</p>
-                        </td>
-                    </tr>
-                `;
+            // Non mostrare l'errore se abbiamo già reindirizzato
+            if (error.message.includes('Token')) {
+                return;
+            }
+
+            showNotification('Errore nel caricamento degli utenti: ' + error.message, 'error');
+            showUsersError(error.message);
+        }
+    }
+
+    function validateAuthToken() {
+        const token = localStorage.getItem('auth_token');
+        const userJson = localStorage.getItem('user');  // Verifica 'user' invece di 'user_data'
+
+        console.log('🔍 Checking auth token:', {
+            hasToken: !!token,
+            hasUser: !!userJson,
+            tokenLength: token ? token.length : 0,
+            userJson: userJson
+        });
+
+        // Verifica se il token esiste
+        if (!token) {
+            console.error('❌ No auth token found');
+            redirectToLogin('Token mancante');
+            return false;
+        }
+
+        // Verifica se i dati utente esistono
+        if (!userJson) {
+            console.error('❌ No user data found in localStorage');
+            clearAuthAndRedirect('Dati utente mancanti');
+            return false;
+        }
+
+        let user;
+        try {
+            user = JSON.parse(userJson);
+            console.log('📊 Parsed user data:', user);
+        } catch (error) {
+            console.error('❌ Error parsing user data:', error);
+            clearAuthAndRedirect('Dati utente corrotti');
+            return false;
+        }
+
+        // Verifica formato del token (dovrebbe essere un JWT)
+        const jwtRegex = /^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+$/;
+        if (!jwtRegex.test(token)) {
+            console.error('❌ Invalid JWT format');
+            clearAuthAndRedirect('Token malformato');
+            return false;
+        }
+
+        // Verifica se l'utente è admin
+        if (!user || !user.role || user.role !== 'admin') {
+            console.error('❌ User is not admin:', user);
+            redirectToLogin('Accesso non autorizzato - Solo amministratori');
+            return false;
+        }
+
+        // Verifica se il token è scaduto (opzionale)
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            const currentTime = Math.floor(Date.now() / 1000);
+
+            if (payload.exp && payload.exp < currentTime) {
+                console.error('❌ Token expired');
+                clearAuthAndRedirect('Token scaduto');
+                return false;
+            }
+
+            console.log('✅ Token validation passed');
+            return true;
+        } catch (error) {
+            console.error('❌ Error parsing token:', error);
+            clearAuthAndRedirect('Token corrotto');
+            return false;
+        }
+    }
+
+    // 2. Funzione per pulire l'autenticazione e reindirizzare
+    function clearAuthAndRedirect(reason) {
+        console.log('🚪 Clearing auth and redirecting:', reason);
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('refresh_token'); // Se presente
+
+        alert(`Sessione non valida: ${reason}. Effettua il login nuovamente.`);
+        window.location.href = '../index.html';
+    }
+
+    // 3. Funzione per reindirizzare al login
+    function redirectToLogin(reason) {
+        console.log('🚪 Redirecting to login:', reason);
+        alert(`${reason}. Effettua il login.`);
+        window.location.href = '../index.html';
+    }
+
+    function showUsersLoading() {
+        const tbody = document.getElementById('usersTableBody');
+        if (tbody) {
+            tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Caricamento...</span>
+                    </div>
+                    <p class="mt-2 mb-0">Caricamento utenti...</p>
+                </td>
+            </tr>
+        `;
+        }
+    }
+
+    function showUsersError(message) {
+        const tbody = document.getElementById('usersTableBody');
+        if (tbody) {
+            tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center py-4">
+                    <i class="fas fa-exclamation-triangle text-warning fa-2x mb-3"></i>
+                    <p class="mb-2">${message}</p>
+                    <button class="btn btn-sm btn-outline-primary" onclick="loadUsers()">
+                        <i class="fas fa-redo me-1"></i>Riprova
+                    </button>
+                </td>
+            </tr>
+        `;
         }
     }
 
     function renderUsersTable(users) {
         const tbody = document.getElementById('usersTableBody');
 
-        if (users.length === 0) {
-            tbody.innerHTML = `
-                    <tr>
-                        <td colspan="6" class="text-center py-4">
-                            <i class="fas fa-users text-muted fa-2x mb-3"></i>
-                            <p>Nessun utente trovato</p>
-                        </td>
-                    </tr>
-                `;
+        if (!tbody) {
+            console.error('❌ Element #usersTableBody not found');
             return;
         }
 
-        tbody.innerHTML = users.map(user => `
-                <tr>
-                    <td>
-                        <div class="d-flex align-items-center">
-                            <div class="avatar me-3">
-                                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-                                    ${(user.first_name?.[0] || user.firstName?.[0] || 'U').toUpperCase()}
-                                </div>
-                            </div>
-                            <div>
-                                <div class="fw-semibold">${user.first_name || user.firstName || ''} ${user.last_name || user.lastName || ''}</div>
-                                <small class="text-muted">ID: ${user.id}</small>
+        if (!users || users.length === 0) {
+            tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center py-4">
+                    <i class="fas fa-users text-muted fa-2x mb-3"></i>
+                    <p class="mb-0">Nessun utente trovato</p>
+                </td>
+            </tr>
+        `;
+            return;
+        }
+
+        tbody.innerHTML = users.map(user => {
+            const firstName = user.first_name || user.firstName || '';
+            const lastName = user.last_name || user.lastName || '';
+            const fullName = `${firstName} ${lastName}`.trim() || 'Nome non disponibile';
+            const initials = getAvatarInitials(firstName, lastName);
+
+            return `
+            <tr>
+                <td>
+                    <div class="d-flex align-items-center">
+                        <div class="avatar me-3">
+                            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; font-weight: bold;">
+                                ${initials}
                             </div>
                         </div>
-                    </td>
-                    <td>${user.email}</td>
-                    <td><span class="role-badge role-${user.role}">${user.role}</span></td>
-                    <td><span class="status-badge status-${user.status}">${user.status}</span></td>
-                    <td>${new Date(user.created_at || user.createdAt).toLocaleDateString('it-IT')}</td>
-                    <td>
-                        <div class="btn-group" role="group">
-                            <button class="btn btn-sm btn-outline-primary" onclick="editUser('${user.id}')" title="Modifica">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-info" onclick="viewUser('${user.id}')" title="Visualizza">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-warning" onclick="toggleUserStatus('${user.id}', '${user.status}')" title="Cambia Status">
-                                <i class="fas fa-toggle-${user.status === 'active' ? 'on' : 'off'}"></i>
-                            </button>
-                            ${user.role !== 'admin' ? `
-                                <button class="btn btn-sm btn-outline-danger" onclick="deleteUser('${user.id}')" title="Elimina">
-                                    <i class="fas fa-trash"></i>
+                        <div>
+                            <div class="fw-semibold">${fullName}</div>
+                            <small class="text-muted">ID: ${user.id}</small>
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <div>${user.email}</div>
+                    ${user.phone ? `<small class="text-muted">${user.phone}</small>` : ''}
+                </td>
+                <td><span class="role-badge role-${user.role}">${user.role}</span></td>
+                <td><span class="status-badge status-${user.status}">${user.status}</span></td>
+                <td>${formatDate(user.created_at || user.createdAt)}</td>
+                <td>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button class="btn btn-outline-primary" onclick="editUser('${user.id}')" title="Modifica">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-outline-info" onclick="viewUser('${user.id}')" title="Visualizza">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        ${user.role !== 'admin' ? `
+                            <div class="dropdown">
+                                <button class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" title="Più azioni">
+                                    <i class="fas fa-ellipsis-v"></i>
                                 </button>
-                            ` : ''}
-                        </div>
-                    </td>
-                </tr>
-            `).join('');
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="#" onclick="toggleUserStatus('${user.id}', '${user.status}')">
+                                        <i class="fas fa-toggle-${user.status === 'active' ? 'off' : 'on'} me-2"></i>
+                                        ${user.status === 'active' ? 'Sospendi' : 'Attiva'}
+                                    </a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item text-danger" href="#" onclick="deleteUser('${user.id}')">
+                                        <i class="fas fa-trash me-2"></i>Elimina
+                                    </a></li>
+                                </ul>
+                            </div>
+                        ` : `
+                            <button class="btn btn-outline-secondary" disabled title="Admin non modificabile">
+                                <i class="fas fa-lock"></i>
+                            </button>
+                        `}
+                    </div>
+                </td>
+            </tr>
+        `;
+        }).join('');
+
+        console.log(`✅ Rendered ${users.length} users in table`);
+    }
+
+    function getAvatarInitials(firstName, lastName) {
+        const first = (firstName || '').charAt(0).toUpperCase();
+        const last = (lastName || '').charAt(0).toUpperCase();
+        return first + last || 'U';
+    }
+
+    function formatDate(dateString) {
+        if (!dateString) return 'N/A';
+        try {
+            return new Date(dateString).toLocaleDateString('it-IT');
+        } catch (error) {
+            return 'N/A';
+        }
+    }
+
+    function editUser(userId) {
+        showEditUserModal(userId);
+    }
+
+    function viewUser(userId) {
+        console.log('View user:', userId);
+        const user = usersData.find(u => u.id === userId);
+        if (user) {
+            const details = `
+                Nome: ${user.first_name || user.firstName || ''} ${user.last_name || user.lastName || ''}
+                Email: ${user.email}
+                Ruolo: ${user.role}
+                Status: ${user.status}
+                Registrato: ${formatDate(user.created_at || user.createdAt)}
+            `.trim();
+            alert(details);
+        }
+    }
+
+    // Aggiungi questa funzione insieme alle altre funzioni JavaScript
+    async function toggleUserStatus(userId, currentStatus) {
+        console.log('Toggle user status called:', { userId, currentStatus });
+
+        const user = usersData.find(u => u.id === userId);
+        const userName = user ? `${user.first_name || user.firstName || ''} ${user.last_name || user.lastName || ''}`.trim() : 'Utente';
+        const newStatus = currentStatus === 'active' ? 'suspended' : 'active';
+        const action = newStatus === 'active' ? 'attivare' : 'sospendere';
+
+        if (!confirm(`Confermi di voler ${action} l'utente "${userName}"?`)) {
+            return;
+        }
+
+        try {
+            const token = localStorage.getItem('auth_token');
+            if (!token) {
+                throw new Error('Token mancante');
+            }
+
+            const response = await fetch(`http://localhost:3000/api/users/${userId}/status`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ status: newStatus })
+            });
+
+            if (response.ok) {
+                showNotification(`Utente ${action === 'attivare' ? 'attivato' : 'sospeso'} con successo`, 'success');
+                loadUsers(currentPage || 1, getCurrentUserFilters());
+            } else {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Errore aggiornamento status');
+            }
+        } catch (error) {
+            console.error('Error toggling user status:', error);
+            showNotification('Errore: ' + error.message, 'error');
+        }
+    }
+
+    async function suspendUser(userId) {
+        const user = usersData.find(u => u.id === userId);
+        const userName = user ? `${user.first_name || user.firstName || ''} ${user.last_name || user.lastName || ''}`.trim() : 'Utente';
+
+        if (!confirm(`Confermi di voler sospendere l'utente "${userName || user?.email}"?`)) {
+            return;
+        }
+
+        try {
+            const token = localStorage.getItem('auth_token');
+            const response = await fetch(`http://localhost:3000/api/users/${userId}/status`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ status: 'suspended' })
+            });
+
+            if (response.ok) {
+                showNotification('Utente sospeso con successo', 'success');
+                loadUsers(currentPage || 1, getCurrentUserFilters());
+            } else {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Errore nella sospensione');
+            }
+        } catch (error) {
+            console.error('Error suspending user:', error);
+            showNotification('Errore nella sospensione dell\'utente: ' + error.message, 'error');
+        }
+    }
+
+    // Funzione per riattivare utente (alternativa diretta)
+    async function activateUser(userId) {
+        const user = usersData.find(u => u.id === userId);
+        const userName = user ? `${user.first_name || user.firstName || ''} ${user.last_name || user.lastName || ''}`.trim() : 'Utente';
+
+        if (!confirm(`Confermi di voler riattivare l'utente "${userName || user?.email}"?`)) {
+            return;
+        }
+
+        try {
+            const token = localStorage.getItem('auth_token');
+            const response = await fetch(`http://localhost:3000/api/users/${userId}/status`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ status: 'active' })
+            });
+
+            if (response.ok) {
+                showNotification('Utente riattivato con successo', 'success');
+                loadUsers(currentPage || 1, getCurrentUserFilters());
+            } else {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Errore nella riattivazione');
+            }
+        } catch (error) {
+            console.error('Error activating user:', error);
+            showNotification('Errore nella riattivazione dell\'utente: ' + error.message, 'error');
+        }
     }
 
     function renderUsersPagination(totalPages, totalUsers) {
@@ -1696,42 +2124,175 @@
 
     // User Management Actions
     function showAddUserModal() {
-        document.getElementById('userModalTitle').textContent = 'Nuovo Utente';
-        document.getElementById('userId').value = '';
-        document.getElementById('userForm').reset();
-        document.getElementById('passwordSection').style.display = 'block';
-        document.getElementById('password').required = true;
+        console.log('Opening new user modal');
 
-        new bootstrap.Modal(document.getElementById('userModal')).show();
+        // Controlla se la modal esiste
+        const modal = document.getElementById('userModal');
+        if (!modal) {
+            alert('Modal non trovata nell\'HTML!');
+            return;
+        }
+
+        // Reset form se esiste
+        const form = document.getElementById('userForm');
+        if (form) form.reset();
+
+        // Imposta valori solo se gli elementi esistono
+        const titleEl = document.getElementById('userModalTitle');
+        if (titleEl) titleEl.textContent = 'Nuovo Utente';
+
+        const userIdEl = document.getElementById('userId');
+        if (userIdEl) userIdEl.value = '';
+
+        // Mostra modal
+        const bootstrapModal = new bootstrap.Modal(modal);
+        bootstrapModal.show();
     }
 
-    function editUser(userId) {
-        const user = usersData.find(u => u.id === userId);
-        if (!user) return;
+    function showEditUserModal(userId) {
+        console.log('Opening edit user modal for:', userId);
 
-        document.getElementById('userModalTitle').textContent = 'Modifica Utente';
+        const user = usersData.find(u => u.id === userId);
+        if (!user) {
+            showNotification('Utente non trovato', 'error');
+            return;
+        }
+
+        // Popola form con dati utente
         document.getElementById('userId').value = user.id;
         document.getElementById('firstName').value = user.first_name || user.firstName || '';
         document.getElementById('lastName').value = user.last_name || user.lastName || '';
-        document.getElementById('email').value = user.email;
+        document.getElementById('email').value = user.email || '';
         document.getElementById('phone').value = user.phone || '';
-        document.getElementById('role').value = user.role;
-        document.getElementById('status').value = user.status;
+        document.getElementById('role').value = user.role || 'client';
+        document.getElementById('status').value = user.status || 'active';
+        document.getElementById('company').value = user.company || '';
 
-        // Hide password section for edit
+        // Imposta titoli per modifica
+        document.getElementById('userModalTitle').textContent = 'Modifica Utente';
+        document.getElementById('saveButtonText').textContent = 'Salva Modifiche';
+
+        // Nascondi sezione password per modifica
         document.getElementById('passwordSection').style.display = 'none';
         document.getElementById('password').required = false;
+        document.getElementById('confirmPassword').required = false;
 
-        new bootstrap.Modal(document.getElementById('userModal')).show();
+        // Mostra modal
+        const modal = new bootstrap.Modal(document.getElementById('userModal'));
+        modal.show();
     }
 
-    function viewUser(userId) {
-        // Implementation for viewing user details
-        const user = usersData.find(u => u.id === userId);
-        if (!user) return;
+    async function saveUser() {
+        console.log('Saving user...');
 
-        // Create a detailed view modal or navigate to user detail page
-        alert(`Dettagli utente:\nNome: ${user.first_name || user.firstName} ${user.last_name || user.lastName}\nEmail: ${user.email}\nRuolo: ${user.role}\nStatus: ${user.status}`);
+        // Controlla che tutti gli elementi esistano
+        const requiredElements = ['firstName', 'lastName', 'email', 'role', 'status'];
+        for (const id of requiredElements) {
+            if (!document.getElementById(id)) {
+                alert(`Elemento mancante nell'HTML: ${id}`);
+                return;
+            }
+        }
+
+        const form = document.getElementById('userForm');
+        const userId = document.getElementById('userId')?.value || '';
+        const isEdit = !!userId;
+
+        // Validazione form
+        if (!form || !form.checkValidity()) {
+            if (form) form.reportValidity();
+            return;
+        }
+
+        // Validazione password per nuovo utente
+        if (!isEdit) {
+            const passwordEl = document.getElementById('password');
+            const confirmPasswordEl = document.getElementById('confirmPassword');
+
+            if (!passwordEl || !confirmPasswordEl) {
+                alert('Campi password mancanti nell\'HTML');
+                return;
+            }
+
+            const password = passwordEl.value;
+            const confirmPassword = confirmPasswordEl.value;
+
+            if (password !== confirmPassword) {
+                alert('Le password non corrispondono');
+                return;
+            }
+
+            if (password.length < 8) {
+                alert('La password deve essere di almeno 8 caratteri');
+                return;
+            }
+        }
+
+        // Raccogli dati in modo sicuro
+        const userData = {
+            first_name: document.getElementById('firstName')?.value?.trim() || '',
+            last_name: document.getElementById('lastName')?.value?.trim() || '',
+            email: document.getElementById('email')?.value?.trim() || '',
+            phone: document.getElementById('phone')?.value?.trim() || null,
+            role: document.getElementById('role')?.value || 'client',
+            status: document.getElementById('status')?.value || 'active'
+        };
+
+        // Aggiungi password solo per nuovo utente
+        if (!isEdit) {
+            userData.password = document.getElementById('password')?.value || '';
+        }
+
+        console.log('User data to save:', userData);
+
+        try {
+            const token = localStorage.getItem('auth_token');
+            if (!token) {
+                alert('Token di accesso mancante');
+                return;
+            }
+
+            const url = isEdit
+                ? `http://localhost:3000/api/users/${userId}`
+                : 'http://localhost:3000/api/users';
+
+            const method = isEdit ? 'PUT' : 'POST';
+
+            const response = await fetch(url, {
+                method: method,
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(userData)
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                console.log('User save successful:', result);
+
+                // Chiudi modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('userModal'));
+                if (modal) modal.hide();
+
+                alert('Utente creato con successo!');
+
+                // Ricarica tabella
+                if (typeof loadUsers === 'function') {
+                    loadUsers(currentPage || 1, getCurrentUserFilters());
+                } else {
+                    location.reload();
+                }
+
+            } else {
+                const errorData = await response.json();
+                alert('Errore: ' + (errorData.message || 'Errore sconosciuto'));
+            }
+
+        } catch (error) {
+            console.error('Error saving user:', error);
+            alert('Errore nel salvataggio: ' + error.message);
+        }
     }
 
     // Filters
@@ -1746,6 +2307,182 @@
         if (status) filters.status = status;
 
         loadUsers(1, filters);
+    }
+
+    // Funzione per eliminare un utente
+    async function deleteUser(userId) {
+        console.log('Attempting to delete user:', userId);
+
+        // Trova l'utente per mostrare il nome nella conferma
+        const user = usersData.find(u => u.id === userId);
+        const userName = user ? `${user.first_name || user.firstName || ''} ${user.last_name || user.lastName || ''}`.trim() : 'Utente';
+        const userEmail = user ? user.email : 'sconosciuto';
+
+        // Conferma eliminazione
+        const confirmMessage = `Sei sicuro di voler eliminare l'utente?\n\nNome: ${userName || 'N/A'}\nEmail: ${userEmail}\n\nQuesta azione non può essere annullata.`;
+
+        if (!confirm(confirmMessage)) {
+            return;
+        }
+
+        try {
+            const token = localStorage.getItem('auth_token');
+            if (!token) {
+                throw new Error('Token di accesso mancante');
+            }
+
+            console.log('Making DELETE request for user:', userId);
+
+            const response = await fetch(`http://localhost:3000/api/users/${userId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.status === 401) {
+                clearAuthAndRedirect('Sessione scaduta');
+                return;
+            }
+
+            if (response.ok) {
+                const result = await response.json();
+                console.log('Delete successful:', result);
+
+                showNotification(`Utente "${userName || userEmail}" eliminato con successo`, 'success');
+
+                // Ricarica la tabella utenti
+                loadUsers(currentPage || 1, getCurrentUserFilters());
+
+            } else {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || `Errore HTTP ${response.status}`);
+            }
+
+        } catch (error) {
+            console.error('Error deleting user:', error);
+            showNotification(`Errore nell'eliminazione dell'utente: ${error.message}`, 'error');
+        }
+    }
+
+    async function confirmUserDeletion(userId) {
+        try {
+            // Carica dettagli utente aggiuntivi se necessario
+            const token = localStorage.getItem('auth_token');
+            const response = await fetch(`http://localhost:3000/api/users/${userId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                const user = result.user || result.data;
+
+                if (user) {
+                    const confirmHtml = `
+                    <div style="text-align: left; padding: 10px;">
+                        <h4>Conferma Eliminazione Utente</h4>
+                        <hr>
+                        <p><strong>Nome:</strong> ${user.first_name || user.firstName || ''} ${user.last_name || user.lastName || ''}</p>
+                        <p><strong>Email:</strong> ${user.email}</p>
+                        <p><strong>Ruolo:</strong> ${user.role}</p>
+                        <p><strong>Status:</strong> ${user.status}</p>
+                        <p><strong>Registrato:</strong> ${new Date(user.created_at || user.createdAt).toLocaleDateString('it-IT')}</p>
+                        <hr>
+                        <p style="color: red;"><strong>⚠️ ATTENZIONE:</strong> Questa azione eliminerà permanentemente:</p>
+                        <ul>
+                            <li>Tutti i dati personali dell'utente</li>
+                            <li>Le prenotazioni associate (verranno annullate)</li>
+                            <li>I pagamenti collegati</li>
+                        </ul>
+                        <p><strong>Questa azione NON può essere annullata!</strong></p>
+                    </div>
+                `;
+
+                    // Usa una modal Bootstrap se disponibile, altrimenti usa confirm
+                    if (typeof bootstrap !== 'undefined') {
+                        showDeleteConfirmationModal(userId, confirmHtml);
+                    } else {
+                        const confirmed = confirm(`Elimina utente ${user.email}?\n\nQuesta azione non può essere annullata.`);
+                        if (confirmed) {
+                            await deleteUser(userId);
+                        }
+                    }
+                }
+            } else {
+                // Fallback alla funzione delete standard
+                await deleteUser(userId);
+            }
+        } catch (error) {
+            console.error('Error loading user details:', error);
+            // Fallback alla funzione delete standard
+            await deleteUser(userId);
+        }
+    }
+
+    // Funzione per mostrare modal di conferma (se Bootstrap è disponibile)
+    function showDeleteConfirmationModal(userId, content) {
+        // Crea modal dinamicamente
+        const modalHtml = `
+        <div class="modal fade" id="deleteConfirmModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Conferma Eliminazione</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        ${content}
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                        <button type="button" class="btn btn-danger" onclick="proceedWithDelete('${userId}')">
+                            <i class="fas fa-trash me-2"></i>Elimina Definitivamente
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+        // Rimuovi modal esistente se presente
+        const existingModal = document.getElementById('deleteConfirmModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+
+        // Aggiungi nuovo modal
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+        // Mostra modal
+        const modal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+        modal.show();
+    }
+
+    // Funzione per procedere con l'eliminazione dalla modal
+    async function proceedWithDelete(userId) {
+        // Chiudi modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('deleteConfirmModal'));
+        if (modal) {
+            modal.hide();
+        }
+
+        // Procedi con l'eliminazione
+        await deleteUser(userId);
+    }
+
+    console.log('🗑️ Delete user functions loaded');
+
+    // Funzione helper per ottenere i filtri correnti
+    function getCurrentUserFilters() {
+        return {
+            search: document.getElementById('userSearch')?.value || '',
+            role: document.getElementById('roleFilter')?.value || '',
+            status: document.getElementById('statusFilter')?.value || ''
+        };
     }
 
     // Utility Functions
@@ -1775,11 +2512,59 @@
 
     function logout() {
         if (confirm('Sei sicuro di voler uscire?')) {
+            console.log('👋 Logging out...');
+
+            // Pulisci tutto lo storage
             localStorage.removeItem('auth_token');
             localStorage.removeItem('user');
+            localStorage.removeItem('refresh_token');
+            sessionStorage.clear();
+
+            // Reindirizza
             window.location.href = '../index.html';
         }
     }
+
+    function setupGlobalAuthInterceptor() {
+        // Override del fetch globale per gestire automaticamente i 401
+        const originalFetch = window.fetch;
+
+        window.fetch = async function(...args) {
+            try {
+                const response = await originalFetch.apply(this, args);
+
+                // Se riceviamo un 401, gestiscilo automaticamente
+                if (response.status === 401) {
+                    console.warn('🔒 Received 401, clearing auth');
+                    const errorData = await response.clone().json().catch(() => ({}));
+                    clearAuthAndRedirect(errorData.message || 'Sessione scaduta');
+                    return response; // Ritorna comunque la response per evitare errori
+                }
+
+                return response;
+            } catch (error) {
+                console.error('❌ Fetch error:', error);
+                throw error;
+            }
+        };
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('📄 DOM loaded, checking admin dashboard...');
+
+        // Verifica se siamo sulla pagina admin
+        if (document.getElementById('adminSidebar')) {
+            setupGlobalAuthInterceptor();
+            initializeDashboard();
+
+            // Auto-refresh del token ogni 30 minuti (opzionale)
+            setInterval(() => {
+                if (document.visibilityState === 'visible') {
+                    validateAuthToken();
+                }
+            }, 30 * 60 * 1000);
+        }
+    });
 
     // Keyboard shortcuts
     document.addEventListener('keydown', function (e) {
@@ -1840,6 +2625,14 @@
     updateLastUpdate(); // Prima chiamata immediata
 
     console.log('🎯 Admin Dashboard HTML loaded and ready');
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Se siamo sulla pagina admin, esegui il debug
+        if (document.getElementById('adminSidebar')) {
+            console.log('📍 Admin dashboard page detected');
+            initializeDashboard();
+        }
+    });
 </script>
 
 <script>

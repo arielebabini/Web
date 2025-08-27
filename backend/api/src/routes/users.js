@@ -152,6 +152,20 @@ router.post('/verify-email/:token',
     adaptUserController.verifyEmail
 );
 
+/**
+ * @route   POST /api/users
+ * @desc    Registra un nuovo utente (creazione account)
+ * @access  Public
+ */
+router.post('/',
+    body('email').isEmail().withMessage('Indirizzo email non valido'),
+    body('password').isLength({ min: 8 }).withMessage('La password deve essere di almeno 8 caratteri'),
+    body('firstName').notEmpty().withMessage('Il nome è richiesto'),
+    body('lastName').notEmpty().withMessage('Il cognome è richiesto'),
+    adapterLogger('UserController.createUser'),
+    adaptUserController.createUser
+);
+
 // ===============================================
 // ROUTE GESTIONE UTENTI (ADMIN/MANAGER)
 // ===============================================

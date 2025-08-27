@@ -148,35 +148,76 @@ class AdminDashboardController {
 
     async loadUsers(page = 1, filters = {}) {
         try {
-            this.showTableLoading('usersTableBody', 6);
+            // Verifica token prima di fare la chiamata
+            if (!validateAuthToken()) {
+                return; // La validazione ha già gestito l'errore
+            }
 
-            const params = {
-                page,
+            const token = localStorage.getItem('auth_token');
+
+            // Mostra loading
+            showUsersLoading();
+
+            const params = new URLSearchParams({
+                page: page,
                 limit: 10,
-                sortBy: 'created_at',
-                sortOrder: 'DESC',
                 ...filters
-            };
+            });
 
-            const response = await this.api.getUsers(params);
+            console.log('🔄 Loading users with params:', params.toString());
 
-            if (response.success) {
-                this.usersData = response.users || response.data || [];
-                this.currentUsersPage = response.currentPage || response.page || page;
+            const response = await fetch(`http://localhost:3000/api/users?${params}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                }
+            });
 
-                this.renderUsersTable(this.usersData);
-                this.renderUsersPagination(
-                    response.totalPages || Math.ceil((response.total || 0) / 10),
-                    response.total || response.totalUsers || 0
-                );
+            console.log('📊 Users API response status:', response.status);
+
+            // Gestione specifica per errore 401
+            if (response.status === 401) {
+                const errorData = await response.json().catch(() => ({}));
+                console.error('❌ 401 Unauthorized:', errorData);
+
+                // Token non valido o scaduto
+                clearAuthAndRedirect(errorData.message || 'Token non valido');
+                return;
+            }
+
+            // Gestione altri errori HTTP
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            console.log('📊 Users data received:', data);
+
+            if (data.success && data.users) {
+                usersData = data.users;
+                currentPage = data.currentPage || page;
+
+                renderUsersTable(data.users);
+                renderUsersPagination(data.totalPages || 1, data.total || data.totalUsers || 0);
+
+                console.log('✅ Users loaded successfully');
             } else {
-                throw new Error(response.message || 'Errore nel caricamento utenti');
+                throw new Error(data.message || 'Errore nel formato dei dati');
             }
 
         } catch (error) {
-            console.error('Error loading users:', error);
-            this.showNotification('Errore nel caricamento degli utenti', 'error');
-            this.showTableError('usersTableBody', 6, 'Errore nel caricamento degli utenti');
+            console.error('❌ Error loading users:', error);
+
+            // Non mostrare l'errore se abbiamo già reindirizzato
+            if (error.message.includes('Token')) {
+                return;
+            }
+
+            showNotification('Errore nel caricamento degli utenti: ' + error.message, 'error');
+            showUsersError(error.message);
         }
     }
 
@@ -248,7 +289,7 @@ class AdminDashboardController {
         `).join('');
     }
 
-    renderUsersPagination(totalPages, totalUsers) {
+     renderUsersPagination(totalPages, totalUsers) {
         const pagination = document.getElementById('usersPagination');
         const showing = document.getElementById('usersShowing');
         const total = document.getElementById('usersTotal');
@@ -256,14 +297,66 @@ class AdminDashboardController {
         if (!pagination || !showing || !total) return;
 
         // Update counters
-        const startItem = ((this.currentUsersPage - 1) * 10) + 1;
-        const endItem = Math.min(this.currentUsersPage * 10, totalUsers);
+        const startItem = ((currentPage - 1) * 10) + 1;
+        const endItem = Math.min(currentPage * 10, totalUsers);
         showing.textContent = `${startItem}-${endItem}`;
-        total.textContent = AdminUtils.formatNumber(totalUsers);
+        total.textContent = totalUsers;
 
         // Generate pagination
-        pagination.innerHTML = this.generatePagination(this.currentUsersPage, totalPages, 'loadUsers');
-    }
+        if (totalPages <= 1) {
+            pagination.innerHTML = '';
+            return;
+        }
+
+        let html = '';
+
+        // Previous button
+        html += `
+            <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="loadUsers(${currentPage - 1})">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+            </li>
+        `;
+
+        // Page numbers
+        const startPage = Math.max(1, currentPage - 2);
+        const endPage = Math.min(totalPages, currentPage + 2);
+
+        if (startPage > 1) {
+            html += `<li class="page-item"><a class="page-link" href="#" onclick="loadUsers(1)">1</a></li>`;
+            if (startPage > 2) {
+                html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+            }
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+            html += `
+                <li class="page-item ${i === currentPage ? 'active' : ''}">
+                    <a class="page-link" href="#" onclick="loadUsers(${i})">${i}</a>
+                </li>
+            `;
+        }
+
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) {
+                html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+            }
+            html += `<li class="page-item"><a class="page-link" href="#" onclick="loadUsers(${totalPages})">${totalPages}</a></li>`;
+        }
+
+        // Next button
+        html += `
+            <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="loadUsers(${currentPage + 1})">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            </li>
+        `;
+
+        pagination.innerHTML = html;
+     }
+
 
     async editUser(userId) {
         try {
@@ -316,46 +409,31 @@ class AdminDashboardController {
         alert(details);
     }
 
-    async toggleUserStatus(userId, currentStatus) {
-        const newStatus = currentStatus === 'active' ? 'suspended' : 'active';
-        const action = newStatus === 'active' ? 'attivare' : 'sospendere';
-
-        if (!confirm(`Confermi di voler ${action} questo utente?`)) {
-            return;
-        }
-
-        try {
-            const response = await this.api.updateUserStatus(userId, newStatus);
-
-            if (response.success) {
-                this.showNotification(`Utente ${action === 'attivare' ? 'attivato' : 'sospeso'} con successo`, 'success');
-                this.loadUsers(this.currentUsersPage, this.getCurrentUserFilters());
-            } else {
-                throw new Error(response.message || 'Errore nell\'aggiornamento dello status');
-            }
-        } catch (error) {
-            console.error('Error toggling user status:', error);
-            this.showNotification('Errore nell\'aggiornamento dello status', 'error');
-        }
-    }
-
     async deleteUser(userId) {
         if (!confirm('Sei sicuro di voler eliminare questo utente? Questa azione non può essere annullata.')) {
             return;
         }
 
         try {
-            const response = await this.api.deleteUser(userId);
+            const token = localStorage.getItem('auth_token');
+            const response = await fetch(`http://localhost:3000/api/users/${userId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
 
-            if (response.success) {
-                this.showNotification('Utente eliminato con successo', 'success');
-                this.loadUsers(this.currentUsersPage, this.getCurrentUserFilters());
+            if (response.ok) {
+                showNotification('Utente eliminato con successo', 'success');
+                await loadUsers(currentPage); // Ricarica la tabella
             } else {
-                throw new Error(response.message || 'Errore nell\'eliminazione dell\'utente');
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Errore nell\'eliminazione dell\'utente');
             }
         } catch (error) {
             console.error('Error deleting user:', error);
-            this.showNotification('Errore nell\'eliminazione dell\'utente', 'error');
+            showNotification('Errore nell\'eliminazione dell\'utente: ' + error.message, 'error');
         }
     }
 
@@ -633,11 +711,25 @@ class AdminDashboardController {
     }
 
     applyUserFilters() {
-        const filters = this.getCurrentUserFilters();
-        const activeFilters = Object.fromEntries(
-            Object.entries(filters).filter(([_, value]) => value)
-        );
-        this.loadUsers(1, activeFilters);
+        const search = document.getElementById('userSearch')?.value || '';
+        const role = document.getElementById('roleFilter')?.value || '';
+        const status = document.getElementById('statusFilter')?.value || '';
+
+        const filters = {};
+        if (search) filters.search = search;
+        if (role) filters.role = role;
+        if (status) filters.status = status;
+
+        loadUsers(1, filters);
+    }
+
+     resetUserFilters() {
+        // Clear all filter inputs
+        ['userSearch', 'roleFilter', 'statusFilter'].forEach(id => {
+            const element = document.getElementById(id);
+            if (element) element.value = '';
+        });
+        loadUsers(1);
     }
 
     applySpaceFilters() {
@@ -844,4 +936,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-console.log('📋 Admin Integration Script loaded');
+function showAddUserModal() {
+    showNotification('Funzionalità di creazione utente in sviluppo', 'info');
+}
+
+console.log('✅ Admin Users Management loaded and fixed');

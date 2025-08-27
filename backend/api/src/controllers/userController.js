@@ -120,9 +120,9 @@ class UserController {
      */
     static async createUser(req, res) {
         try {
-            const { first_name, last_name, email, password, role = 'client', status = 'active' } = req.body;
+            const { first_name, last_name, email, password, phone, role = 'client', status = 'active' } = req.body;
 
-            // Validazione dati
+            // Validazione dati obbligatori
             if (!first_name || !last_name || !email || !password) {
                 return res.status(400).json({
                     success: false,
@@ -130,10 +130,42 @@ class UserController {
                 });
             }
 
+            // Validazione email formato
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Formato email non valido'
+                });
+            }
+
+            // Validazione password
+            if (password.length < 8) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'La password deve essere di almeno 8 caratteri'
+                });
+            }
+
+            if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'La password deve contenere almeno una maiuscola, una minuscola e un numero'
+                });
+            }
+
+            // Validazione ruolo
+            if (!['client', 'manager', 'admin'].includes(role)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Ruolo non valido'
+                });
+            }
+
             // Verifica se email già esiste
             const existingUser = await query(
                 'SELECT id FROM users WHERE email = $1',
-                [email]
+                [email.toLowerCase().trim()]
             );
 
             if (existingUser.rows.length > 0) {
@@ -144,16 +176,26 @@ class UserController {
             }
 
             // Hash password
-            const hashedPassword = await bcrypt.hash(password, 10);
+            const hashedPassword = await bcrypt.hash(password, 12); // Aumentato da 10 a 12
 
-            // Inserisci nuovo utente
+            // Inserisci nuovo utente - CORREZIONE: usa password_hash invece di password
             const result = await query(`
-            INSERT INTO users (first_name, last_name, email, password, role, status, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
-            RETURNING id, first_name, last_name, email, role, status, created_at
-        `, [first_name, last_name, email, hashedPassword, role, status]);
+            INSERT INTO users (first_name, last_name, email, password_hash, phone, role, status, created_at, updated_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+            RETURNING id, first_name, last_name, email, phone, role, status, created_at
+        `, [
+                first_name.trim(),
+                last_name.trim(),
+                email.toLowerCase().trim(),
+                hashedPassword,
+                phone || null,
+                role,
+                status
+            ]);
 
             const newUser = result.rows[0];
+
+            console.log('User created successfully:', { id: newUser.id, email: newUser.email });
 
             res.status(201).json({
                 success: true,
@@ -163,6 +205,22 @@ class UserController {
 
         } catch (error) {
             console.error('Error creating user:', error);
+
+            // Gestione errori specifici PostgreSQL
+            if (error.code === '23505') {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Email già esistente'
+                });
+            }
+
+            if (error.code === '23502') {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Campi obbligatori mancanti'
+                });
+            }
+
             res.status(500).json({
                 success: false,
                 message: 'Errore interno del server'
@@ -178,7 +236,8 @@ class UserController {
             const { userId } = req.params;
             const currentUserId = req.user.id;
 
-            // Non permettere auto-eliminazione
+            console.log('Delete user request:', { userId, currentUserId });
+
             if (userId == currentUserId) {
                 return res.status(400).json({
                     success: false,
@@ -187,32 +246,77 @@ class UserController {
             }
 
             // Verifica se utente esiste
-            const userExists = await query(
-                'SELECT id, role FROM users WHERE id = $1',
+            const userResult = await query(
+                'SELECT id, role, email, first_name, last_name FROM users WHERE id = $1',
                 [userId]
             );
 
-            if (userExists.rows.length === 0) {
+            if (userResult.rows.length === 0) {
                 return res.status(404).json({
                     success: false,
                     message: 'Utente non trovato'
                 });
             }
 
-            // Non permettere eliminazione admin (sicurezza)
-            if (userExists.rows[0].role === 'admin' && req.user.role !== 'admin') {
+            const userToDelete = userResult.rows[0];
+
+            if (userToDelete.role === 'admin') {
                 return res.status(403).json({
                     success: false,
-                    message: 'Non autorizzato a eliminare amministratori'
+                    message: 'Non è possibile eliminare un utente amministratore'
                 });
             }
 
-            // Prima elimina i record collegati o impostali a null
-            await query('UPDATE bookings SET user_id = NULL WHERE user_id = $1', [userId]);
-            await query('DELETE FROM payments WHERE user_id = $1', [userId]);
+            // Controlla se l'utente ha dati collegati che impediscono l'eliminazione
+            const bookingsCount = await query(
+                'SELECT COUNT(*) as count FROM bookings WHERE user_id = $1',
+                [userId]
+            );
 
-            // Poi elimina l'utente
-            await query('DELETE FROM users WHERE id = $1', [userId]);
+            const paymentsCount = await query(
+                'SELECT COUNT(*) as count FROM payments WHERE user_id = $1',
+                [userId]
+            ).catch(() => ({ rows: [{ count: 0 }] })); // Ignora errore se tabella non esiste
+
+            console.log('User has dependencies:', {
+                bookings: bookingsCount.rows[0].count,
+                payments: paymentsCount.rows[0].count
+            });
+
+            // Se l'utente ha prenotazioni, non può essere eliminato fisicamente
+            if (parseInt(bookingsCount.rows[0].count) > 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Impossibile eliminare l'utente: ha ${bookingsCount.rows[0].count} prenotazioni associate. Utilizzare la disattivazione invece dell'eliminazione.`,
+                    data: {
+                        reason: 'HAS_BOOKINGS',
+                        bookingsCount: parseInt(bookingsCount.rows[0].count),
+                        suggestion: 'Disattiva l\'utente invece di eliminarlo'
+                    }
+                });
+            }
+
+            // Se ha pagamenti ma non prenotazioni, elimina prima i pagamenti
+            if (parseInt(paymentsCount.rows[0].count) > 0) {
+                console.log('Deleting user payments...');
+                await query('DELETE FROM payments WHERE user_id = $1', [userId]);
+                console.log(`Deleted ${paymentsCount.rows[0].count} payments`);
+            }
+
+            // Ora elimina l'utente
+            const deleteResult = await query(
+                'DELETE FROM users WHERE id = $1 RETURNING id, email',
+                [userId]
+            );
+
+            if (deleteResult.rowCount === 0) {
+                return res.status(500).json({
+                    success: false,
+                    message: 'Errore durante l\'eliminazione'
+                });
+            }
+
+            console.log('User deleted successfully:', deleteResult.rows[0]);
 
             res.json({
                 success: true,
@@ -221,9 +325,83 @@ class UserController {
 
         } catch (error) {
             console.error('Error deleting user:', error);
+
+            // Gestione errori specifici PostgreSQL
+            if (error.code === '23503') {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Impossibile eliminare l\'utente: ha dati collegati (prenotazioni, pagamenti, etc.). Considerare la disattivazione invece dell\'eliminazione.',
+                    data: {
+                        reason: 'FOREIGN_KEY_CONSTRAINT',
+                        suggestion: 'Disattiva l\'utente invece di eliminarlo'
+                    }
+                });
+            }
+
             res.status(500).json({
                 success: false,
                 message: 'Errore interno del server'
+            });
+        }
+    }
+
+    static async debugDatabaseStructure(req, res) {
+        try {
+            // Lista tutte le tabelle
+            const tables = await query(`
+            SELECT table_name 
+            FROM information_schema.tables 
+            WHERE table_schema = 'public' 
+            ORDER BY table_name;
+        `);
+
+            console.log('📋 Database tables:', tables.rows);
+
+            // Controlla la struttura della tabella users
+            const usersStructure = await query(`
+            SELECT column_name, data_type, is_nullable
+            FROM information_schema.columns 
+            WHERE table_name = 'users' 
+            ORDER BY ordinal_position;
+        `);
+
+            console.log('👤 Users table structure:', usersStructure.rows);
+
+            // Controlla i vincoli foreign key
+            const foreignKeys = await query(`
+            SELECT
+                tc.table_name,
+                kcu.column_name,
+                ccu.table_name AS foreign_table_name,
+                ccu.column_name AS foreign_column_name
+            FROM
+                information_schema.table_constraints AS tc
+                JOIN information_schema.key_column_usage AS kcu
+                    ON tc.constraint_name = kcu.constraint_name
+                    AND tc.table_schema = kcu.table_schema
+                JOIN information_schema.constraint_column_usage AS ccu
+                    ON ccu.constraint_name = tc.constraint_name
+                    AND ccu.table_schema = tc.table_schema
+            WHERE tc.constraint_type = 'FOREIGN KEY'
+              AND (ccu.table_name = 'users' OR tc.table_name = 'users');
+        `);
+
+            console.log('🔗 Foreign key constraints:', foreignKeys.rows);
+
+            res.json({
+                success: true,
+                data: {
+                    tables: tables.rows,
+                    usersStructure: usersStructure.rows,
+                    foreignKeys: foreignKeys.rows
+                }
+            });
+
+        } catch (error) {
+            console.error('❌ Error debugging database:', error);
+            res.status(500).json({
+                success: false,
+                message: error.message
             });
         }
     }
@@ -244,11 +422,11 @@ class UserController {
             }
 
             const result = await query(`
-            UPDATE users 
-            SET status = $1, updated_at = NOW()
-            WHERE id = $2
-            RETURNING id, first_name, last_name, email, role, status, updated_at
-        `, [status, userId]);
+                UPDATE users
+                SET status = $1, updated_at = NOW()
+                WHERE id = $2
+                    RETURNING id, first_name, last_name, email, role, status, updated_at
+            `, [status, userId]);
 
             if (result.rows.length === 0) {
                 return res.status(404).json({

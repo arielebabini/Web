@@ -256,16 +256,17 @@ class CoWorkSpaceApp {
     }
 
     updateAuthUI() {
+        console.log('🔄 Updating auth UI...');
         console.log('Current user object:', this.state.currentUser);
         console.log('User role:', this.state.currentUser?.role);
-        console.log('All user properties:', Object.keys(this.state.currentUser || {}));
+        console.log('Is authenticated:', this.state.isAuthenticated);
 
         const authButtons = document.getElementById('authButtons');
         const userMenu = document.getElementById('userMenu');
         const userInitial = document.getElementById('userInitial');
         const userFullName = document.getElementById('userFullName');
         const userEmail = document.getElementById('userEmail');
-        const adminMenuItem = document.getElementById('adminMenuItem'); // Aggiungi questa riga
+        const adminMenuItem = document.getElementById('adminMenuItem');
 
         if (this.state.isAuthenticated && this.state.currentUser) {
             if (authButtons) authButtons.style.display = 'none';
@@ -276,30 +277,34 @@ class CoWorkSpaceApp {
                 userInitial.textContent = this.state.currentUser.first_name.charAt(0).toUpperCase();
             }
 
-            // Imposta nome completo e email
+            // Imposta il nome completo
             if (userFullName) {
-                const firstName = this.state.currentUser.first_name || '';
-                const lastName = this.state.currentUser.last_name || '';
-                userFullName.textContent = `${firstName} ${lastName}`.trim();
+                const fullName = `${this.state.currentUser.first_name || ''} ${this.state.currentUser.last_name || ''}`.trim();
+                userFullName.textContent = fullName || 'Utente';
             }
 
+            // Imposta l'email
             if (userEmail) {
-                userEmail.textContent = this.state.currentUser.email;
+                userEmail.textContent = this.state.currentUser.email || '';
             }
 
-            // Controllo visibilità pannello admin
+            // Mostra/nascondi voce admin nel menu
             if (adminMenuItem) {
                 if (this.state.currentUser.role === 'admin') {
                     adminMenuItem.style.display = 'block';
+                    console.log('👑 Admin menu item shown');
                 } else {
                     adminMenuItem.style.display = 'none';
                 }
             }
 
+            console.log('✅ Auth UI updated for authenticated user');
         } else {
             if (authButtons) authButtons.style.display = 'block';
             if (userMenu) userMenu.style.display = 'none';
             if (adminMenuItem) adminMenuItem.style.display = 'none';
+
+            console.log('👋 Auth UI updated for guest user');
         }
     }
 
@@ -351,53 +356,82 @@ class CoWorkSpaceApp {
     }
 
     async handleLogin(form) {
-        console.log('🔑 Handling login form...');
-        const formData = new FormData(form);
+        console.log('🔐 Handling login form...');
 
+        const formData = new FormData(form);
         const credentials = {
-            email: formData.get('loginEmail')?.trim() || formData.get('email')?.trim(),
-            password: formData.get('loginPassword') || formData.get('password')
+            email: formData.get('email'),
+            password: formData.get('password')
         };
 
-        if (!credentials.email || !credentials.password) {
-            this.showNotification('Inserisci email e password', 'warning');
-            return;
-        }
+        console.log('Login credentials:', { email: credentials.email, password: '[HIDDEN]' });
 
         try {
             this.showFormLoading(form, true);
 
             const result = await this.state.api.login(credentials);
-
-            // DEBUG: Aggiungi questo log per vedere la risposta completa
-            console.log('Login response from backend:', result);
-            console.log('User data in response:', result.data?.user || result.user);
-            console.log('User role:', (result.data?.user || result.user)?.role);
+            console.log('🎯 Login API result:', result);
 
             if (result.success) {
-                // Prova diverse strutture possibili
-                const userData = result.data?.user || result.user;
-                const tokenData = result.data?.token || result.data?.accessToken || result.tokens?.accessToken || result.accessToken;
-                const refreshToken = result.data?.refreshToken || result.tokens?.refreshToken || result.refreshToken;
+                console.log('✅ Login successful, processing result...');
 
-                console.log('Extracted - User:', userData, 'Token:', tokenData);
+                // Estrai i dati dall'oggetto result
+                let userData, tokenData, refreshToken;
 
-                // DEBUG: Controlla il ruolo dell'utente estratto
-                console.log('Final user role being saved:', userData?.role);
+                // Prova diverse strutture di risposta possibili
+                if (result.data) {
+                    userData = result.data.user || result.data;
+                    tokenData = result.data.tokens?.accessToken || result.data.token || result.data.accessToken;
+                    refreshToken = result.data.tokens?.refreshToken || result.data.refreshToken;
+                } else if (result.user) {
+                    userData = result.user;
+                    tokenData = result.tokens?.accessToken || result.token || result.accessToken;
+                    refreshToken = result.tokens?.refreshToken || result.refreshToken;
+                } else {
+                    // Fallback: usa direttamente result
+                    userData = result;
+                    tokenData = result.tokens?.accessToken || result.token;
+                    refreshToken = result.tokens?.refreshToken || result.refreshToken;
+                }
 
+                console.log('📊 Extracted data:', {
+                    user: userData,
+                    hasToken: !!tokenData,
+                    hasRefreshToken: !!refreshToken,
+                    userRole: userData?.role
+                });
+
+                // IMPORTANTE: Verifica che userData contenga i campi necessari
+                if (!userData || !userData.id || !userData.email) {
+                    throw new Error('Dati utente incompleti ricevuti dal server');
+                }
+
+                // Salva il token
                 if (tokenData) {
                     this.state.api.setToken(tokenData);
+                    localStorage.setItem('auth_token', tokenData);
+                    console.log('💾 Token saved to localStorage');
+                } else {
+                    throw new Error('Token di accesso non ricevuto dal server');
                 }
 
+                // Salva refresh token se presente
                 if (refreshToken) {
                     localStorage.setItem('refresh_token', refreshToken);
+                    console.log('💾 Refresh token saved');
                 }
 
-                if (userData) {
-                    this.state.currentUser = userData;
-                    this.state.isAuthenticated = true;
-                    localStorage.setItem('user_data', JSON.stringify(userData));
-                }
+                // Salva i dati utente
+                this.state.currentUser = userData;
+                this.state.isAuthenticated = true;
+                localStorage.setItem('user', JSON.stringify(userData));  // Nota: 'user' non 'user_data'
+                console.log('💾 User data saved to localStorage:', userData);
+
+                // Verifica che i dati siano stati salvati correttamente
+                const savedUser = localStorage.getItem('user');
+                const savedToken = localStorage.getItem('auth_token');
+                console.log('🔍 Verification - Saved user:', savedUser);
+                console.log('🔍 Verification - Saved token length:', savedToken?.length);
 
                 // Chiudi modal
                 const loginModal = document.getElementById('loginModal');
@@ -407,19 +441,29 @@ class CoWorkSpaceApp {
                 }
 
                 this.updateAuthUI();
-                this.showNotification('Login effettuato con successo', 'success');
+                this.showNotification('Login effettuato con successo!', 'success');
+
+                // Reindirizza in base al ruolo
+                setTimeout(() => {
+                    if (userData.role === 'admin') {
+                        console.log('🚀 Redirecting admin to dashboard...');
+                        window.location.href = './template/admin-dashboard.html';
+                    } else {
+                        console.log('🚀 Redirecting user to dashboard...');
+                        window.location.href = './template/user-dashboard.html';
+                    }
+                }, 1000);
+
             } else {
+                console.error('❌ Login failed:', result.message);
                 this.showNotification(result.message || 'Credenziali non valide', 'error');
             }
         } catch (error) {
+            console.error('❌ Login error:', error);
             this.showNotification('Errore durante il login: ' + error.message, 'error');
         } finally {
             this.showFormLoading(form, false);
         }
-
-        // RIMUOVI QUESTE DUE RIGHE - causano l'errore
-        // const result = await response.json();
-        // console.log('Login response from backend:', result);
     }
 
     async handleRegister(form) {
