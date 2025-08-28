@@ -838,11 +838,6 @@ class CoWorkSpaceApp {
                             </div>
                         </div>
                     </div>
-                    
-                    <div class="space-rating mt-2">
-                        <span class="stars">${stars}</span>
-                        <small class="text-muted">(${space.total_reviews} recensioni)</small>
-                    </div>
                 </div>
                 <div class="card-footer bg-transparent">
                     <button class="btn btn-primary w-100" onclick="event.stopPropagation(); showBookingModal('${space.id}')">

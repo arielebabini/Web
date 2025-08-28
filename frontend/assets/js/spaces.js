@@ -404,10 +404,6 @@ window.Spaces = {
                             <div class="space-price">
                                 <strong>€${space.price_per_day}/giorno</strong>
                             </div>
-                            <div class="space-rating">
-                                <span class="stars">${stars}</span>
-                                <small>(${space.total_reviews})</small>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -1081,10 +1077,6 @@ function generateSpaceCard(space) {
                         <div class="space-capacity">
                             <i class="fas fa-users me-1"></i>
                             ${space.capacity} persone
-                        </div>
-                        <div class="space-rating">
-                            <i class="fas fa-star text-warning me-1"></i>
-                            ${space.avg_rating || 0}/5
                         </div>
                     </div>
                     

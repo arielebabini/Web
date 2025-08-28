@@ -119,6 +119,13 @@ const bookingRateLimit = roleBasedRateLimit({
 // ===============================================
 
 /**
+ * @route   GET /api/bookings/all
+ * @desc    Ottiene tutte le prenotazioni
+ * @access  Private (admin)
+ */
+router.get('/all', requireAuth, requireAdmin, BookingController.getAllBookingsDashboard);
+
+/**
  * @route   POST /api/bookings
  * @desc    Crea una nuova prenotazione
  * @access  Private (tutti gli utenti autenticati)

@@ -295,7 +295,7 @@
 
     <div class="sidebar-menu">
         <div class="sidebar-item">
-            <a class="sidebar-link active" href="#dashboard" onclick="showSection('dashboard')">
+            <a class="sidebar-link" href="#dashboard" onclick="showSection('dashboard')">
                 <i class="fas fa-tachometer-alt sidebar-icon"></i>
                 <span>Dashboard</span>
             </a>
@@ -706,7 +706,7 @@
             </div>
         </div>
 
-        <!-- SEZIONE GESTIONE SPAZI PER ADMIN DASHBOARD -->
+        <!-- User Space Management -->
         <div class="admin-section" id="spacesSection" style="display: none;">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h4>
@@ -741,16 +741,16 @@
                         <label class="form-label">Tipo</label>
                         <select class="form-select" id="spaceTypeFilter">
                             <option value="">Tutti i tipi</option>
-                            <option value="desk">Scrivania</option>
-                            <option value="meeting_room">Sala Meeting</option>
-                            <option value="private_office">Ufficio Privato</option>
-                            <option value="coworking">Coworking</option>
+                            <option value="hot-desk">Scrivania Condivisa</option>
+                            <option value="private-office">Ufficio Privato</option>
+                            <option value="meeting-room">Sala Meeting</option>
+                            <option value="event-space">Spazio Eventi</option>
                         </select>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">&nbsp;</label>
                         <div class="d-flex gap-2">
-                            <button class="btn btn-outline-primary" onclick="applySpaceFilters()">
+                            <button class="btn btn-outline-primary" onclick="applyFilters()">
                                 <i class="fas fa-search"></i> Filtra
                             </button>
                             <button class="btn btn-outline-secondary" onclick="resetSpaceFilters()">
@@ -980,6 +980,45 @@
                                 </div>
                             </div>
 
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <h6 class="text-primary border-bottom pb-2 mb-3">
+                                        <i class="fas fa-images me-2"></i>Immagini Spazio
+                                    </h6>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Carica Immagini dello Spazio</label>
+                                    <div class="mb-3">
+                                        <input class="form-control"
+                                               type="file"
+                                               id="spaceImages"
+                                               accept="image/jpeg,image/jpg,image/png,image/gif"
+                                               multiple>
+                                        <div class="form-text">
+                                            <i class="fas fa-info-circle me-1"></i>
+                                            Seleziona una o più immagini (JPG, PNG, GIF). Dimensione massima per file: 5MB.
+                                        </div>
+                                    </div>
+
+                                    <!-- Preview delle immagini selezionate -->
+                                    <div id="imagePreviewContainer" class="d-none">
+                                        <label class="form-label text-muted mb-2">
+                                            <i class="fas fa-eye me-1"></i>Anteprima immagini selezionate:
+                                        </label>
+                                        <div id="imagePreviewGrid" class="row g-3">
+                                            <!-- Le anteprime verranno inserite qui dinamicamente -->
+                                        </div>
+                                    </div>
+
+                                    <!-- Area di drop per drag & drop (opzionale) -->
+                                    <div id="imageDropZone" class="border border-2 border-dashed border-secondary rounded p-4 text-center text-muted mt-3" style="cursor: pointer;">
+                                        <i class="fas fa-cloud-upload-alt fa-2x mb-2"></i>
+                                        <p class="mb-1">Trascina le immagini qui o clicca per selezionarle</p>
+                                        <small>Formato supportati: JPG, PNG, GIF</small>
+                                    </div>
+                                </div>
+                            </div>
+
                             <!-- Orari -->
                             <div class="row">
                                 <div class="col-12">
@@ -1125,36 +1164,154 @@
                 showNotification('Export in preparazione...', 'info');
             }
 
-            function saveSpace() {
-                const form = document.getElementById('spaceForm');
-                if (!form.checkValidity()) {
-                    form.reportValidity();
+            async function saveSpace() {
+                console.log('🏢 Saving space with images...');
+
+                // Validazione form
+                const spaceForm = document.getElementById('spaceForm');
+                if (!spaceForm || !spaceForm.checkValidity()) {
+                    if (spaceForm) spaceForm.reportValidity();
                     return;
                 }
 
-                // Collect form data
-                const spaceData = {
-                    name: document.getElementById('spaceName').value,
-                    type: document.getElementById('spaceType').value,
-                    capacity: parseInt(document.getElementById('spaceCapacity').value),
-                    price_per_hour: parseFloat(document.getElementById('spacePrice').value),
-                    city: document.getElementById('spaceCity').value,
-                    address: document.getElementById('spaceAddress').value,
-                    postal_code: document.getElementById('spacePostalCode').value,
-                    floor: document.getElementById('spaceFloor').value,
-                    room_number: document.getElementById('spaceRoom').value,
-                    description: document.getElementById('spaceDescription').value,
-                    notes: document.getElementById('spaceNotes').value,
-                    open_time: document.getElementById('spaceOpenTime').value,
-                    close_time: document.getElementById('spaceCloseTime').value,
-                    available_days: getSelectedDays(),
-                    services: getSelectedServices()
-                };
+                // Validazione campi obbligatori
+                const requiredFields = [
+                    { id: 'spaceName', name: 'Nome Spazio' },
+                    { id: 'spaceType', name: 'Tipo Spazio' },
+                    { id: 'spaceCapacity', name: 'Capacità' },
+                    { id: 'spacePrice', name: 'Prezzo' },
+                    { id: 'spaceCity', name: 'Città' },
+                    { id: 'spaceAddress', name: 'Indirizzo' }
+                ];
 
-                console.log('Saving space:', spaceData);
-                // Implementation will be added to main admin dashboard
-                showNotification('Spazio salvato con successo!', 'success');
-                bootstrap.Modal.getInstance(document.getElementById('spaceModal')).hide();
+                for (const field of requiredFields) {
+                    const element = document.getElementById(field.id);
+                    if (!element || !element.value.trim()) {
+                        showNotification(`Campo obbligatorio mancante: ${field.name}`, 'error');
+                        element?.focus();
+                        return;
+                    }
+                }
+
+                try {
+                    // Converti le immagini in base64 se presenti
+                    let imagesData = [];
+                    if (typeof convertImagesToBase64 === 'function') {
+                        try {
+                            imagesData = await convertImagesToBase64();
+                            console.log(`📸 Converted ${imagesData.length} images to base64`);
+                        } catch (error) {
+                            console.error('Errore conversione immagini:', error);
+                            showNotification('Errore nel processare le immagini', 'error');
+                            return;
+                        }
+                    }
+
+                    // Raccogli servizi/amenities selezionati
+                    const amenities = [];
+                    const serviceCheckboxes = document.querySelectorAll('#spaceForm .form-check-input[type="checkbox"]');
+                    serviceCheckboxes.forEach(checkbox => {
+                        if (checkbox.checked) {
+                            // Rimuovi 'Service' dal nome se presente
+                            const service = checkbox.id.replace('Service', '').replace('space', '');
+                            amenities.push(service.toLowerCase());
+                        }
+                    });
+
+                    // Raccogli giorni disponibili
+                    const availableDays = [];
+                    const dayCheckboxes = document.querySelectorAll('[id^="day"]:checked');
+                    dayCheckboxes.forEach(checkbox => {
+                        availableDays.push(checkbox.id.replace('day', '').toLowerCase());
+                    });
+
+                    // Prepara oggetto dati spazio
+                    const spaceData = {
+                        // Campi base obbligatori
+                        name: document.getElementById('spaceName').value.trim(),
+                        type: document.getElementById('spaceType').value,
+                        capacity: parseInt(document.getElementById('spaceCapacity').value),
+                        price_per_day: parseFloat(document.getElementById('spacePrice').value),
+                        city: document.getElementById('spaceCity').value,
+                        address: document.getElementById('spaceAddress').value.trim(),
+
+                        // Campi opzionali
+                        postal_code: document.getElementById('spacePostalCode')?.value.trim() || null,
+                        floor: document.getElementById('spaceFloor')?.value.trim() || null,
+                        room: document.getElementById('spaceRoom')?.value.trim() || null,
+                        room_number: document.getElementById('spaceRoom')?.value.trim() || null,
+                        description: document.getElementById('spaceDescription')?.value.trim() || '',
+                        notes: document.getElementById('spaceNotes')?.value.trim() || '',
+
+                        // Orari
+                        open_time: document.getElementById('spaceOpenTime')?.value || '08:00',
+                        close_time: document.getElementById('spaceCloseTime')?.value || '18:00',
+
+                        // Array di dati
+                        amenities: amenities,
+                        days_available: availableDays.length > 0 ? availableDays : ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+
+                        // CAMPO IMMAGINI COME JSONB
+                        images: imagesData,
+
+                        // Metadati
+                        is_active: true,
+                        is_featured: document.getElementById('spaceFeatured')?.checked || false
+                    };
+
+                    console.log('📤 Space data to send:', {
+                        ...spaceData,
+                        images: `${spaceData.images.length} images`,
+                        amenities: spaceData.amenities,
+                        days_available: spaceData.days_available
+                    });
+
+                    // Invia richiesta al server
+                    const token = localStorage.getItem('auth_token');
+                    if (!token) {
+                        throw new Error('Token di autenticazione mancante. Effettua il login.');
+                    }
+
+                    const response = await fetch('http://localhost:3000/api/spaces', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify(spaceData)
+                    });
+
+                    const result = await response.json();
+                    console.log('📥 Server response:', result);
+
+                    if (response.ok && result.success) {
+                        showNotification('Spazio creato con successo!', 'success');
+
+                        // Chiudi il modal
+                        const modalElement = document.getElementById('spaceModal');
+                        if (modalElement) {
+                            const modal = bootstrap.Modal.getInstance(modalElement) || new bootstrap.Modal(modalElement);
+                            modal.hide();
+                        }
+
+                        // Ricarica la tabella
+                        if (typeof loadSpaces === 'function') {
+                            loadSpaces();
+                        } else if (typeof fetchFilteredSpaces === 'function') {
+                            await fetchFilteredSpaces('/spaces/all');
+                        } else {
+                            location.reload();
+                        }
+
+                    } else {
+                        const errorMessage = result.message || 'Errore nella creazione dello spazio';
+                        throw new Error(errorMessage);
+                    }
+
+                } catch (error) {
+                    console.error('❌ Errore durante il salvataggio dello spazio:', error);
+                    showNotification(`Errore: ${error.message}`, 'error');
+                }
             }
 
             function getSelectedDays() {
@@ -1186,18 +1343,47 @@
             console.log('📍 Admin Spaces Section loaded');
         </script>
         <div class="admin-section" id="bookingsSection" style="display: none;">
-            <h4>Gestione Prenotazioni</h4>
-            <p>Sezione in sviluppo...</p>
-        </div>
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h4>
+                    <i class="fas fa-calendar-check text-primary me-2"></i>
+                    Gestione Prenotazioni
+                </h4>
+            </div>
 
-        <div class="admin-section" id="analyticsSection" style="display: none;">
-            <h4>Analytics</h4>
-            <p>Sezione in sviluppo...</p>
-        </div>
-
-        <div class="admin-section" id="settingsSection" style="display: none;">
-            <h4>Impostazioni Sistema</h4>
-            <p>Sezione in sviluppo...</p>
+            <div class="admin-table">
+                <table class="table table-hover">
+                    <thead>
+                    <tr>
+                        <th>ID Prenotazione</th>
+                        <th>Spazio</th>
+                        <th>Cliente</th>
+                        <th>Data Inizio</th>
+                        <th>Data Fine</th>
+                        <th>Orario</th>
+                        <th>Prezzo Totale</th>
+                        <th>Status</th>
+                        <th>Azioni</th>
+                    </tr>
+                    </thead>
+                    <tbody id="bookingsTableBody">
+                    <tr>
+                        <td class="text-center py-4" colspan="9">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Caricamento...</span>
+                            </div>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mt-4">
+                <div class="text-muted">
+                    Mostra tutte le prenotazioni
+                </div>
+                <nav>
+                    <ul class="pagination mb-0" id="bookingsPagination"></ul>
+                </nav>
+            </div>
         </div>
     </div>
 </div>
@@ -1324,11 +1510,13 @@
             loadDashboardStats();
         } else if (section === 'users') {
             console.log('👥 Loading users section...');
-            loadUsers(); // Carica gli utenti quando la sezione viene mostrata
+            loadUsers();
         } else if (section === 'spaces') {
             console.log('🏢 Loading spaces section...');
-            loadSpaces(); // Implementare se necessario
+            loadSpaces();
             fetchDashboardStats();
+        }else if (section === 'bookings') {
+            loadBookings();
         }
 
         // Update active menu
@@ -1343,9 +1531,7 @@
                 'dashboard': 'Dashboard',
                 'users': 'Gestione Utenti',
                 'spaces': 'Gestione Spazi',
-                'bookings': 'Prenotazioni',
-                'analytics': 'Analytics',
-                'settings': 'Impostazioni'
+                'bookings': 'Prenotazioni'
             };
             pageTitle.textContent = titles[section] || 'Dashboard';
         }
@@ -2560,6 +2746,15 @@
 </script>
 
 <script>
+    const API_CONFIG = {
+        // Server backend sulla porta 3000
+        SERVER_PORT: 3000,
+        // Frontend sulla porta 3001
+        FRONTEND_PORT: 3001,
+        // Base URL per le API
+        API_BASE_URL: 'http://localhost:3000/api'
+    };
+
     setTimeout(() => {
         fetch('http://localhost:3000/api/analytics/dashboard/admin')
             .then(r => r.json())
@@ -2792,28 +2987,110 @@
 
     // Funzione per renderizzare la tabella
     function renderSpacesTable(spaces) {
-        spacesTableBody.innerHTML = ''; // Pulisce la tabella
-        if (spaces.length === 0) {
-            spacesTableBody.innerHTML = `<tr><td colspan="7" class="text-center text-muted">Nessun spazio trovato.</td></tr>`;
+        console.log('🎨 Rendering spaces table with', spaces.length, 'spaces');
+
+        const tableBody = document.getElementById('spacesTableBody');
+
+        if (!tableBody) {
+            console.error('❌ Element spacesTableBody not found!');
             return;
         }
 
-        spaces.forEach(space => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${space.name}</td>
-                <td>${space.city}</td>
-                <td>${formatSpaceType(space.type)}</td>
-                <td>${space.capacity}</td>
-                <td>€${typeof space.price_per_day === 'number' ? space.price_per_day.toFixed(2) : parseFloat(space.price_per_day).toFixed(2)}</td>
+        // Se non ci sono spazi
+        if (!spaces || spaces.length === 0) {
+            tableBody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center py-4">
+                    <div class="text-muted">
+                        <i class="fas fa-building fa-3x mb-3"></i>
+                        <p class="mb-0">Nessuno spazio trovato</p>
+                        <small>Prova a modificare i filtri di ricerca</small>
+                    </div>
+                </td>
+            </tr>
+        `;
+            return;
+        }
+
+        // Renderizza le righe della tabella
+        tableBody.innerHTML = spaces.map(space => {
+            // Funzioni di utilità inline per evitare dipendenze
+            const safeName = (space.name || 'Nome non disponibile').replace(/[<>&"']/g, '');
+            const safeCity = (space.city || 'N/A').replace(/[<>&"']/g, '');
+            const safeDescription = space.description ?
+                space.description.substring(0, 50).replace(/[<>&"']/g, '') + '...' : '';
+
+            // Formattazione tipo spazio
+            const typeLabels = {
+                'hot-desk': 'Hot Desk',
+                'private-office': 'Ufficio Privato',
+                'meeting-room': 'Sala Meeting',
+                'event-space': 'Spazio Eventi',
+                'desk': 'Scrivania',
+                'meeting_room': 'Sala Meeting',
+                'private_office': 'Ufficio Privato',
+                'coworking': 'Coworking'
+            };
+            const typeLabel = typeLabels[space.type] || space.type || 'N/A';
+
+            // Colori badge tipo
+            const typeColors = {
+                'hot-desk': 'bg-primary',
+                'private-office': 'bg-success',
+                'meeting-room': 'bg-warning text-dark',
+                'event-space': 'bg-info',
+                'desk': 'bg-primary',
+                'meeting_room': 'bg-warning text-dark',
+                'private_office': 'bg-success',
+                'coworking': 'bg-info'
+            };
+            const typeColor = typeColors[space.type] || 'bg-secondary';
+
+            // Formattazione prezzo
+            const price = parseFloat(space.price_per_day || space.pricePerDay || 0).toFixed(2);
+            const spaceId = space.id || space._id || '';
+
+            return `
+            <tr data-space-id="${spaceId}">
                 <td>
-                    <button class="btn btn-sm btn-info me-1" onclick="editSpace('${space._id}')"><i class="fas fa-edit"></i></button>
-                    <button class="btn btn-sm btn-outline-danger" onclick="deleteSpace('${space.id}')"><i class="fas fa-trash-alt"></i>
+                    <div>
+                        <div class="fw-semibold">${safeName}</div>
+                        ${safeDescription ? `<small class="text-muted">${safeDescription}</small>` : ''}
+                    </div>
+                </td>
+                <td>
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-map-marker-alt text-muted me-2"></i>
+                        ${safeCity}
+                    </div>
+                </td>
+                <td>
+                    <span class="badge ${typeColor}">
+                        ${typeLabel}
+                    </span>
+                </td>
+                <td>
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-users text-muted me-2"></i>
+                        ${space.capacity || 0} ${space.capacity === 1 ? 'persona' : 'persone'}
+                    </div>
+                </td>
+                <td>
+                    <div class="fw-semibold">
+                        €${price}
+                        <small class="text-muted d-block">al giorno</small>
+                    </div>
+                </td>
+                <td>
+                    <button class="btn btn-sm btn-outline-danger" onclick="if(confirm('Eliminare questo spazio?')) alert('Elimina spazio: ${spaceId}')" title="Elimina">
+                        <i class="fas fa-trash-alt"></i>
                     </button>
                 </td>
-            `;
-            spacesTableBody.appendChild(row);
-        });
+            </tr>
+        `;
+        }).join('');
+
+        console.log('✅ Table rendered successfully');
     }
 
     // Funzione di formattazione del tipo di spazio
@@ -2835,21 +3112,258 @@
      * Funzione per applicare i filtri e avviare la ricerca
      * @description Legge i valori dai campi di ricerca e filtra i dati mock degli spazi.
      */
+    function applyFilters() {
+        console.log('🔍 Applying filters with correct server port...');
+
+        const searchInput = document.getElementById('spaceSearch');
+        const typeFilter = document.getElementById('spaceTypeFilter');
+        const cityFilter = document.getElementById('cityFilter');
+
+        // Verifica che gli elementi esistano
+        if (!searchInput || !typeFilter || !cityFilter) {
+            console.error('❌ DOM elements not found:', {
+                searchInput: !!searchInput,
+                typeFilter: !!typeFilter,
+                cityFilter: !!cityFilter
+            });
+
+            // Mostra tutti gli elementi con ID per debug
+            console.log('🔍 Available elements with ID:');
+            document.querySelectorAll('[id]').forEach(el => {
+                console.log(`  ${el.id}: ${el.tagName}`);
+            });
+
+            showErrorInTable('Elementi filtro non trovati nel DOM');
+            return;
+        }
+
+        const searchValue = searchInput.value.trim();
+        const typeValue = typeFilter.value;
+        const cityValue = cityFilter.value;
+
+        console.log('📋 Filter values:', {
+            search: searchValue,
+            type: typeValue,
+            city: cityValue
+        });
+
+        // Costruisci parametri query
+        const queryParams = new URLSearchParams();
+
+        if (searchValue) {
+            queryParams.append('search', searchValue);
+        }
+
+        if (typeValue) {
+            // Mapping dei tipi per compatibilità backend
+            const typeMapping = {
+                'desk': 'hot-desk',
+                'meeting_room': 'meeting-room',
+                'private_office': 'private-office',
+                'coworking': 'event-space'
+            };
+
+            const mappedType = typeMapping[typeValue] || typeValue;
+            queryParams.append('type', mappedType);
+            console.log('🔄 Type mapping:', typeValue, '->', mappedType);
+        }
+
+        if (cityValue) {
+            queryParams.append('city', cityValue);
+        }
+
+        // Parametri di paginazione
+        queryParams.append('page', '1');
+        queryParams.append('limit', '50');
+        queryParams.append('sortBy', 'created_at');
+        queryParams.append('sortOrder', 'DESC');
+
+        const queryString = queryParams.toString();
+        const endpoint = `/spaces/all${queryString ? '?' + queryString : ''}`;
+
+        console.log('🌐 Final endpoint:', endpoint);
+
+        // Chiama con l'endpoint corretto
+        fetchFilteredSpaces(endpoint);
+    }
+
+    async function fetchFilteredSpaces(endpoint) {
+        const loadingEl = document.getElementById('spacesLoading') ||
+            document.querySelector('.spinner-border')?.closest('tr');
+        const tableBody = document.getElementById('spacesTableBody');
+
+        console.log('🚀 fetchFilteredSpaces called with endpoint:', endpoint);
+
+        // Costruisci URL completo con la porta corretta del server (3000)
+        const fullUrl = endpoint.startsWith('http') ?
+            endpoint :
+            `${API_CONFIG.API_BASE_URL}${endpoint.startsWith('/api') ? endpoint.replace('/api', '') : endpoint}`;
+
+        console.log('🌐 Full API URL:', fullUrl);
+
+        // Mostra loading
+        if (loadingEl) {
+            loadingEl.style.display = loadingEl.tagName === 'TR' ? 'table-row' : 'block';
+        }
+
+        try {
+            const token = localStorage.getItem('auth_token');
+            if (!token) {
+                throw new Error('Token di autenticazione mancante. Effettua il login.');
+            }
+
+            console.log('🔐 Using token:', token ? 'Present' : 'Missing');
+
+            const response = await fetch(fullUrl, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            console.log(`📶 Response status: ${response.status} ${response.statusText}`);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('❌ HTTP Error:', response.status, errorText);
+
+                // Prova a parsare l'errore JSON se possibile
+                let errorMessage;
+                try {
+                    const errorData = JSON.parse(errorText);
+                    errorMessage = errorData.message || `HTTP ${response.status}: ${response.statusText}`;
+                } catch {
+                    errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+                }
+
+                throw new Error(errorMessage);
+            }
+
+            const data = await response.json();
+            console.log('✅ API Response:', {
+                success: data.success,
+                spacesCount: data.spaces?.length || 0,
+                hasSpaces: !!data.spaces,
+                hasPagination: !!data.pagination
+            });
+
+            if (data.success && Array.isArray(data.spaces)) {
+                renderSpacesTable(data.spaces);
+
+                if (data.pagination) {
+                    updatePagination(data.pagination);
+                }
+            } else {
+                console.warn('⚠️ Unexpected API response format:', data);
+                throw new Error(data.message || 'Formato risposta API non valido');
+            }
+
+        } catch (error) {
+            console.error('❌ Fetch Error:', error);
+            showErrorInTable(error.message, fullUrl);
+        } finally {
+            if (loadingEl) {
+                loadingEl.style.display = 'none';
+            }
+        }
+    }
+
+    function updatePagination(pagination) {
+        console.log('📄 Updating pagination:', pagination);
+
+        // Se non ci sono dati di paginazione, non fare nulla
+        if (!pagination) {
+            return;
+        }
+
+        const {
+            page = 1,
+            limit = 50,
+            total = 0,
+            totalPages = 1
+        } = pagination;
+
+        // Cerca elementi di paginazione esistenti e aggiorna le informazioni
+        const totalCountEl = document.getElementById('spacesTotal');
+        const rangeInfoEl = document.getElementById('spacesRange');
+        const pageInfoEl = document.getElementById('pageInfo');
+
+        if (totalCountEl) {
+            totalCountEl.textContent = total;
+        }
+
+        if (rangeInfoEl) {
+            const startItem = Math.min((page - 1) * limit + 1, total);
+            const endItem = Math.min(page * limit, total);
+            rangeInfoEl.textContent = total > 0 ?
+                `Visualizzati ${startItem}-${endItem} di ${total}` :
+                'Nessun risultato';
+        }
+
+        if (pageInfoEl) {
+            pageInfoEl.textContent = `Pagina ${page} di ${totalPages}`;
+        }
+
+        console.log(`✅ Pagination updated: Page ${page}/${totalPages}, Total: ${total}`);
+    }
+
+    // Funzione per mostrare errori nella tabella
+    function showErrorInTable(message, url = '') {
+        const tableBody = document.getElementById('spacesTableBody');
+        if (tableBody) {
+            tableBody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center py-4">
+                    <div class="alert alert-danger mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Errore:</strong> ${message}
+                        ${url ? `<br><small class="text-muted">URL: ${url}</small>` : ''}
+                        <br><br>
+                        <button class="btn btn-sm btn-outline-danger" onclick="retryLastRequest()">
+                            <i class="fas fa-redo me-1"></i>Riprova
+                        </button>
+                        <button class="btn btn-sm btn-outline-primary ms-2" onclick="testConnection()">
+                            <i class="fas fa-wifi me-1"></i>Test Connessione
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+        }
+    }
+
+    function showSuccessMessage(message) {
+        const tableBody = document.getElementById('spacesTableBody');
+        if (tableBody) {
+            tableBody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center py-4">
+                    <div class="alert alert-success mb-0">
+                        <i class="fas fa-check-circle me-2"></i>
+                        ${message}
+                    </div>
+                </td>
+            </tr>
+        `;
+        }
+    }
+
+    let lastEndpoint = '/spaces/all';
+
+    function retryLastRequest() {
+        console.log('🔄 Retrying last request:', lastEndpoint);
+        fetchFilteredSpaces(lastEndpoint);
+    }
+
+    const originalFetchFilteredSpaces = fetchFilteredSpaces;
+    fetchFilteredSpaces = function(endpoint) {
+        lastEndpoint = endpoint;
+        return originalFetchFilteredSpaces(endpoint);
+    };
+
     function applySpaceFilters() {
-        // Ottiene i valori dei campi di input e select
-        const searchInput = document.getElementById('spaceSearch').value;
-        const cityFilter = document.getElementById('cityFilter').value;
-        const typeFilter = document.getElementById('spaceTypeFilter').value;
-
-        // Crea un oggetto con i filtri da applicare
-        const filters = {};
-        if (searchInput) filters.search = searchInput;
-        if (cityFilter) filters.city = cityFilter;
-        if (typeFilter) filters.type = typeFilter;
-
-        // Resetta la paginazione e ricarica gli spazi con i nuovi filtri
-        currentPageSpaces = 1;
-        loadSpaces(filters);
+        applyFilters();
     }
 
     /**
@@ -2857,14 +3371,20 @@
      * @description Resetta i valori dei campi di input e ricarica tutti gli spazi.
      */
     function resetSpaceFilters() {
-        // Resetta i campi del form
-        document.getElementById('spaceSearch').value = '';
-        document.getElementById('cityFilter').value = '';
-        document.getElementById('spaceTypeFilter').value = '';
+        console.log('🧹 Resetting filters...');
 
-        // Resetta la paginazione e ricarica senza filtri
-        currentPageSpaces = 1;
-        loadSpaces();
+        const searchInput = document.getElementById('spaceSearch');
+        const typeFilter = document.getElementById('spaceTypeFilter');
+        const cityFilter = document.getElementById('cityFilter');
+
+        if (searchInput) searchInput.value = '';
+        if (typeFilter) typeFilter.value = '';
+        if (cityFilter) cityFilter.value = '';
+
+        console.log('✅ Filters reset, loading all spaces...');
+
+        // Ricarica tutti gli spazi
+        fetchFilteredSpaces('/spaces/all');
     }
 
     // Funzioni per gestire lo stato di caricamento/errore
@@ -3050,6 +3570,477 @@
             loadSpaces();
         }
     });
+
+    window.fetchFilteredSpaces = fetchFilteredSpaces;
+    window.applyFilters = applyFilters;
+    window.applySpaceFilters = applySpaceFilters;
+    window.resetSpaceFilters = resetSpaceFilters;
+    window.testConnection = testConnection;
+    window.retryLastRequest = retryLastRequest;
+
+    // INIZIALIZZAZIONE AUTOMATICA
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('🚀 Page loaded with correct API configuration');
+        console.log('🔧 Server:', API_CONFIG.API_BASE_URL);
+        console.log('🌐 Frontend:', `http://localhost:${API_CONFIG.FRONTEND_PORT}`);
+
+        // Test connessione automatico
+        setTimeout(() => {
+            console.log('🔌 Running automatic connection test...');
+            testConnection();
+        }, 1000);
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('🖼️ Initializing image upload functionality...');
+
+        const imageInput = document.getElementById('spaceImages');
+        const previewContainer = document.getElementById('imagePreviewContainer');
+        const previewGrid = document.getElementById('imagePreviewGrid');
+        const dropZone = document.getElementById('imageDropZone');
+
+        // Array per memorizzare i file selezionati
+        let selectedImages = [];
+
+        // Inizializza solo se gli elementi esistono
+        if (imageInput && previewContainer && previewGrid && dropZone) {
+            initializeImageUpload();
+        } else {
+            console.warn('⚠️ Image upload elements not found in DOM');
+        }
+
+        function initializeImageUpload() {
+            // Event listener per il file input
+            imageInput.addEventListener('change', handleImageSelection);
+
+            // Event listeners per drag & drop
+            dropZone.addEventListener('click', () => imageInput.click());
+            dropZone.addEventListener('dragover', handleDragOver);
+            dropZone.addEventListener('dragleave', handleDragLeave);
+            dropZone.addEventListener('drop', handleDrop);
+
+            console.log('✅ Image upload initialized');
+        }
+
+        function handleImageSelection(event) {
+            const files = Array.from(event.target.files);
+            console.log(`📁 Selected ${files.length} files`);
+
+            if (files.length === 0) {
+                hidePreview();
+                return;
+            }
+
+            // Valida i file
+            const validFiles = validateImageFiles(files);
+
+            if (validFiles.length > 0) {
+                selectedImages = validFiles;
+                showImagePreviews(validFiles);
+            } else {
+                hidePreview();
+            }
+        }
+
+        function validateImageFiles(files) {
+            const maxFileSize = 5 * 1024 * 1024; // 5MB
+            const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+            const validFiles = [];
+
+            files.forEach((file, index) => {
+                console.log(`🔍 Validating file ${index + 1}: ${file.name}`);
+
+                // Controlla tipo file
+                if (!allowedTypes.includes(file.type.toLowerCase())) {
+                    showNotification(`❌ ${file.name} non è un'immagine valida`, 'warning');
+                    return;
+                }
+
+                // Controlla dimensione file
+                if (file.size > maxFileSize) {
+                    const sizeMB = (file.size / 1024 / 1024).toFixed(1);
+                    showNotification(`❌ ${file.name} è troppo grande (${sizeMB}MB > 5MB)`, 'warning');
+                    return;
+                }
+
+                validFiles.push(file);
+                console.log(`✅ File ${file.name} validato correttamente`);
+            });
+
+            if (validFiles.length !== files.length) {
+                console.log(`⚠️ ${validFiles.length}/${files.length} file sono validi`);
+            }
+
+            return validFiles;
+        }
+
+        function showImagePreviews(files) {
+            console.log(`🎨 Showing previews for ${files.length} images`);
+
+            previewContainer.classList.remove('d-none');
+            previewGrid.innerHTML = '';
+
+            files.forEach((file, index) => {
+                const reader = new FileReader();
+
+                reader.onload = function(e) {
+                    const fileSize = (file.size / 1024).toFixed(1);
+
+                    const previewHtml = `
+                    <div class="col-md-4 col-sm-6">
+                        <div class="card shadow-sm">
+                            <img src="${e.target.result}"
+                                 class="card-img-top"
+                                 style="height: 150px; object-fit: cover; cursor: pointer;"
+                                 onclick="previewImageFullSize('${e.target.result}', '${file.name}')"
+                                 title="Clicca per ingrandire">
+                            <div class="card-body p-3">
+                                <small class="text-muted d-block mb-1">
+                                    <i class="fas fa-file-image me-1"></i>
+                                    ${file.name}
+                                </small>
+                                <small class="text-muted d-block mb-2">
+                                    <i class="fas fa-weight-hanging me-1"></i>
+                                    ${fileSize} KB
+                                </small>
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-danger w-100"
+                                        onclick="removeImageAtIndex(${index})">
+                                    <i class="fas fa-trash-alt me-1"></i>Rimuovi
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                    previewGrid.innerHTML += previewHtml;
+                };
+
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function hidePreview() {
+            previewContainer.classList.add('d-none');
+            previewGrid.innerHTML = '';
+            selectedImages = [];
+        }
+
+        // Drag & Drop handlers
+        function handleDragOver(e) {
+            e.preventDefault();
+            dropZone.classList.add('border-primary', 'bg-light');
+        }
+
+        function handleDragLeave(e) {
+            e.preventDefault();
+            dropZone.classList.remove('border-primary', 'bg-light');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            dropZone.classList.remove('border-primary', 'bg-light');
+
+            const files = Array.from(e.dataTransfer.files);
+            console.log(`📥 Dropped ${files.length} files`);
+
+            // Simula la selezione di file
+            const dt = new DataTransfer();
+            files.forEach(file => dt.items.add(file));
+            imageInput.files = dt.files;
+
+            // Gestisci come se fosse una selezione normale
+            handleImageSelection({ target: { files: files } });
+        }
+
+        // Funzioni globali per le azioni sui file
+        window.removeImageAtIndex = function(index) {
+            console.log(`🗑️ Removing image at index ${index}`);
+
+            selectedImages.splice(index, 1);
+
+            // Aggiorna il file input
+            const dt = new DataTransfer();
+            selectedImages.forEach(file => dt.items.add(file));
+            imageInput.files = dt.files;
+
+            // Rigenera le anteprime
+            if (selectedImages.length > 0) {
+                showImagePreviews(selectedImages);
+            } else {
+                hidePreview();
+            }
+        };
+
+        window.previewImageFullSize = function(src, filename) {
+            console.log(`🔍 Opening full size preview for: ${filename}`);
+
+            // Crea modal per anteprima full-size
+            const modalHtml = `
+            <div class="modal fade" id="imagePreviewModal" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">
+                                <i class="fas fa-image me-2"></i>${filename}
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body text-center">
+                            <img src="${src}" class="img-fluid" style="max-height: 70vh;">
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+            // Rimuovi modal esistente se presente
+            const existingModal = document.getElementById('imagePreviewModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+
+            // Aggiungi nuovo modal
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+            // Mostra modal
+            const modal = new bootstrap.Modal(document.getElementById('imagePreviewModal'));
+            modal.show();
+
+            // Rimuovi modal dopo la chiusura
+            document.getElementById('imagePreviewModal').addEventListener('hidden.bs.modal', function() {
+                this.remove();
+            });
+        };
+
+        // Funzione per convertire le immagini in base64 (usata da saveSpace)
+        window.convertImagesToBase64 = async function() {
+            console.log(`📸 Converting ${selectedImages.length} images to base64...`);
+
+            if (selectedImages.length === 0) {
+                return [];
+            }
+
+            const base64Images = [];
+
+            for (const file of selectedImages) {
+                try {
+                    const base64 = await fileToBase64(file);
+                    base64Images.push({
+                        filename: file.name,
+                        size: file.size,
+                        type: file.type,
+                        data: base64,
+                        uploadedAt: new Date().toISOString()
+                    });
+                    console.log(`✅ Converted: ${file.name}`);
+                } catch (error) {
+                    console.error(`❌ Error converting ${file.name}:`, error);
+                    showNotification(`Errore nel processare ${file.name}`, 'error');
+                }
+            }
+
+            console.log(`🎯 Successfully converted ${base64Images.length} images`);
+            return base64Images;
+        };
+
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+            });
+        }
+
+        // Reset quando si chiude il modal
+        const spaceModal = document.getElementById('spaceModal');
+        if (spaceModal) {
+            spaceModal.addEventListener('hidden.bs.modal', function () {
+                console.log('🧹 Resetting image upload on modal close');
+
+                // Reset input file
+                if (imageInput) {
+                    imageInput.value = '';
+                }
+
+                // Nascondi anteprime
+                hidePreview();
+            });
+        }
+    });
+
+    console.log('🖼️ Image upload functionality loaded');
+</script>
+
+<script>
+    // ============ GESTIONE PRENOTAZIONI ===============
+
+    // ===============================================
+    //  GESTIONE PRENOTAZIONI
+    // ===============================================
+
+    async function loadBookings() {
+        const bookingsTableBody = document.getElementById('bookingsTableBody');
+        const sectionId = 'bookings';
+
+        // Mostra il caricamento all'interno della tabella
+        showLoading(sectionId);
+
+        try {
+            const token = localStorage.getItem('auth_token');
+            if (!token) {
+                showError(sectionId, 'Autenticazione richiesta. Ricarica la pagina e accedi.');
+                return;
+            }
+
+            const response = await fetch('http://localhost:3000/api/bookings/all', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (response.status === 401) {
+                console.warn('🔒 Received 401, clearing auth');
+                localStorage.removeItem('token');
+                window.location.href = '/login.html';
+                return;
+            }
+
+            // Controlla se la risposta non è OK prima di tentare il JSON
+            if (!response.ok) {
+                const errorData = await response.json();
+                showError(sectionId, errorData.message || 'Errore nel recupero delle prenotazioni.');
+                return;
+            }
+
+            const data = await response.json();
+
+            // Aggiungi un controllo per assicurarti che i dati delle prenotazioni esistano e siano un array
+            if (!data.bookings || !Array.isArray(data.bookings)) {
+                console.error('Dati prenotazioni non validi ricevuti dal server:', data);
+                showError(sectionId, 'Dati prenotazioni non validi ricevuti dal server.');
+                return;
+            }
+
+            // Chiamata alla funzione di rendering con i dati corretti
+            renderBookingsTable(data.bookings);
+            // La riga `showContent` è stata rimossa, non è necessaria.
+            // Il rendering della tabella già sostituisce il contenuto di caricamento.
+
+        } catch (error) {
+            console.error('Error loading bookings:', error);
+            showError(sectionId, 'Errore di connessione o del server.');
+        }
+    }
+
+    /**
+     * Rende la tabella delle prenotazioni.
+     * @param {Object[]} bookings - L'elenco delle prenotazioni da visualizzare
+     */
+    function renderBookingsTable(bookings) {
+        const bookingsTableBody = document.getElementById('bookingsTableBody');
+        bookingsTableBody.innerHTML = ''; // Pulisce la tabella
+
+        if (bookings.length === 0) {
+            bookingsTableBody.innerHTML = `<tr><td colspan="9" class="text-center py-4">Nessuna prenotazione trovata.</td></tr>`;
+            return;
+        }
+
+        bookings.forEach(booking => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${booking.id.substring(0, 8)}...</td>
+                <td>
+                    <i class="fas fa-building me-2"></i>
+                    ${booking.space_name}
+                    <small class="d-block text-muted">${booking.space_city}</small>
+                </td>
+                <td>
+                    <i class="fas fa-user me-2"></i>
+                    ${booking.user_first_name} ${booking.user_last_name}
+                    <small class="d-block text-muted">${booking.user_email}</small>
+                </td>
+                <td>${new Date(booking.start_date).toLocaleDateString('it-IT')}</td>
+                <td>${new Date(booking.end_date).toLocaleDateString('it-IT')}</td>
+                <td>${booking.start_time} - ${booking.end_time || 'N/A'}</td>
+                <td><strong>€${parseFloat(booking.total_price).toFixed(2)}</strong></td>
+                <td><span class="status-badge status-${booking.status}">${booking.status}</span></td>
+                <td>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-outline-info" title="Dettagli">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-success" title="Conferma">
+                            <i class="fas fa-check"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" title="Cancella">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            `;
+            bookingsTableBody.appendChild(row);
+        });
+    }
+
+    // ===============================================
+    //  FUNZIONI DI UTILITÀ PER L'UI
+    // ===============================================
+
+    /**
+     * Mostra l'overlay di caricamento e nasconde la tabella.
+     * @param {string} sectionId - L'ID della sezione (es. 'users', 'spaces')
+     */
+    function showLoading(sectionId) {
+        const section = document.getElementById(sectionId + 'Section');
+        if (section) {
+            const tableBody = section.querySelector('tbody');
+            if (tableBody) {
+                // Colspan corretto per 9 colonne
+                tableBody.innerHTML = `<tr><td class="text-center py-4" colspan="9">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Caricamento...</span>
+                    </div>
+                </td></tr>`;
+            }
+        }
+    }
+
+    /**
+     * Mostra il contenuto e nasconde gli indicatori di caricamento.
+     * @param {string} sectionId - L'ID della sezione (es. 'users', 'spaces')
+     */
+    function showContent(sectionId) {
+        const section = document.getElementById(sectionId + 'Section');
+        if (section) {
+            // Mostra il contenuto che era nascosto, se necessario
+            const contentContainer = section.querySelector('.admin-table');
+            if (contentContainer) {
+                contentContainer.style.display = 'block';
+            }
+        }
+    }
+
+    /**
+     * Mostra un messaggio di errore e nasconde il contenuto.
+     * @param {string} sectionId - L'ID della sezione (es. 'users', 'spaces')
+     * @param {string} message - Il messaggio di errore da visualizzare
+     */
+    function showError(sectionId, message) {
+        const section = document.getElementById(sectionId + 'Section');
+        if (section) {
+            const tableBody = section.querySelector('tbody');
+            if (tableBody) {
+                // Colspan corretto per 9 colonne
+                tableBody.innerHTML = `<tr><td class="text-center text-danger py-4" colspan="9">
+                    <i class="fas fa-exclamation-triangle me-2"></i>${message}
+                </td></tr>`;
+            }
+        }
+    }
 </script>
 </body>
 </html>

@@ -603,6 +603,25 @@ class BookingController {
             });
         }
     }
+
+    /**
+     * Ottiene tutte le prenotazioni (per l'amministratore)
+     */
+    static async getAllBookingsDashboard(req, res) {
+        try {
+            const bookings = await Booking.findAllBookings();
+            res.status(200).json({
+                success: true,
+                bookings
+            });
+        } catch (error) {
+            logger.error('Error getting all bookings:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Errore durante il recupero delle prenotazioni'
+            });
+        }
+    }
 }
 
 module.exports = BookingController;

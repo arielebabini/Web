@@ -729,23 +729,6 @@ const spacesCSS
     font-weight: 600;
 }
 
-.space-rating {
-    margin-bottom: 16px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.space-rating .stars {
-    color: #ffc107;
-    font-size: 1rem;
-}
-
-.space-rating .reviews {
-    color: #6c757d;
-    font-size: 0.85rem;
-}
-
 .space-actions {
     display: flex;
     gap: 8px;

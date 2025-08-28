@@ -508,11 +508,11 @@
 
                     return `
             <div class="space-card-modern">
-                <div class="space-image-container">
+                <div class="space-image-container" style="display: flex; justify-content: space-between; align-items: flex-start;">
                     <img src="${space.images?.[0] || '/assets/images/placeholder-space.jpg'}"
                         class="space-image" alt="${space.name}">
 
-                    <div class="space-badge">
+                    <div class="space-badge" style="margin-left: auto;">
                         <span class="badge ${typeBadge.class}">${typeBadge.label}</span>
                     </div>
 
@@ -546,11 +546,6 @@
                             <span class="price-amount">€${space.price_per_day}</span>
                             <span class="price-period">/giorno</span>
                         </div>
-                    </div>
-
-                    <div class="space-rating">
-                        ${starsHTML}
-                        <span class="rating-text">(${space.reviews_count || 0})</span>
                     </div>
                 </div>
 

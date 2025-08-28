@@ -559,6 +559,33 @@ class Booking {
             throw error;
         }
     }
+
+    /**
+     * Trova tutte le prenotazioni con i dettagli di utente e spazio.
+     * @returns {Promise<Object[]>} Elenco di tutte le prenotazioni
+     */
+    static async findAllBookings() {
+        try {
+            const result = await query(`
+                SELECT
+                    b.*,
+                    s.name as space_name,
+                    s.type as space_type,
+                    s.city as space_city,
+                    u.first_name as user_first_name,
+                    u.last_name as user_last_name,
+                    u.email as user_email
+                FROM bookings b
+                         LEFT JOIN spaces s ON b.space_id = s.id
+                         LEFT JOIN users u ON b.user_id = u.id
+                ORDER BY b.start_date DESC, b.start_time DESC
+            `);
+            return result.rows;
+        } catch (error) {
+            logger.error('Error finding all bookings:', error);
+            throw error;
+        }
+    }
 }
 
 module.exports = Booking;
