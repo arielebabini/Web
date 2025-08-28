@@ -85,7 +85,7 @@ const bookingIdValidation = [
     param('bookingId')
         .isUUID()
         .withMessage('ID prenotazione non valido')
-];
+];;
 
 const conflictCheckValidation = [
     query('space_id')
@@ -270,6 +270,18 @@ router.post('/:bookingId/complete',
     bookingIdValidation,
     requireManagerOwnership('booking'),
     BookingController.completeBooking
+);
+
+/**
+ * @route   DELETE /api/bookings/:bookingId
+ * @desc    Elimina una prenotazione
+ * @access  Private (admin)
+ */
+router.delete('/:bookingId',
+    requireAuth,
+    requireAdmin,
+    bookingIdValidation,
+    BookingController.deleteBooking
 );
 
 // ===============================================

@@ -1361,7 +1361,6 @@
                         <th>Data Fine</th>
                         <th>Orario</th>
                         <th>Prezzo Totale</th>
-                        <th>Status</th>
                         <th>Azioni</th>
                     </tr>
                     </thead>
@@ -1383,6 +1382,63 @@
                 <nav>
                     <ul class="pagination mb-0" id="bookingsPagination"></ul>
                 </nav>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="bookingDetailsModal" tabindex="-1" aria-labelledby="bookingDetailsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="bookingDetailsModalLabel">Dettagli Prenotazione</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-info-circle me-2 text-primary"></i>Info Prenotazione</h6>
+                            <p><strong>ID:</strong> <span id="modal-booking-id"></span></p>
+                            <p><strong>Data Inizio:</strong> <span id="modal-booking-start-date"></span></p>
+                            <p><strong>Data Fine:</strong> <span id="modal-booking-end-date"></span></p>
+                            <p><strong>Orario:</strong> <span id="modal-booking-times"></span></p>
+                            <p><strong>Prezzo Totale:</strong> <span id="modal-booking-price"></span></p>
+                            <p><strong>Note:</strong> <span id="modal-booking-notes"></span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-building me-2 text-primary"></i>Dettagli Spazio</h6>
+                            <p><strong>Nome Spazio:</strong> <span id="modal-space-name"></span></p>
+                            <p><strong>Tipo:</strong> <span id="modal-space-type"></span></p>
+                            <p><strong>Città:</strong> <span id="modal-space-city"></span></p>
+                        </div>
+                        <div class="col-12">
+                            <h6><i class="fas fa-user me-2 text-primary"></i>Dettagli Cliente</h6>
+                            <p><strong>Nome:</strong> <span id="modal-user-name"></span></p>
+                            <p><strong>Email:</strong> <span id="modal-user-email"></span></p>
+                            <p><strong>Persone:</strong> <span id="modal-people-count"></span></p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="deleteBookingModal" tabindex="-1" aria-labelledby="deleteBookingModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteBookingModalLabel">Conferma Eliminazione</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    Sei sicuro di voler eliminare questa prenotazione? Questa azione non può essere annullata.
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Elimina</button>
+                </div>
             </div>
         </div>
     </div>
@@ -3927,8 +3983,6 @@
 
             // Chiamata alla funzione di rendering con i dati corretti
             renderBookingsTable(data.bookings);
-            // La riga `showContent` è stata rimossa, non è necessaria.
-            // Il rendering della tabella già sostituisce il contenuto di caricamento.
 
         } catch (error) {
             console.error('Error loading bookings:', error);
@@ -3949,7 +4003,7 @@
             return;
         }
 
-        bookings.forEach(booking => {
+        bookings.forEach((booking, index) => {
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>${booking.id.substring(0, 8)}...</td>
@@ -3967,16 +4021,12 @@
                 <td>${new Date(booking.end_date).toLocaleDateString('it-IT')}</td>
                 <td>${booking.start_time} - ${booking.end_time || 'N/A'}</td>
                 <td><strong>€${parseFloat(booking.total_price).toFixed(2)}</strong></td>
-                <td><span class="status-badge status-${booking.status}">${booking.status}</span></td>
                 <td>
                     <div class="d-flex gap-2">
-                        <button class="btn btn-sm btn-outline-info" title="Dettagli">
+                        <button class="btn btn-sm btn-outline-info show-details-btn" data-bs-toggle="modal" data-bs-target="#bookingDetailsModal" data-booking-index="${index}" title="Dettagli">
                             <i class="fas fa-eye"></i>
                         </button>
-                        <button class="btn btn-sm btn-outline-success" title="Conferma">
-                            <i class="fas fa-check"></i>
-                        </button>
-                        <button class="btn btn-sm btn-outline-danger" title="Cancella">
+                        <button class="btn btn-sm btn-outline-danger delete-btn" data-bs-toggle="modal" data-bs-target="#deleteBookingModal" data-booking-id="${booking.id}" title="Cancella">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
@@ -3984,6 +4034,30 @@
             `;
             bookingsTableBody.appendChild(row);
         });
+    }
+
+    /**
+     * Mostra il modal con i dettagli della prenotazione
+     * @param {Object} booking - L'oggetto prenotazione con tutti i dettagli
+     */
+    function showBookingDetailsModal(booking) {
+        // Popola i campi del modal con i dati della prenotazione
+        document.getElementById('modal-booking-id').textContent = booking.id;
+        document.getElementById('modal-booking-start-date').textContent = new Date(booking.start_date).toLocaleDateString('it-IT');
+        document.getElementById('modal-booking-end-date').textContent = new Date(booking.end_date).toLocaleDateString('it-IT');
+        document.getElementById('modal-booking-times').textContent = `${booking.start_time} - ${booking.end_time || 'N/A'}`;
+        document.getElementById('modal-booking-price').textContent = `€${parseFloat(booking.total_price).toFixed(2)}`;
+        document.getElementById('modal-booking-notes').textContent = booking.notes || 'Nessuna nota';
+        document.getElementById('modal-people-count').textContent = booking.people_count;
+
+        // Dettagli Spazio
+        document.getElementById('modal-space-name').textContent = booking.space_name;
+        document.getElementById('modal-space-type').textContent = booking.space_type;
+        document.getElementById('modal-space-city').textContent = booking.space_city;
+
+        // Dettagli Cliente
+        document.getElementById('modal-user-name').textContent = `${booking.user_first_name} ${booking.user_last_name}`;
+        document.getElementById('modal-user-email').textContent = booking.user_email;
     }
 
     // ===============================================
@@ -4041,6 +4115,66 @@
             }
         }
     }
+
+    /**
+     * Gestisce l'eliminazione di una prenotazione
+     * @param {string} bookingId - L'ID della prenotazione da eliminare
+     */
+    async function deleteBooking(bookingId) {
+        try {
+            const token = localStorage.getItem('auth_token');
+            const response = await fetch(`http://localhost:3000/api/bookings/${bookingId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (response.status === 401) {
+                // Gestione dell'autenticazione come nelle altre funzioni
+                localStorage.removeItem('auth_token');
+                window.location.href = '/login.html';
+                return;
+            }
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                alert('Errore: ' + (errorData.message || 'Impossibile eliminare la prenotazione.'));
+                return;
+            }
+
+            alert('Prenotazione eliminata con successo!');
+            // Ricarica la tabella per visualizzare lo stato aggiornato
+            loadBookings();
+
+        } catch (error) {
+            console.error('Error deleting booking:', error);
+            alert('Errore di connessione o del server.');
+        }
+    }
+
+    // Aggiungi un listener al pulsante di conferma nel modal di eliminazione
+    document.addEventListener('DOMContentLoaded', () => {
+        const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+        const deleteBookingModal = document.getElementById('deleteBookingModal');
+        let bookingToDeleteId = null;
+
+        // Listener che cattura l'ID della prenotazione quando il modal si apre
+        deleteBookingModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            bookingToDeleteId = button.getAttribute('data-booking-id');
+        });
+
+        // Listener per il pulsante di conferma nel modal
+        confirmDeleteBtn.addEventListener('click', () => {
+            if (bookingToDeleteId) {
+                deleteBooking(bookingToDeleteId);
+                // Chiudi il modal dopo aver cliccato Elimina
+                const modal = bootstrap.Modal.getInstance(deleteBookingModal);
+                modal.hide();
+            }
+        });
+    });
 </script>
 </body>
 </html>

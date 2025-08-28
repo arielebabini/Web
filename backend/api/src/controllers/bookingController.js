@@ -622,6 +622,35 @@ class BookingController {
             });
         }
     }
+
+    /**
+     * Elimina una prenotazione
+     */
+    static async deleteBooking(req, res) {
+        try {
+            const { bookingId } = req.params;
+            const result = await Booking.delete(bookingId);
+
+            if (result.rowCount === 0) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Prenotazione non trovata.'
+                });
+            }
+
+            res.status(200).json({
+                success: true,
+                message: 'Prenotazione eliminata con successo.'
+            });
+
+        } catch (error) {
+            logger.error('Error deleting booking:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Errore durante l\'eliminazione della prenotazione.'
+            });
+        }
+    }
 }
 
 module.exports = BookingController;

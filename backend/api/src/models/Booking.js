@@ -578,11 +578,29 @@ class Booking {
                 FROM bookings b
                          LEFT JOIN spaces s ON b.space_id = s.id
                          LEFT JOIN users u ON b.user_id = u.id
-                ORDER BY b.start_date DESC, b.start_time DESC
+                ORDER BY b.created_at DESC
             `);
             return result.rows;
         } catch (error) {
             logger.error('Error finding all bookings:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Elimina una prenotazione dal database
+     * @param {string} bookingId - L'ID della prenotazione da eliminare
+     * @returns {Promise<Object>} Risultato della query di eliminazione
+     */
+    static async delete(bookingId) {
+        try {
+            const result = await query(`
+                DELETE FROM bookings
+                WHERE id = $1
+            `, [bookingId]);
+            return result;
+        } catch (error) {
+            logger.error('Error deleting booking:', error);
             throw error;
         }
     }
