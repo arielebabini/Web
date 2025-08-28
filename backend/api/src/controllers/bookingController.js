@@ -651,6 +651,49 @@ class BookingController {
             });
         }
     }
+
+    /**
+     * @route   GET /api/bookings/me
+     * @desc    Ottieni tutte le prenotazioni dell'utente loggato
+     * @access  Private
+     */
+    static async getUserBookings(req, res) {
+        try {
+            const userId = req.user.id;
+            const bookings = await Booking.findAll({
+                where: { user_id: userId },
+                include: [{
+                    model: Space,
+                    attributes: ['name']
+                }],
+                order: [['start_date', 'DESC']]
+            });
+
+            const formattedBookings = bookings.map(booking => ({
+                id: booking.id,
+                start_date: booking.start_date,
+                end_date: booking.end_date,
+                start_time: booking.start_time,
+                end_time: booking.end_time,
+                status: booking.status,
+                total_price: booking.total_price,
+                space_id: booking.space_id,
+                space_name: booking.Space ? booking.Space.name : 'Nome Spazio Sconosciuto'
+            }));
+
+            res.status(200).json({
+                success: true,
+                message: 'Prenotazioni recuperate con successo',
+                data: formattedBookings
+            });
+        } catch (error) {
+            console.error('Errore nel recupero delle prenotazioni:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Errore interno del server'
+            });
+        }
+    }
 }
 
 module.exports = BookingController;

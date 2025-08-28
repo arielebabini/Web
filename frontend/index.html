@@ -39,7 +39,7 @@
                     <a class="nav-link active" href="index.html" onclick="showSection('home')">Home</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="template/spaces.html">Spazi</a>
+                    <a class="nav-link" href="template/spaces.html" onclick="showSection('spaces')">Spazi</a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" href="template/about.html" onclick="showSection('about')">Chi Siamo</a>
@@ -205,6 +205,17 @@
                 <div class="row" id="spacesContainer">
                     <div class="col-12 text-center">
                         <p>Caricamento spazi...</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="bookingsSection" class="py-5" style="display: none;">
+            <div class="container">
+                <h2 class="text-center mb-5">Le Mie Prenotazioni</h2>
+                <div class="row" id="bookingsContainer">
+                    <div class="col-12 text-center">
+                        <p>Caricamento prenotazioni...</p>
                     </div>
                 </div>
             </div>
@@ -480,6 +491,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
 
 <!-- Custom Scripts - PERCORSI CORRETTI -->
+<script src="assets/js/booking.js"></script>
 <script src="assets/js/app.js"></script>
 <script src="assets/js/spaces.js"></script>
 </body>

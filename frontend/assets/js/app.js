@@ -1146,6 +1146,68 @@ function loadMoreSpaces() {
     }
 }
 
+/**
+ * Mostra la sezione "Le Mie Prenotazioni" e carica i dati.
+ */
+function showSection(sectionId) {
+    // Definisci tutti gli ID delle sezioni che possono esistere
+    const allSections = ['homeSection', 'spacesSection', 'bookingsSection', 'aboutSection', 'supportSection'];
+
+    allSections.forEach(id => {
+        const section = document.getElementById(id);
+        if (section) {
+            section.style.display = 'none';
+        }
+    });
+
+    // Mostra solo la sezione desiderata, verificando la sua esistenza
+    const targetSection = document.getElementById(sectionId + 'Section');
+    if (targetSection) {
+        targetSection.style.display = 'block';
+    }
+
+    // Se la sezione è quella delle prenotazioni, avvia il caricamento dei dati
+    if (sectionId === 'bookings') {
+        if (window.BookingManager) {
+            window.BookingManager.loadBookings();
+        } else {
+            console.error('BookingManager non è stato trovato. Assicurati che booking.js sia caricato correttamente.');
+        }
+    }
+}
+
+// Funzione placeholder per l'annullamento della prenotazione
+function cancelBooking(bookingId) {
+    alert('Annullamento prenotazione ' + bookingId + ' in corso...');
+    // Qui dovresti implementare la logica di annullamento, ad esempio una chiamata API
+}
+
+// Funzione da usare per il link "Le Mie Prenotazioni"
+function showMyBookingsSection() {
+    // Nascondi tutte le sezioni tranne la home (se esistono)
+    const allSections = ['homeSection', 'spacesSection', 'aboutSection', 'supportSection', 'bookingsSection'];
+
+    allSections.forEach(id => {
+        const section = document.getElementById(id);
+        if (section) {
+            section.style.display = 'none';
+        }
+    });
+
+    // Mostra la sezione delle prenotazioni
+    const bookingsSection = document.getElementById('bookingsSection');
+    if (bookingsSection) {
+        bookingsSection.style.display = 'block';
+
+        // Lancia il caricamento dei dati delle prenotazioni
+        if (window.BookingManager) {
+            window.BookingManager.loadBookings();
+        } else {
+            console.error('BookingManager non è stato trovato. Assicurati che booking.js sia caricato correttamente.');
+        }
+    }
+}
+
 // ===== UTILITY FUNCTIONS =====
 
 // Funzione per testare la connessione API
@@ -1201,6 +1263,45 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(showCookieBanner, 2000);
 
     console.log('🎉 CoWorkSpace Frontend inizializzato e connesso al backend!');
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Aggiungi qui l'inizializzazione del BookingManager
+    // In questo modo, l'istanza viene creata solo dopo che tutti gli script
+    // sono stati caricati e il DOM è pronto.
+    if (window.Booking) {
+        window.BookingManager = new Booking();
+    } else {
+        console.error('La classe Booking non è definita. Assicurati che il file booking.js sia caricato prima di app.js.');
+    }
+
+    // Qui puoi definire le funzioni globali che verranno usate nell'HTML
+    window.showSection = function(sectionId) {
+        // Nascondi tutte le sezioni principali
+        const allSections = ['homeSection', 'spacesSection', 'bookingsSection', 'aboutSection', 'supportSection'];
+        allSections.forEach(id => {
+            const section = document.getElementById(id);
+            if (section) {
+                section.style.display = 'none';
+            }
+        });
+
+        // Mostra solo la sezione desiderata
+        const targetSection = document.getElementById(sectionId + 'Section');
+        if (targetSection) {
+            targetSection.style.display = 'block';
+        }
+
+        // Carica i dati delle prenotazioni solo se la sezione è attiva
+        if (sectionId === 'bookings' && window.BookingManager) {
+            window.BookingManager.loadBookings();
+        }
+    };
+
+    // Funzione specifica per il link "Le Mie Prenotazioni"
+    window.showMyBookingsSection = function() {
+        showSection('bookings');
+    };
 });
 
 // Rendi le funzioni globalmente accessibili
