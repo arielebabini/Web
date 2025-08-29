@@ -1,7 +1,7 @@
 const Space = require('../models/Space');
 const { validationResult } = require('express-validator');
 const logger = require('../utils/logger');
-const {query} = require("express");
+const { query } = require('../config/database');
 
 /**
  * Controller per la gestione degli spazi di coworking
@@ -688,6 +688,8 @@ class SpaceController {
      */
     static async getManagerSpaceStats(managerId, managerEmail) {
         try {
+            console.log('Debug getManagerSpaceStats params:', { managerId, managerEmail });
+
             const result = await query(`
                 SELECT
                     COUNT(*) as total_spaces,
@@ -701,13 +703,33 @@ class SpaceController {
                 WHERE s.manager_id = $1 AND u.email = $2
             `, [managerId, managerEmail]);
 
-            // Statistiche prenotazioni
+            console.log('Space stats query result:', result);
+
+            if (!result || !result.rows || result.rows.length === 0) {
+                console.warn('No space stats found for manager');
+                return {
+                    total_spaces: 0,
+                    active_spaces: 0,
+                    featured_spaces: 0,
+                    average_price: 0,
+                    total_capacity: 0,
+                    new_spaces_month: 0,
+                    bookings: {
+                        total_bookings: 0,
+                        confirmed_bookings: 0,
+                        today_bookings: 0,
+                        total_revenue: 0,
+                        new_bookings_month: 0
+                    }
+                };
+            }
+
             const bookingResult = await query(`
                 SELECT
                     COUNT(b.id) as total_bookings,
                     COUNT(CASE WHEN b.status = 'confirmed' THEN 1 END) as confirmed_bookings,
                     COUNT(CASE WHEN b.start_date = CURRENT_DATE THEN 1 END) as today_bookings,
-                    COALESCE(SUM(CASE WHEN b.status IN ('confirmed', 'completed') THEN b.total_price END), 0) as total_revenue,
+                    COALESCE(SUM(b.total_price), 0) as total_revenue,
                     COUNT(CASE WHEN b.created_at >= CURRENT_DATE - INTERVAL '30 days' THEN 1 END) as new_bookings_month
                 FROM bookings b
                          INNER JOIN spaces s ON b.space_id = s.id
@@ -715,9 +737,17 @@ class SpaceController {
                 WHERE s.manager_id = $1 AND u.email = $2
             `, [managerId, managerEmail]);
 
+            console.log('Booking stats query result:', bookingResult);
+
             return {
                 ...result.rows[0],
-                bookings: bookingResult.rows[0]
+                bookings: bookingResult?.rows?.[0] || {
+                    total_bookings: 0,
+                    confirmed_bookings: 0,
+                    today_bookings: 0,
+                    total_revenue: 0,
+                    new_bookings_month: 0
+                }
             };
         } catch (error) {
             logger.error('Error getting manager space stats:', error);

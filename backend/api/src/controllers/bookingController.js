@@ -857,12 +857,9 @@ class BookingController {
             const result = await query(`
                 SELECT
                     COUNT(b.id) as total_bookings,
-                    COUNT(CASE WHEN b.status = 'pending' THEN 1 END) as pending_bookings,
-                    COUNT(CASE WHEN b.status = 'confirmed' THEN 1 END) as confirmed_bookings,
-                    COUNT(CASE WHEN b.status = 'completed' THEN 1 END) as completed_bookings,
-                    COUNT(CASE WHEN b.status = 'cancelled' THEN 1 END) as cancelled_bookings,
-                    COALESCE(SUM(CASE WHEN b.status IN ('confirmed', 'completed') THEN b.total_price END), 0) as total_revenue,
-                    COALESCE(AVG(CASE WHEN b.status IN ('confirmed', 'completed') THEN b.total_price END), 0) as avg_booking_value,
+                    COUNT(b.status) as pending_bookings,
+                    SUM(b.total_price) as total_revenue,
+                    AVG(b.total_price) as avg_booking_value,
                     COUNT(CASE WHEN b.start_date = CURRENT_DATE THEN 1 END) as today_bookings,
                     COUNT(CASE WHEN b.created_at >= CURRENT_DATE - INTERVAL '7 days' THEN 1 END) as week_bookings,
                     COUNT(CASE WHEN b.created_at >= CURRENT_DATE - INTERVAL '30 days' THEN 1 END) as month_bookings
@@ -891,6 +888,7 @@ class BookingController {
 
             return {
                 ...result.rows[0],
+                totalRevenue: result.rows[0].total_revenue,
                 monthlyTrend: trendResult.rows
             };
         } catch (error) {

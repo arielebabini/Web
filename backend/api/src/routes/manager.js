@@ -29,12 +29,13 @@ const ensureManager = (req, res, next) => {
 router.get('/dashboard/stats', requireAuth, ensureManager, async (req, res) => {
     try {
         const managerId = req.user.id;
+        const managerEmail = req.user.email;  // Assicurati che ci sia
 
-        // Statistiche spazi del manager
-        const spaceStats = await SpaceController.getManagerSpaceStats(managerId);
+        console.log('Debug dashboard stats:', { managerId, managerEmail });
 
-        // Statistiche prenotazioni degli spazi del manager
-        const bookingStats = await BookingController.getManagerBookingStats(managerId);
+        // Usa i metodi aggiornati con email
+        const spaceStats = await SpaceController.getManagerSpaceStats(managerId, managerEmail);
+        const bookingStats = await BookingController.getManagerBookingStats(managerId, managerEmail, {});
 
         res.json({
             success: true,

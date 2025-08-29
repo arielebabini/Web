@@ -332,28 +332,12 @@
 
             <div class="row mb-4">
                 <div class="col-md-3 mb-3">
-                    <div class="card bg-primary text-white">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between">
-                                <div>
-                                    <h6 class="card-title">Utenti Totali</h6>
-                                    <h3 class="mb-0" id="total-users">0</h3>
-                                    <small>+<span id="new-users">0</span> nuovi</small>
-                                </div>
-                                <i class="fas fa-users fa-2x opacity-75"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-md-3 mb-3">
                     <div class="card bg-info text-white">
                         <div class="card-body">
                             <div class="d-flex justify-content-between">
                                 <div>
                                     <h6 class="card-title">Spazi Attivi</h6>
                                     <h3 class="mb-0" id="total-spaces">0</h3>
-                                    <small>spazi disponibili</small>
                                 </div>
                                 <i class="fas fa-building fa-2x opacity-75"></i>
                             </div>
@@ -368,7 +352,6 @@
                                 <div>
                                     <h6 class="card-title">Prenotazioni</h6>
                                     <h3 class="mb-0" id="total-bookings">0</h3>
-                                    <small><span id="confirmed-bookings">0</span> confermate</small>
                                 </div>
                                 <i class="fas fa-calendar-check fa-2x opacity-75"></i>
                             </div>
@@ -383,7 +366,6 @@
                                 <div>
                                     <h6 class="card-title">Revenue Totale</h6>
                                     <h3 class="mb-0" id="total-revenue">€0.00</h3>
-                                    <small><span id="total-payments">0</span> pagamenti</small>
                                 </div>
                                 <i class="fas fa-euro-sign fa-2x opacity-75"></i>
                             </div>
@@ -1035,86 +1017,224 @@
     }
 
     // ==================== DASHBOARD STATS ====================
-    let dashboardStats = {
-        totalUsers: 150,
-        newUsers: 12,
-        totalSpaces: 25,
-        totalBookings: 89,
-        confirmedBookings: 75,
-        totalRevenue: 15800,
-        totalPayments: 80,
-        revenueData: [500, 600, 800, 750, 900, 1100],
-        topSpaces: [
-            { name: "Sala Riunioni A", bookings: 35 },
-            { name: "Ufficio Privato 2", bookings: 28 },
-            { name: "Scrivania Condivisa", bookings: 22 }
-        ]
-    };
-
     let revenueChart;
 
-    function loadDashboardStats() {
-        // Mostra il loading overlay
+    async function loadDashboardStats() {
         const loadingOverlay = document.getElementById('dashboard-loading');
-        loadingOverlay.style.display = 'block';
+        const errorSection = document.getElementById('dashboard-error');
 
-        setTimeout(() => {
-            // Aggiorna le statistiche
-            document.getElementById('total-users').textContent = dashboardStats.totalUsers;
-            document.getElementById('new-users').textContent = dashboardStats.newUsers;
-            document.getElementById('total-spaces').textContent = dashboardStats.totalSpaces;
-            document.getElementById('total-bookings').textContent = dashboardStats.totalBookings;
-            document.getElementById('confirmed-bookings').textContent = dashboardStats.confirmedBookings;
-            document.getElementById('total-revenue').textContent = '€' + dashboardStats.totalRevenue.toFixed(2);
-            document.getElementById('total-payments').textContent = dashboardStats.totalPayments;
-            document.getElementById('current-revenue').textContent = '€' + dashboardStats.revenueData.slice(-1)[0].toFixed(2);
-            document.getElementById('previous-revenue').textContent = '€' + dashboardStats.revenueData.slice(-2)[0].toFixed(2);
-            const growth = ((dashboardStats.revenueData.slice(-1)[0] - dashboardStats.revenueData.slice(-2)[0]) / dashboardStats.revenueData.slice(-2)[0] * 100).toFixed(1);
-            document.getElementById('revenue-growth').textContent = (growth > 0 ? '+' : '') + growth + '%';
+        // Mostra loading e nascondi errori precedenti
+        if (loadingOverlay) loadingOverlay.style.display = 'block';
+        if (errorSection) errorSection.style.display = 'none';
 
-            // Top spazi
-            const topSpacesList = document.getElementById('top-spaces-list');
-            topSpacesList.innerHTML = dashboardStats.topSpaces.map(space => `
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <span class="text-truncate"><i class="fas fa-star text-warning me-2"></i>${space.name}</span>
-                    <span class="badge bg-primary rounded-pill">${space.bookings}</span>
-                </div>
-            `).join('');
+        try {
+            console.log('🔄 Loading manager dashboard stats...');
 
-            // Grafico
-            if (revenueChart) {
-                revenueChart.destroy();
+            // Ottieni token di autenticazione
+            const token = getAuthToken();
+            if (!token) {
+                throw new Error('Token di autenticazione non trovato. Effettua nuovamente il login.');
             }
-            const ctx = document.getElementById('revenueChartCanvas').getContext('2d');
-            revenueChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu'],
-                    datasets: [{
-                        label: 'Revenue (€)',
-                        data: dashboardStats.revenueData,
-                        backgroundColor: 'rgba(40, 167, 69, 0.2)',
-                        borderColor: '#28a745',
-                        borderWidth: 2,
-                        tension: 0.4,
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true
-                        }
-                    }
+
+            // Chiamata API per statistiche dashboard manager
+            const response = await fetch('http://localhost:3000/api/manager/dashboard/stats', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
                 }
             });
 
-            // Nascondi il loading overlay
-            loadingOverlay.style.display = 'none';
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
 
-        }, 1000); // Simulazione ritardo di rete
+            const result = await response.json();
+
+            if (!result.success) {
+                throw new Error(result.message || 'Errore durante il caricamento delle statistiche');
+            }
+
+            const data = result.data;
+            console.log('✅ Dashboard stats loaded:', data);
+
+            // ===== AGGIORNA STATISTICHE SPAZI =====
+            const spaceStats = data.spaces || {};
+            document.getElementById('total-spaces').textContent = spaceStats.total_spaces || 0;
+
+            // ===== AGGIORNA STATISTICHE PRENOTAZIONI =====
+            const bookingStats = data.bookings || {};
+            document.getElementById('total-bookings').textContent = bookingStats.total_bookings || 0;
+
+            // Revenue
+            const totalRevenue = parseFloat(bookingStats.total_revenue || 0);
+            document.getElementById('total-revenue').textContent = '€' + totalRevenue.toFixed(2);
+
+            // ===== CALCOLO CRESCITA REVENUE =====
+            // Per ora usiamo i dati disponibili, in futuro si può implementare un confronto mensile
+            const monthBookings = parseInt(bookingStats.month_bookings || 0);
+            const weekBookings = parseInt(bookingStats.week_bookings || 0);
+
+            document.getElementById('current-revenue').textContent = '€' + totalRevenue.toFixed(2);
+            document.getElementById('previous-revenue').textContent = '€' + (totalRevenue * 0.9).toFixed(2); // Placeholder
+
+            // Calcola crescita percentuale (placeholder)
+            const growthPercent = monthBookings > 0 ? ((weekBookings / monthBookings) * 100).toFixed(1) : 0;
+            document.getElementById('revenue-growth').textContent = '+' + growthPercent + '%';
+
+            // ===== TOP SPAZI (genera dalla capacità degli spazi) =====
+            const topSpacesList = document.getElementById('top-spaces-list');
+            const topSpaces = [
+                { name: "I Tuoi Spazi", bookings: spaceStats.total_spaces || 0 },
+                { name: "Spazi Attivi", bookings: spaceStats.active_spaces || 0 },
+                { name: "Spazi in Evidenza", bookings: spaceStats.featured_spaces || 0 }
+            ];
+
+            topSpacesList.innerHTML = topSpaces.map(space => `
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="text-truncate"><i class="fas fa-star text-warning me-2"></i>${space.name}</span>
+                <span class="badge bg-primary rounded-pill">${space.bookings}</span>
+            </div>
+        `).join('');
+
+            // ===== GRAFICO REVENUE =====
+            // Genera dati per il grafico basati sui dati mensili
+            const monthlyTrend = bookingStats.monthlyTrend || [];
+            let revenueData = [];
+            let labels = [];
+
+            if (monthlyTrend.length > 0) {
+                // Usa i dati reali del trend mensile
+                monthlyTrend.forEach(month => {
+                    const date = new Date(month.month);
+                    const monthName = date.toLocaleDateString('it-IT', { month: 'short' });
+                    labels.push(monthName);
+                    revenueData.push(parseFloat(month.revenue || 0));
+                });
+            } else {
+                // Fallback con dati simulati
+                labels = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu'];
+                const baseRevenue = totalRevenue / 6;
+                revenueData = [
+                    baseRevenue * 0.7,
+                    baseRevenue * 0.8,
+                    baseRevenue * 0.9,
+                    baseRevenue * 1.1,
+                    baseRevenue * 1.2,
+                    baseRevenue * 1.0
+                ];
+            }
+
+            // Distruggi grafico esistente
+            if (window.revenueChart) {
+                window.revenueChart.destroy();
+            }
+
+            // Crea nuovo grafico
+            const ctx = document.getElementById('revenueChartCanvas');
+            if (ctx) {
+                window.revenueChart = new Chart(ctx.getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Revenue (€)',
+                            data: revenueData,
+                            backgroundColor: 'rgba(40, 167, 69, 0.2)',
+                            borderColor: '#28a745',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return '€' + value.toFixed(0);
+                                    }
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: true
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return context.dataset.label + ': €' + context.parsed.y.toFixed(2);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // ===== AGGIORNA TIMESTAMP =====
+            const lastUpdate = document.getElementById('last-update');
+            if (lastUpdate) {
+                lastUpdate.textContent = new Date().toLocaleString('it-IT');
+            }
+
+            console.log('✅ Manager dashboard updated successfully');
+
+        } catch (error) {
+            console.error('❌ Errore durante il caricamento delle statistiche manager:', error);
+
+            if (errorSection) {
+                errorSection.style.display = 'block';
+                errorSection.innerHTML = `
+                <div class="alert alert-danger" role="alert">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Errore nel caricamento delle statistiche:</strong><br>
+                    ${error.message}
+                    <button class="btn btn-sm btn-outline-danger mt-2" onclick="loadDashboardStats()">
+                        <i class="fas fa-sync-alt me-1"></i>Riprova
+                    </button>
+                </div>
+            `;
+            }
+
+            // Mostra valori di fallback
+            showFallbackStats();
+
+        } finally {
+            if (loadingOverlay) loadingOverlay.style.display = 'none';
+        }
+    }
+
+    function showFallbackStats() {
+        console.log('📊 Showing fallback stats');
+
+        // Valori di default se l'API fallisce
+        document.getElementById('total-spaces').textContent = '0';
+        document.getElementById('total-bookings').textContent = '0';
+        document.getElementById('total-revenue').textContent = '€0.00';
+        document.getElementById('current-revenue').textContent = '€0.00';
+        document.getElementById('previous-revenue').textContent = '€0.00';
+        document.getElementById('revenue-growth').textContent = '0.0%';
+
+        // Top spazi vuoto
+        const topSpacesList = document.getElementById('top-spaces-list');
+        if (topSpacesList) {
+            topSpacesList.innerHTML = `
+            <div class="text-center text-muted py-3">
+                <i class="fas fa-building fa-2x mb-2"></i>
+                <p class="mb-0">Nessun dato disponibile</p>
+            </div>
+        `;
+        }
+
+        // Grafico vuoto
+        if (window.revenueChart) {
+            window.revenueChart.destroy();
+        }
     }
 
     // ==================== SPACES MANAGEMENT ====================
@@ -1357,11 +1477,6 @@
         }
 
         paginationEl.innerHTML = paginationHTML;
-    }
-
-
-    function getAuthToken() {
-        return localStorage.getItem('auth_token');
     }
 
     // ✅ AGGIORNA FILTRI PER USARE DATI REALI
