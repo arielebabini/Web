@@ -1,6 +1,7 @@
 const Space = require('../models/Space');
 const { validationResult } = require('express-validator');
 const logger = require('../utils/logger');
+const {query} = require("express");
 
 /**
  * Controller per la gestione degli spazi di coworking
@@ -161,18 +162,28 @@ class SpaceController {
                 });
             }
 
-            // Se l'utente è un manager, verifica che sia il proprietario
-            if (req.user && req.user.role === 'manager' && space.manager_id !== req.user.id) {
-                return res.status(403).json({
+            // ✅ SOLO controllo se lo spazio è attivo per visualizzazione pubblica
+            if (!space.is_active) {
+                return res.status(404).json({
                     success: false,
-                    message: 'Non hai il permesso di visualizzare questo spazio'
+                    message: 'Spazio non disponibile'
                 });
             }
 
+            // ✅ Filtra informazioni sensibili per la visualizzazione pubblica
+            const {
+                manager_id,        // Non esporre l'ID del manager
+                internal_notes,    // Non esporre note interne
+                admin_notes,       // Non esporre note admin
+                manager_email,     // Non esporre email manager
+                ...publicSpaceData
+            } = space;
+
             res.json({
                 success: true,
-                space
+                space: publicSpaceData
             });
+
         } catch (error) {
             logger.error('Error getting space by ID:', error);
             res.status(500).json({
@@ -672,34 +683,37 @@ class SpaceController {
     }
 
     /**
-     * Ottiene statistiche spazi per manager specifico
+     * Versione alternativa: usa solo l'email per identificare il manager
+     * Più sicura perché non dipende dall'ID che potrebbe essere manipolato
      */
-    static async getManagerSpaceStats(managerId) {
+    static async getManagerSpaceStats(managerId, managerEmail) {
         try {
             const result = await query(`
-            SELECT 
-                COUNT(*) as total_spaces,
-                COUNT(CASE WHEN is_active = true THEN 1 END) as active_spaces,
-                COUNT(CASE WHEN is_featured = true THEN 1 END) as featured_spaces,
-                AVG(price_per_day) as average_price,
-                SUM(capacity) as total_capacity,
-                COUNT(CASE WHEN created_at >= CURRENT_DATE - INTERVAL '30 days' THEN 1 END) as new_spaces_month
-            FROM spaces 
-            WHERE manager_id = $1
-        `, [managerId]);
+                SELECT
+                    COUNT(*) as total_spaces,
+                    COUNT(CASE WHEN s.is_active = true THEN 1 END) as active_spaces,
+                    COUNT(CASE WHEN s.is_featured = true THEN 1 END) as featured_spaces,
+                    AVG(s.price_per_day) as average_price,
+                    SUM(s.capacity) as total_capacity,
+                    COUNT(CASE WHEN s.created_at >= CURRENT_DATE - INTERVAL '30 days' THEN 1 END) as new_spaces_month
+                FROM spaces s
+                         INNER JOIN users u ON s.manager_id = u.id
+                WHERE s.manager_id = $1 AND u.email = $2
+            `, [managerId, managerEmail]);
 
-            // Ottieni anche statistiche prenotazioni per gli spazi del manager
+            // Statistiche prenotazioni
             const bookingResult = await query(`
-            SELECT 
-                COUNT(b.id) as total_bookings,
-                COUNT(CASE WHEN b.status = 'confirmed' THEN 1 END) as confirmed_bookings,
-                COUNT(CASE WHEN b.start_date = CURRENT_DATE THEN 1 END) as today_bookings,
-                COALESCE(SUM(CASE WHEN b.status IN ('confirmed', 'completed') THEN b.total_price END), 0) as total_revenue,
-                COUNT(CASE WHEN b.created_at >= CURRENT_DATE - INTERVAL '30 days' THEN 1 END) as new_bookings_month
-            FROM bookings b
-            INNER JOIN spaces s ON b.space_id = s.id
-            WHERE s.manager_id = $1
-        `, [managerId]);
+                SELECT
+                    COUNT(b.id) as total_bookings,
+                    COUNT(CASE WHEN b.status = 'confirmed' THEN 1 END) as confirmed_bookings,
+                    COUNT(CASE WHEN b.start_date = CURRENT_DATE THEN 1 END) as today_bookings,
+                    COALESCE(SUM(CASE WHEN b.status IN ('confirmed', 'completed') THEN b.total_price END), 0) as total_revenue,
+                    COUNT(CASE WHEN b.created_at >= CURRENT_DATE - INTERVAL '30 days' THEN 1 END) as new_bookings_month
+                FROM bookings b
+                         INNER JOIN spaces s ON b.space_id = s.id
+                         INNER JOIN users u ON s.manager_id = u.id
+                WHERE s.manager_id = $1 AND u.email = $2
+            `, [managerId, managerEmail]);
 
             return {
                 ...result.rows[0],
@@ -712,19 +726,21 @@ class SpaceController {
     }
 
     /**
-     * Ottiene spazio per manager (con verifica ownership)
+     * Ottiene spazio per manager usando solo email (più sicuro)
      */
-    static async getSpaceByIdForManager(spaceId, managerId) {
+    static async getSpaceByIdForManager(spaceId, managerId, managerEmail) {
         try {
             const result = await query(`
-            SELECT s.*,
-                   u.first_name as manager_first_name,
-                   u.last_name as manager_last_name,
-                   u.email as manager_email
-            FROM spaces s
-            LEFT JOIN users u ON s.manager_id = u.id
-            WHERE s.id = $1 AND s.manager_id = $2 AND s.is_active = true
-        `, [spaceId, managerId]);
+                SELECT s.*,
+                       u.first_name as manager_first_name,
+                       u.last_name as manager_last_name,
+                       u.email as manager_email
+                FROM spaces s
+                         INNER JOIN users u ON s.manager_id = u.id
+                WHERE s.id = $1
+                  AND s.manager_id = $2
+                  AND u.email = $3
+            `, [spaceId, managerId, managerEmail]);
 
             return result.rows[0] || null;
         } catch (error) {

@@ -391,6 +391,81 @@ router.delete('/:spaceId',
     SpaceController.deleteSpace
 );
 
+
+/**
+ * @route   GET /api/manager/spaces/:spaceId
+ * @desc    Dettagli spazio del manager - AREA PRIVATA
+ * @access  Private (solo manager proprietario)
+ */
+router.get('/spaces/:spaceId',
+    requireAuth,
+    [
+        param('spaceId').isUUID().withMessage('ID spazio non valido')
+    ],
+    async (req, res) => {
+        try {
+            const { spaceId } = req.params;
+            const managerId = req.user.id;
+            const managerEmail = req.user.email;
+
+            const space = await SpaceController.getSpaceByIdForManager(
+                spaceId,
+                managerId,
+                managerEmail
+            );
+
+            if (!space) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Spazio non trovato o non autorizzato'
+                });
+            }
+
+            res.json({
+                success: true,
+                space
+            });
+        } catch (error) {
+            console.error('Error getting manager space:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Errore nel caricamento dello spazio'
+            });
+        }
+    }
+);
+
+/**
+ * @route   GET /api/manager/dashboard/stats
+ * @desc    Statistiche dashboard per il manager
+ * @access  Private (solo manager)
+ */
+router.get('/dashboard/stats',
+    requireAuth,
+    async (req, res) => {
+        try {
+            const managerId = req.user.id;
+            const managerEmail = req.user.email;
+
+            const stats = await SpaceController.getManagerSpaceStats(
+                managerId,
+                managerEmail
+            );
+
+            res.json({
+                success: true,
+                data: stats
+            });
+        } catch (error) {
+            console.error('Error getting manager dashboard stats:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Errore interno del server'
+            });
+        }
+    }
+);
+
 // ===============================================
 // MIDDLEWARE DI GESTIONE ERRORI SPECIFICO
 // ===============================================

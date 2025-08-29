@@ -24,6 +24,7 @@ const bookingRoutes = require('./src/routes/bookings');
 const paymentRoutes = require('./src/routes/payments');
 const analyticsRoutes = require('./src/routes/analytics');
 const adminRoutes = require('./src/routes/admin');
+const managerRoutes = require('./src/routes/manager');
 const User = require('./src/models/User'); // O il percorso corretto
 const bcrypt = require('bcryptjs');
 
@@ -116,30 +117,6 @@ if (process.env.ENABLE_HELMET !== 'false') {
         crossOriginEmbedderPolicy: false
     }));
 }
-
-// ===== RATE LIMITING =====
-/*if (process.env.ENABLE_RATE_LIMITING !== 'false') {
-    const limiter = rateLimit({
-        windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
-        max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 10000, // limit each IP to 100 requests per windowMs
-        message: {
-            success: false,
-            message: 'Too many requests from this IP, please try again later',
-            error: {
-                type: 'RATE_LIMIT_EXCEEDED',
-                retryAfter: Math.ceil((parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 900000) / 1000)
-            }
-        },
-        standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-        legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-        skip: (req) => {
-            // Skip rate limiting for health checks
-            return req.path === '/api/health' || req.path === '/health';
-        }
-    });
-
-    app.use('/api/', limiter);
-}*/
 
 // ===== COMPRESSION =====
 app.use(compression({
@@ -295,6 +272,7 @@ app.use('/api/bookings', bookingRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/manager', managerRoutes);
 
 // ===== API INFO ENDPOINT =====
 app.get('/api', (req, res) => {

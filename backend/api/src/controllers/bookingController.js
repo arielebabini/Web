@@ -2,6 +2,7 @@ const Booking = require('../models/Booking');
 const Space = require('../models/Space');
 const { validationResult } = require('express-validator');
 const logger = require('../utils/logger');
+const { query } = require('../config/database');
 
 /**
  * Controller per la gestione delle prenotazioni
@@ -695,28 +696,135 @@ class BookingController {
     }
 
     //===================== GESTIONE MANAGER =====================
-    /**
-     * Ottiene prenotazioni per manager (solo dei suoi spazi)
-     */
-    static async getManagerBookings(options = {}) {
-        const {
-            manager_id,
-            page = 1,
-            limit = 20,
-            space_id,
-            start_date_from,
-            start_date_to,
-            sortBy = 'created_at',
-            sortOrder = 'DESC'
-        } = options;
 
+    /**
+     * Ottiene prenotazioni per manager con controllo proprietà spazio + email
+     * @param {Object} options - Filtri e opzioni
+     * @param {string} managerId - ID del manager
+     * @param {string} managerEmail - Email del manager loggato
+     */
+    /**
+     * Ottiene prenotazioni per manager con controllo proprietà spazio + email
+     */
+    static async getManagerBookings(options, managerId, managerEmail) {
         try {
-            const bookingOptions = {
-                ...options,
-                manager_id // Filtra per spazi del manager
+            console.log('🔍 DEBUG getManagerBookings called with:');
+            console.log('- options:', options);
+            console.log('- managerId:', managerId);
+            console.log('- managerEmail:', managerEmail);
+            const {
+                page = 1,
+                limit = 10,
+                status,
+                space_id,
+                start_date_from,
+                start_date_to,
+                search,
+                sortBy = 'created_at',
+                sortOrder = 'DESC'
+            } = options;
+
+            const offset = (page - 1) * limit;
+
+            // Costruisci WHERE clause dinamicamente
+            let whereClause = 'WHERE s.manager_id = $1 AND u.email = $2';
+            const params = [managerId, managerEmail];
+            let paramIndex = 3;
+
+            // Filtro per status
+            if (status && status !== 'all') {
+                whereClause += ` AND b.status = $${paramIndex}`;
+                params.push(status);
+                paramIndex++;
+            }
+
+            // Filtro per spazio specifico
+            if (space_id) {
+                whereClause += ` AND b.space_id = $${paramIndex}`;
+                params.push(space_id);
+                paramIndex++;
+            }
+
+            // Filtro per data inizio
+            if (start_date_from) {
+                whereClause += ` AND b.start_date >= $${paramIndex}`;
+                params.push(start_date_from);
+                paramIndex++;
+            }
+
+            if (start_date_to) {
+                whereClause += ` AND b.start_date <= $${paramIndex}`;
+                params.push(start_date_to);
+                paramIndex++;
+            }
+
+            // Filtro per ricerca
+            if (search) {
+                whereClause += ` AND (
+                s.name ILIKE $${paramIndex} OR 
+                s.city ILIKE $${paramIndex} OR
+                c.first_name ILIKE $${paramIndex} OR
+                c.last_name ILIKE $${paramIndex} OR
+                c.email ILIKE $${paramIndex}
+            )`;
+                params.push(`%${search}%`);
+                paramIndex++;
+            }
+
+            // Query principale con JOIN per verificare proprietà
+            const result = await query(`
+                SELECT
+                    b.id,
+                    b.space_id,
+                    b.user_id,
+                    b.start_date,
+                    b.end_date,
+                    b.people_count,
+                    b.total_price,
+                    b.notes,
+                    b.created_at,
+                    b.updated_at,
+                    s.name as space_name,
+                    s.type as space_type,
+                    s.address as space_address,
+                    s.city as space_city,
+                    c.first_name as client_first_name,
+                    c.last_name as client_last_name,
+                    c.email as client_email,
+                    c.phone as client_phone
+                FROM bookings b
+                         INNER JOIN spaces s ON b.space_id = s.id
+                         INNER JOIN users u ON s.manager_id = u.id
+                         LEFT JOIN users c ON b.user_id = c.id
+                    ${whereClause}
+                ORDER BY b.${sortBy} ${sortOrder}
+                    LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+            `, [...params, limit, offset]);
+
+            // Query per contare il totale
+            const countResult = await query(`
+                SELECT COUNT(*) as total
+                FROM bookings b
+                         INNER JOIN spaces s ON b.space_id = s.id
+                         INNER JOIN users u ON s.manager_id = u.id
+                         LEFT JOIN users c ON b.user_id = c.id
+                    ${whereClause}
+            `, params);
+
+            const totalBookings = parseInt(countResult.rows[0].total);
+            const totalPages = Math.ceil(totalBookings / limit);
+
+            return {
+                bookings: result.rows,
+                pagination: {
+                    currentPage: page,
+                    totalPages,
+                    totalBookings,
+                    hasNextPage: page < totalPages,
+                    hasPreviousPage: page > 1
+                }
             };
 
-            return await Booking.findAll(bookingOptions);
         } catch (error) {
             logger.error('Error getting manager bookings:', error);
             throw error;
@@ -724,15 +832,15 @@ class BookingController {
     }
 
     /**
-     * Ottiene statistiche prenotazioni per manager
+     * Ottiene statistiche prenotazioni per manager con controllo email
      */
-    static async getManagerBookingStats(managerId, filters = {}) {
+    static async getManagerBookingStats(managerId, managerEmail, filters = {}) {
         try {
             const { date_from, date_to } = filters;
 
-            let whereClause = 'WHERE s.manager_id = $1';
-            const params = [managerId];
-            let paramIndex = 2;
+            let whereClause = 'WHERE s.manager_id = $1 AND u.email = $2';
+            const params = [managerId, managerEmail];
+            let paramIndex = 3;
 
             if (date_from) {
                 whereClause += ` AND b.start_date >= $${paramIndex}`;
@@ -747,36 +855,39 @@ class BookingController {
             }
 
             const result = await query(`
-            SELECT
-                COUNT(b.id) as total_bookings,
-                COUNT(CASE WHEN b.status = 'pending' THEN 1 END) as pending_bookings,
-                COUNT(CASE WHEN b.status = 'confirmed' THEN 1 END) as confirmed_bookings,
-                COUNT(CASE WHEN b.status = 'completed' THEN 1 END) as completed_bookings,
-                COUNT(CASE WHEN b.status = 'cancelled' THEN 1 END) as cancelled_bookings,
-                COALESCE(SUM(CASE WHEN b.status IN ('confirmed', 'completed') THEN b.total_price END), 0) as total_revenue,
-                COALESCE(AVG(CASE WHEN b.status IN ('confirmed', 'completed') THEN b.total_price END), 0) as avg_booking_value,
-                COUNT(CASE WHEN b.start_date = CURRENT_DATE THEN 1 END) as today_bookings,
-                COUNT(CASE WHEN b.created_at >= CURRENT_DATE - INTERVAL '7 days' THEN 1 END) as week_bookings,
-                COUNT(CASE WHEN b.created_at >= CURRENT_DATE - INTERVAL '30 days' THEN 1 END) as month_bookings
-            FROM bookings b
-            INNER JOIN spaces s ON b.space_id = s.id
-            ${whereClause}
-        `, params);
+                SELECT
+                    COUNT(b.id) as total_bookings,
+                    COUNT(CASE WHEN b.status = 'pending' THEN 1 END) as pending_bookings,
+                    COUNT(CASE WHEN b.status = 'confirmed' THEN 1 END) as confirmed_bookings,
+                    COUNT(CASE WHEN b.status = 'completed' THEN 1 END) as completed_bookings,
+                    COUNT(CASE WHEN b.status = 'cancelled' THEN 1 END) as cancelled_bookings,
+                    COALESCE(SUM(CASE WHEN b.status IN ('confirmed', 'completed') THEN b.total_price END), 0) as total_revenue,
+                    COALESCE(AVG(CASE WHEN b.status IN ('confirmed', 'completed') THEN b.total_price END), 0) as avg_booking_value,
+                    COUNT(CASE WHEN b.start_date = CURRENT_DATE THEN 1 END) as today_bookings,
+                    COUNT(CASE WHEN b.created_at >= CURRENT_DATE - INTERVAL '7 days' THEN 1 END) as week_bookings,
+                    COUNT(CASE WHEN b.created_at >= CURRENT_DATE - INTERVAL '30 days' THEN 1 END) as month_bookings
+                FROM bookings b
+                         INNER JOIN spaces s ON b.space_id = s.id
+                         INNER JOIN users u ON s.manager_id = u.id
+                    ${whereClause}
+            `, params);
 
-            // Ottieni anche la tendenza mensile
+            // Trend mensile con controllo email
             const trendResult = await query(`
-            SELECT 
-                DATE_TRUNC('month', b.created_at) as month,
+                SELECT
+                    DATE_TRUNC('month', b.created_at) as month,
                 COUNT(b.id) as bookings_count,
                 COALESCE(SUM(CASE WHEN b.status IN ('confirmed', 'completed') THEN b.total_price END), 0) as revenue
-            FROM bookings b
-            INNER JOIN spaces s ON b.space_id = s.id
-            WHERE s.manager_id = $1 
-                AND b.created_at >= CURRENT_DATE - INTERVAL '12 months'
-            GROUP BY DATE_TRUNC('month', b.created_at)
-            ORDER BY month DESC
-            LIMIT 12
-        `, [managerId]);
+                FROM bookings b
+                    INNER JOIN spaces s ON b.space_id = s.id
+                    INNER JOIN users u ON s.manager_id = u.id
+                WHERE s.manager_id = $1
+                  AND u.email = $2
+                  AND b.created_at >= CURRENT_DATE - INTERVAL '12 months'
+                GROUP BY DATE_TRUNC('month', b.created_at)
+                ORDER BY month DESC
+                    LIMIT 12
+            `, [managerId, managerEmail]);
 
             return {
                 ...result.rows[0],
@@ -789,51 +900,32 @@ class BookingController {
     }
 
     /**
-     * Ottiene prenotazione per manager (con verifica ownership spazio)
+     * Ottiene prenotazione singola per manager con controllo proprietà e email
      */
-    static async getBookingForManager(bookingId, managerId) {
+    static async getBookingForManager(bookingId, managerId, managerEmail) {
         try {
             const result = await query(`
-            SELECT b.*,
-                   s.name as space_name,
-                   s.type as space_type,
-                   s.address as space_address,
-                   s.city as space_city,
-                   u.first_name as user_first_name,
-                   u.last_name as user_last_name,
-                   u.email as user_email,
-                   u.phone as user_phone
-            FROM bookings b
-            INNER JOIN spaces s ON b.space_id = s.id
-            LEFT JOIN users u ON b.user_id = u.id
-            WHERE b.id = $1 AND s.manager_id = $2
-        `, [bookingId, managerId]);
+                SELECT b.*,
+                       s.name as space_name,
+                       s.type as space_type,
+                       s.address as space_address,
+                       s.city as space_city,
+                       c.first_name as client_first_name,
+                       c.last_name as client_last_name,
+                       c.email as client_email,
+                       c.phone as client_phone
+                FROM bookings b
+                         INNER JOIN spaces s ON b.space_id = s.id
+                         INNER JOIN users u ON s.manager_id = u.id
+                         LEFT JOIN users c ON b.user_id = c.id
+                WHERE b.id = $1
+                  AND s.manager_id = $2
+                  AND u.email = $3
+            `, [bookingId, managerId, managerEmail]);
 
             return result.rows[0] || null;
         } catch (error) {
             logger.error('Error getting booking for manager:', error);
-            throw error;
-        }
-    }
-
-    /**
-     * Conferma prenotazione come manager
-     */
-    static async confirmBookingAsManager(bookingId, managerId) {
-        try {
-            // Verifica che la prenotazione appartenga a uno spazio del manager
-            const booking = await this.getBookingForManager(bookingId, managerId);
-            if (!booking) {
-                throw new Error('Prenotazione non trovata o non autorizzata');
-            }
-
-            if (booking.status !== 'pending') {
-                throw new Error('Solo le prenotazioni sono confermate');
-            }
-
-            return await Booking.confirm(bookingId);
-        } catch (error) {
-            logger.error('Error confirming booking as manager:', error);
             throw error;
         }
     }

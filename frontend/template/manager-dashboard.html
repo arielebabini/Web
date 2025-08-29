@@ -843,9 +843,6 @@
                     <i class="fas fa-calendar-check text-primary me-2"></i>
                     Gestione Prenotazioni
                 </h4>
-                <button class="btn btn-manager-primary" onclick="showAddBookingModal()">
-                    <i class="fas fa-plus me-2"></i>Nuova Prenotazione
-                </button>
             </div>
 
             <div class="manager-card mb-4">
@@ -891,8 +888,6 @@
                         <th>Cliente</th>
                         <th>Spazio</th>
                         <th>Data</th>
-                        <th>Orario</th>
-                        <th>Stato</th>
                         <th>Azioni</th>
                     </tr>
                     </thead>
@@ -1123,283 +1118,914 @@
     }
 
     // ==================== SPACES MANAGEMENT ====================
-    let currentSpacePage = 1;
-    let spacesData = [
-        { id: 1, name: 'Sala Riunioni Grande', city: 'Milano', type: 'meeting-room', capacity: 20, price: 50, services: ['wifi', 'projector', 'whiteboard'], imageUrl: 'path/to/image1.jpg' },
-        { id: 2, name: 'Ufficio Privato 1', city: 'Roma', type: 'private-office', capacity: 4, price: 30, services: ['wifi', 'coffee'], imageUrl: 'path/to/image2.jpg' },
-        { id: 3, name: 'Scrivania Condivisa', city: 'Milano', type: 'hot-desk', capacity: 1, price: 10, services: ['wifi', 'coffee'], imageUrl: 'path/to/image3.jpg' },
-        { id: 4, name: 'Sala Eventi', city: 'Roma', type: 'event-space', capacity: 50, price: 100, services: ['wifi', 'projector', 'parking'], imageUrl: 'path/to/image4.jpg' },
-        { id: 5, name: 'Sala Riunioni Piccola', city: 'Milano', type: 'meeting-room', capacity: 8, price: 25, services: ['wifi', 'whiteboard'], imageUrl: 'path/to/image5.jpg' }
-    ];
+    let spacesData = []; // Array per i dati reali dal database
+    let currentSpacesPage = 1;
+    let spacesLoading = false;
 
-    function loadSpaces(page = 1, filters = {}) {
-        const tableBody = document.getElementById('spacesTableBody');
-        const showCount = document.getElementById('spacesShowing');
-        const totalCount = document.getElementById('spacesTotal');
-        const pagination = document.getElementById('spacesPagination');
+    async function loadSpaces(page = 1, filters = {}) {
+        if (spacesLoading) return;
+        spacesLoading = true;
 
-        tableBody.innerHTML = `<tr><td class="text-center py-4" colspan="6"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Caricamento...</span></div></td></tr>`;
+        try {
+            // Mostra loading
+            showSpacesLoading();
 
-        setTimeout(() => {
-            let filteredSpaces = spacesData.filter(space => {
-                const searchMatch = !filters.search || space.name.toLowerCase().includes(filters.search.toLowerCase()) || space.city.toLowerCase().includes(filters.search.toLowerCase());
-                const cityMatch = !filters.city || space.city === filters.city;
-                const typeMatch = !filters.type || space.type === filters.type;
-                return searchMatch && cityMatch && typeMatch;
-            });
-
-            const itemsPerPage = 10;
-            const startIndex = (page - 1) * itemsPerPage;
-            const endIndex = startIndex + itemsPerPage;
-            const paginatedSpaces = filteredSpaces.slice(startIndex, endIndex);
-
-            tableBody.innerHTML = '';
-            if (paginatedSpaces.length === 0) {
-                tableBody.innerHTML = `<tr><td class="text-center py-4 text-muted" colspan="6">Nessuno spazio trovato.</td></tr>`;
-            } else {
-                paginatedSpaces.forEach(space => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${space.name}</td>
-                        <td>${space.city}</td>
-                        <td>${space.type}</td>
-                        <td>${space.capacity}</td>
-                        <td>€${space.price}/h</td>
-                        <td>
-                            <button class="btn btn-sm btn-outline-info me-2" onclick="showSpaceDetailsModal(${space.id})"><i class="fas fa-eye"></i></button>
-                            <button class="btn btn-sm btn-outline-primary me-2" onclick="editSpace(${space.id})"><i class="fas fa-edit"></i></button>
-                            <button class="btn btn-sm btn-outline-danger" onclick="deleteSpace(${space.id})"><i class="fas fa-trash"></i></button>
-                        </td>
-                    `;
-                    tableBody.appendChild(row);
-                });
+            // Ottieni token di autenticazione
+            const token = getAuthToken();
+            if (!token) {
+                showSpacesError('Token di autenticazione non trovato. Effettua nuovamente il login.');
+                return;
             }
 
-            showCount.textContent = paginatedSpaces.length;
-            totalCount.textContent = filteredSpaces.length;
+            // Costruisci parametri query
+            const queryParams = new URLSearchParams({
+                page: page.toString(),
+                limit: '10',
+                sortBy: 'created_at',
+                sortOrder: 'DESC',
+                ...filters
+            });
 
-            renderPagination(filteredSpaces.length, itemsPerPage, page);
-        }, 500);
-    }
+            console.log('🔍 Calling manager spaces API with params:', queryParams.toString());
 
-    function renderPagination(totalItems, itemsPerPage, currentPage) {
-        const pagination = document.getElementById('spacesPagination');
-        pagination.innerHTML = '';
-        const totalPages = Math.ceil(totalItems / itemsPerPage);
+            // Chiamata API per ottenere spazi del manager
+            const response = await fetch(`http://localhost:3000/api/manager/spaces?${queryParams}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
 
-        for (let i = 1; i <= totalPages; i++) {
-            const li = document.createElement('li');
-            li.className = `page-item ${i === currentPage ? 'active' : ''}`;
-            li.innerHTML = `<a class="page-link" href="#" onclick="loadSpaces(${i}, getSpaceFilters())">${i}</a>`;
-            pagination.appendChild(li);
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.message || `HTTP error! status: ${response.status}`);
+            }
+
+            if (!result.success) {
+                throw new Error(result.message || 'Errore durante il caricamento degli spazi');
+            }
+
+            // Aggiorna dati globali
+            spacesData = result.spaces || [];
+            currentSpacesPage = page;
+
+            console.log(`✅ Caricati ${spacesData.length} spazi per il manager`);
+
+            // Renderizza gli spazi
+            renderSpacesTable(result.spaces, result.pagination);
+
+        } catch (error) {
+            console.error('❌ Errore caricamento spazi manager:', error);
+            showSpacesError(error.message || 'Errore durante il caricamento degli spazi');
+        } finally {
+            spacesLoading = false;
         }
     }
 
+    function showSpacesLoading() {
+        const tableBody = document.getElementById('spacesTableBody');
+        const showCount = document.getElementById('spacesShowing');
+        const totalCount = document.getElementById('spacesTotal');
+
+        if (tableBody) {
+            tableBody.innerHTML = `
+            <tr>
+                <td colspan="7" class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Caricamento...</span>
+                    </div>
+                    <div class="mt-2">Caricamento spazi...</div>
+                </td>
+            </tr>
+        `;
+        }
+
+        if (showCount) showCount.textContent = '0';
+        if (totalCount) totalCount.textContent = '0';
+    }
+
+    function showSpacesError(message) {
+        const tableBody = document.getElementById('spacesTableBody');
+        if (tableBody) {
+            tableBody.innerHTML = `
+            <tr>
+                <td colspan="7" class="text-center py-4">
+                    <div class="text-danger">
+                        <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                        <div class="h5">Errore caricamento spazi</div>
+                        <div class="text-muted">${message}</div>
+                        <button class="btn btn-primary mt-3" onclick="loadSpaces()">
+                            <i class="fas fa-sync-alt me-2"></i>Riprova
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+        }
+    }
+
+    function renderSpacesTable(spaces, pagination) {
+        const tableBody = document.getElementById('spacesTableBody');
+        const showCount = document.getElementById('spacesShowing');
+        const totalCount = document.getElementById('spacesTotal');
+        const paginationEl = document.getElementById('spacesPagination');
+
+        if (!tableBody) {
+            console.error('Elemento spacesTableBody non trovato');
+            return;
+        }
+
+        // Se non ci sono spazi
+        if (!spaces || spaces.length === 0) {
+            tableBody.innerHTML = `
+            <tr>
+                <td colspan="7" class="text-center py-4">
+                    <div class="text-muted">
+                        <i class="fas fa-building fa-2x mb-3"></i>
+                        <div class="h5">Nessuno spazio trovato</div>
+                        <div>Non hai ancora creato spazi o non ce ne sono che corrispondono ai filtri.</div>
+                        <button class="btn btn-primary mt-3" onclick="showAddSpaceModal()">
+                            <i class="fas fa-plus me-2"></i>Crea Primo Spazio
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+            if (showCount) showCount.textContent = '0';
+            if (totalCount) totalCount.textContent = '0';
+            if (paginationEl) paginationEl.innerHTML = '';
+            return;
+        }
+
+        // Renderizza gli spazi reali
+        tableBody.innerHTML = '';
+        spaces.forEach(space => {
+            const row = document.createElement('tr');
+
+            // Mappa i tipi di spazio
+            const typeMap = {
+                'hot-desk': { class: 'info', text: 'Hot Desk' },
+                'private-office': { class: 'success', text: 'Ufficio Privato' },
+                'meeting-room': { class: 'warning', text: 'Sala Riunioni' },
+                'event-space': { class: 'primary', text: 'Sala Eventi' }
+            };
+
+            const typeInfo = typeMap[space.type] || { class: 'secondary', text: space.type };
+
+            row.innerHTML = `
+            <td>
+                <div class="fw-bold">${space.name || 'Nome non disponibile'}</div>
+                <small class="text-muted">#${space.id.substring(0, 8)}</small>
+            </td>
+            <td>
+                <div>${space.city || 'Città non specificata'}</div>
+                <small class="text-muted">${space.address || ''}</small>
+            </td>
+            <td>
+                <span class="badge bg-${typeInfo.class}">${typeInfo.text}</span>
+            </td>
+            <td>
+                <span class="fw-bold">${space.capacity || 0}</span>
+                <small class="text-muted">persone</small>
+            </td>
+            <td>
+                <div class="fw-bold">€${parseFloat(space.price_per_day || 0).toFixed(2)}</div>
+                <small class="text-muted">al giorno</small>
+            </td>
+            <td>
+                <div class="btn-group" role="group">
+                    <button class="btn btn-sm btn-outline-danger" onclick="showDeleteSpaceModal('${space.id}')" title="Elimina spazio">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </td>
+        `;
+
+            tableBody.appendChild(row);
+        });
+
+        // Aggiorna contatori
+        if (showCount) showCount.textContent = spaces.length;
+        if (totalCount && pagination) totalCount.textContent = pagination.totalSpaces || 0;
+
+        // Renderizza paginazione
+        if (paginationEl && pagination) {
+            renderSpacesPagination(pagination);
+        }
+    }
+
+    // ✅ FUNZIONE PER RENDERIZZARE LA PAGINAZIONE
+    function renderSpacesPagination(pagination) {
+        const paginationEl = document.getElementById('spacesPagination');
+        if (!paginationEl || !pagination) return;
+
+        const { currentPage, totalPages, hasNextPage, hasPreviousPage } = pagination;
+
+        let paginationHTML = '';
+
+        // Pulsante precedente
+        if (hasPreviousPage) {
+            paginationHTML += `
+            <li class="page-item">
+                <a class="page-link" href="#" onclick="loadSpaces(${currentPage - 1}, getSpaceFilters())">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+            </li>
+        `;
+        }
+
+        // Numeri pagina
+        for (let i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, currentPage + 2); i++) {
+            paginationHTML += `
+            <li class="page-item ${i === currentPage ? 'active' : ''}">
+                <a class="page-link" href="#" onclick="loadSpaces(${i}, getSpaceFilters())">${i}</a>
+            </li>
+        `;
+        }
+
+        // Pulsante successivo
+        if (hasNextPage) {
+            paginationHTML += `
+            <li class="page-item">
+                <a class="page-link" href="#" onclick="loadSpaces(${currentPage + 1}, getSpaceFilters())">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            </li>
+        `;
+        }
+
+        paginationEl.innerHTML = paginationHTML;
+    }
+
+
+    function getAuthToken() {
+        return localStorage.getItem('auth_token');
+    }
+
+    // ✅ AGGIORNA FILTRI PER USARE DATI REALI
     function getSpaceFilters() {
         return {
-            search: document.getElementById('spaceSearch').value,
-            city: document.getElementById('cityFilter').value,
-            type: document.getElementById('spaceTypeFilter').value
+            search: document.getElementById('spaceSearch')?.value || '',
+            type: document.getElementById('spaceTypeFilter')?.value || '',
+            city: document.getElementById('spaceCityFilter')?.value || ''
         };
     }
 
-    function applyFilters() {
+    function applySpaceFilters() {
         loadSpaces(1, getSpaceFilters());
     }
 
     function resetSpaceFilters() {
-        document.getElementById('spaceSearch').value = '';
-        document.getElementById('cityFilter').value = '';
-        document.getElementById('spaceTypeFilter').value = '';
+        const searchEl = document.getElementById('spaceSearch');
+        const typeEl = document.getElementById('spaceTypeFilter');
+        const cityEl = document.getElementById('spaceCityFilter');
+
+        if (searchEl) searchEl.value = '';
+        if (typeEl) typeEl.value = '';
+        if (cityEl) cityEl.value = '';
+
         loadSpaces();
     }
 
-    function showAddSpaceModal() {
-        document.getElementById('spaceModalTitle').textContent = 'Nuovo Spazio';
-        document.getElementById('spaceId').value = '';
-        document.getElementById('spaceForm').reset();
-        const spaceModal = new bootstrap.Modal(document.getElementById('spaceModal'));
-        spaceModal.show();
-    }
-
-    function saveSpace() {
-        const spaceId = document.getElementById('spaceId').value;
-        const newSpace = {
-            id: spaceId || spacesData.length + 1,
-            name: document.getElementById('spaceName').value,
-            city: document.getElementById('spaceCity').value,
-            type: document.getElementById('spaceType').value,
-            capacity: parseInt(document.getElementById('spaceCapacity').value),
-            price: parseFloat(document.getElementById('spacePrice').value),
-            services: [],
-            imageUrl: ''
-        };
-
-        if (spaceId) {
-            const index = spacesData.findIndex(s => s.id == spaceId);
-            if (index > -1) {
-                spacesData[index] = newSpace;
+    // ✅ FUNZIONI PER GESTIRE GLI SPAZI (aggiornate per API reali)
+    async function showSpaceDetails(spaceId) {
+        try {
+            const token = getAuthToken();
+            if (!token) {
+                alert('Token di autenticazione non trovato');
+                return;
             }
-        } else {
-            spacesData.push(newSpace);
-        }
 
-        loadSpaces();
-        const modal = bootstrap.Modal.getInstance(document.getElementById('spaceModal'));
-        modal.hide();
+            const response = await fetch(`http://localhost:3000/api/manager/spaces/${spaceId}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const result = await response.json();
+
+            if (result.success && result.space) {
+                const space = result.space;
+                const amenities = Array.isArray(space.amenities) ? space.amenities : JSON.parse(space.amenities || '[]');
+
+                alert(`Dettagli Spazio:
+ID: ${space.id}
+Nome: ${space.name}
+Descrizione: ${space.description || 'Nessuna descrizione'}
+Tipo: ${space.type}
+Città: ${space.city}
+Indirizzo: ${space.address}
+Capacità: ${space.capacity} persone
+Prezzo: €${parseFloat(space.price_per_day).toFixed(2)} al giorno
+Creato: ${new Date(space.created_at).toLocaleDateString('it-IT')}`);
+            } else {
+                alert('Errore nel caricamento dei dettagli dello spazio');
+            }
+        } catch (error) {
+            console.error('Errore nel caricamento dettagli:', error);
+            alert('Errore nel caricamento dei dettagli dello spazio');
+        }
     }
 
-    function editSpace(id) {
-        const space = spacesData.find(s => s.id === id);
+    async function editSpace(spaceId) {
+        // Trova lo spazio nei dati locali
+        const space = spacesData.find(s => s.id === spaceId);
         if (space) {
+            // Popola il modal di modifica con i dati esistenti
             document.getElementById('spaceModalTitle').textContent = 'Modifica Spazio';
             document.getElementById('spaceId').value = space.id;
-            document.getElementById('spaceName').value = space.name;
-            document.getElementById('spaceType').value = space.type;
-            document.getElementById('spaceCapacity').value = space.capacity;
-            document.getElementById('spacePrice').value = space.price;
-            document.getElementById('spaceCity').value = space.city;
-            document.getElementById('spaceAddress').value = space.address || '';
-            document.getElementById('spacePostalCode').value = space.postalCode || '';
-            document.getElementById('spaceFloor').value = space.floor || '';
-            document.getElementById('spaceRoom').value = space.room || '';
+            document.getElementById('spaceName').value = space.name || '';
             document.getElementById('spaceDescription').value = space.description || '';
-            document.getElementById('spaceNotes').value = space.notes || '';
+            document.getElementById('spaceType').value = space.type || '';
+            document.getElementById('spaceCity').value = space.city || '';
+            document.getElementById('spaceAddress').value = space.address || '';
+            document.getElementById('spaceCapacity').value = space.capacity || '';
+            document.getElementById('spacePrice').value = space.price_per_day || '';
 
             const spaceModal = new bootstrap.Modal(document.getElementById('spaceModal'));
             spaceModal.show();
         }
     }
 
-    function showSpaceDetailsModal(id) {
-        const space = spacesData.find(s => s.id === id);
-        if (space) {
-            const content = document.getElementById('spaceDetailsContent');
-            content.innerHTML = `
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6>Nome:</h6>
-                        <p>${space.name}</p>
-                        <h6>Città:</h6>
-                        <p>${space.city}</p>
-                        <h6>Tipo:</h6>
-                        <p>${space.type}</p>
-                    </div>
-                    <div class="col-md-6">
-                        <h6>Capienza:</h6>
-                        <p>${space.capacity}</p>
-                        <h6>Prezzo/h:</h6>
-                        <p>€${space.price}</p>
-                        <h6>Indirizzo:</h6>
-                        <p>${space.address || 'N/A'}</p>
-                    </div>
-                </div>
-            `;
-            const spaceDetailsModal = new bootstrap.Modal(document.getElementById('spaceDetailsModal'));
-            spaceDetailsModal.show();
+    async function activateSpace(spaceId) {
+        if (!confirm('Sei sicuro di voler attivare questo spazio?')) return;
+
+        try {
+            const token = getAuthToken();
+            const response = await fetch(`http://localhost:3000/api/manager/spaces/${spaceId}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ is_active: true })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert('Spazio attivato con successo!');
+                loadSpaces(currentSpacesPage, getSpaceFilters());
+            } else {
+                alert(result.message || 'Errore nell\'attivazione dello spazio');
+            }
+        } catch (error) {
+            console.error('Errore attivazione spazio:', error);
+            alert('Errore nell\'attivazione dello spazio');
         }
     }
 
-    function deleteSpace(id) {
-        if (confirm('Sei sicuro di voler eliminare questo spazio?')) {
-            spacesData = spacesData.filter(s => s.id !== id);
-            loadSpaces();
-            alert('Spazio eliminato con successo!');
+    async function deactivateSpace(spaceId) {
+        if (!confirm('Sei sicuro di voler disattivare questo spazio? Non sarà più prenotabile.')) return;
+
+        try {
+            const token = getAuthToken();
+            const response = await fetch(`http://localhost:3000/api/manager/spaces/${spaceId}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ is_active: false })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert('Spazio disattivato con successo!');
+                loadSpaces(currentSpacesPage, getSpaceFilters());
+            } else {
+                alert(result.message || 'Errore nella disattivazione dello spazio');
+            }
+        } catch (error) {
+            console.error('Errore disattivazione spazio:', error);
+            alert('Errore nella disattivazione dello spazio');
         }
     }
+
+    function showDeleteSpaceModal(spaceId) {
+        if (confirm('Sei sicuro di voler eliminare questo spazio? Questa azione non può essere annullata.')) {
+            deleteSpace(spaceId);
+        }
+    }
+
+    async function deleteSpace(spaceId) {
+        try {
+            const token = getAuthToken();
+            const response = await fetch(`http://localhost:3000/api/spaces/${spaceId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert('Spazio eliminato con successo!');
+                loadSpaces(currentSpacesPage, getSpaceFilters());
+            } else {
+                alert(result.message || 'Errore nell\'eliminazione dello spazio');
+            }
+        } catch (error) {
+            console.error('Errore eliminazione spazio:', error);
+            alert('Errore nell\'eliminazione dello spazio');
+        }
+    }
+
+    function applyFilters() {
+        loadSpaces(1, getSpaceFilters());
+    }
+
+    async function saveSpace() {
+        try {
+            // Raccogli i dati dal form
+            const spaceId = document.getElementById('spaceId').value;
+            const spaceName = document.getElementById('spaceName').value.trim();
+            const spaceDescription = document.getElementById('spaceDescription')?.value.trim() || '';
+            const spaceType = document.getElementById('spaceType').value;
+            const spaceCity = document.getElementById('spaceCity').value.trim();
+            const spaceAddress = document.getElementById('spaceAddress')?.value.trim() || '';
+            const spaceCapacity = parseInt(document.getElementById('spaceCapacity').value);
+            const spacePrice = parseFloat(document.getElementById('spacePrice').value);
+
+            // Validazioni client-side
+            if (!spaceName) {
+                alert('Il nome dello spazio è obbligatorio');
+                return;
+            }
+
+            if (!spaceType) {
+                alert('Il tipo di spazio è obbligatorio');
+                return;
+            }
+
+            if (!spaceCity) {
+                alert('La città è obbligatoria');
+                return;
+            }
+
+            if (!spaceCapacity || spaceCapacity <= 0) {
+                alert('La capacità deve essere un numero positivo');
+                return;
+            }
+
+            if (!spacePrice || spacePrice <= 0) {
+                alert('Il prezzo deve essere un numero positivo');
+                return;
+            }
+
+            // Raccogli amenities/servizi se presenti nel form
+            const amenities = [];
+            const amenityCheckboxes = document.querySelectorAll('input[name="amenities"]:checked');
+            amenityCheckboxes.forEach(checkbox => {
+                amenities.push(checkbox.value);
+            });
+
+            // Crea oggetto dati per l'API
+            const spaceData = {
+                name: spaceName,
+                description: spaceDescription,
+                type: spaceType,
+                city: spaceCity,
+                address: spaceAddress,
+                capacity: spaceCapacity,
+                price_per_day: spacePrice,
+                amenities: amenities,
+                is_active: true // Nuovo spazio attivo di default
+            };
+
+            console.log('📤 Sending space data:', spaceData);
+
+            // Ottieni token di autenticazione
+            const token = getAuthToken();
+            if (!token) {
+                alert('Token di autenticazione non trovato. Effettua nuovamente il login.');
+                return;
+            }
+
+            // Disabilita il pulsante per evitare doppi click
+            const saveButton = document.querySelector('#spaceModal .btn-primary');
+            if (saveButton) {
+                saveButton.disabled = true;
+                saveButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Salvando...';
+            }
+
+            let response, result;
+
+            if (spaceId) {
+                // MODIFICA SPAZIO ESISTENTE
+                console.log('🔄 Updating existing space:', spaceId);
+
+                response = await fetch(`http://localhost:3000/api/manager/spaces/${spaceId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(spaceData)
+                });
+
+                result = await response.json();
+
+                if (response.ok && result.success) {
+                    alert('Spazio aggiornato con successo!');
+                    console.log('✅ Space updated successfully');
+                } else {
+                    throw new Error(result.message || `HTTP error! status: ${response.status}`);
+                }
+
+            } else {
+                // CREA NUOVO SPAZIO
+                console.log('🆕 Creating new space');
+
+                response = await fetch('http://localhost:3000/api/spaces', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(spaceData)
+                });
+
+                result = await response.json();
+
+                if (response.ok && result.success) {
+                    alert('Spazio creato con successo!');
+                    console.log('✅ Space created successfully:', result.space);
+                } else {
+                    throw new Error(result.message || `HTTP error! status: ${response.status}`);
+                }
+            }
+
+            // Chiudi il modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('spaceModal'));
+            if (modal) {
+                modal.hide();
+            }
+
+            // Ricarica la lista degli spazi
+            loadSpaces(currentSpacesPage, getSpaceFilters());
+
+        } catch (error) {
+            console.error('❌ Error saving space:', error);
+
+            let errorMessage = 'Errore durante il salvataggio dello spazio';
+
+            // Gestisci errori specifici
+            if (error.message.includes('già esiste')) {
+                errorMessage = 'Esiste già uno spazio con questo nome in questa città';
+            } else if (error.message.includes('not authorized') || error.message.includes('Non autorizzato')) {
+                errorMessage = 'Non hai i permessi per eseguire questa operazione';
+            } else if (error.message.includes('validation')) {
+                errorMessage = 'I dati inseriti non sono validi. Controlla tutti i campi obbligatori';
+            } else if (error.message) {
+                errorMessage = error.message;
+            }
+
+            alert(errorMessage);
+
+        } finally {
+            // Riabilita il pulsante
+            const saveButton = document.querySelector('#spaceModal .btn-primary');
+            if (saveButton) {
+                saveButton.disabled = false;
+                saveButton.innerHTML = '<i class="fas fa-save me-2"></i>Salva';
+            }
+        }
+    }
+
+    function showAddSpaceModal() {
+        console.log('📝 Opening new space modal');
+
+        // Reset del form
+        document.getElementById('spaceModalTitle').textContent = 'Nuovo Spazio';
+        document.getElementById('spaceId').value = '';
+        document.getElementById('spaceForm').reset();
+
+        // Valori di default
+        document.getElementById('spaceType').value = '';
+        document.getElementById('spaceCapacity').value = '1';
+        document.getElementById('spacePrice').value = '';
+
+        // Deseleziona tutti i servizi
+        const amenityCheckboxes = document.querySelectorAll('input[name="amenities"]');
+        amenityCheckboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+
+        // Mostra il modal
+        const spaceModal = new bootstrap.Modal(document.getElementById('spaceModal'));
+        spaceModal.show();
+    }
+
+    function validateSpaceForm() {
+        const spaceName = document.getElementById('spaceName').value.trim();
+        const spaceType = document.getElementById('spaceType').value;
+        const spaceCity = document.getElementById('spaceCity').value.trim();
+        const spaceCapacity = document.getElementById('spaceCapacity').value;
+        const spacePrice = document.getElementById('spacePrice').value;
+
+        const errors = [];
+
+        if (!spaceName) errors.push('Il nome dello spazio è obbligatorio');
+        if (!spaceType) errors.push('Il tipo di spazio è obbligatorio');
+        if (!spaceCity) errors.push('La città è obbligatoria');
+        if (!spaceCapacity || spaceCapacity <= 0) errors.push('La capacità deve essere un numero positivo');
+        if (!spacePrice || spacePrice <= 0) errors.push('Il prezzo deve essere un numero positivo');
+
+        return {
+            isValid: errors.length === 0,
+            errors: errors
+        };
+    }
+
+    function updateSaveButton() {
+        const validation = validateSpaceForm();
+        const saveButton = document.querySelector('#spaceModal .btn-primary');
+
+        if (saveButton) {
+            if (validation.isValid) {
+                saveButton.disabled = false;
+                saveButton.classList.remove('btn-secondary');
+                saveButton.classList.add('btn-primary');
+            } else {
+                saveButton.disabled = true;
+                saveButton.classList.remove('btn-primary');
+                saveButton.classList.add('btn-secondary');
+            }
+        }
+    }
+
+    function setupSpaceFormValidation() {
+        const requiredFields = ['spaceName', 'spaceType', 'spaceCity', 'spaceCapacity', 'spacePrice'];
+
+        requiredFields.forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            if (field) {
+                field.addEventListener('input', updateSaveButton);
+                field.addEventListener('change', updateSaveButton);
+            }
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        setupSpaceFormValidation();
+    });
 
     // ==================== BOOKINGS MANAGEMENT ====================
-    let bookingsData = [
-        { id: 1, userId: 101, spaceId: 1, spaceName: 'Sala Riunioni A', userName: 'Mario Rossi', date: '2025-08-25', startTime: '10:00', endTime: '12:00', status: 'confermata' },
-        { id: 2, userId: 102, spaceId: 3, spaceName: 'Scrivania Condivisa', userName: 'Giulia Verdi', date: '2025-08-26', startTime: '14:00', endTime: '16:00', status: 'in-attesa' },
-        { id: 3, userId: 101, spaceId: 2, spaceName: 'Ufficio Privato', userName: 'Mario Rossi', date: '2025-08-27', startTime: '09:00', endTime: '17:00', status: 'confermata' }
-    ];
+    let bookingsData = []; // Array per i dati reali dal database
+    let currentBookingsPage = 1;
+    let bookingsLoading = false;
 
-    function loadBookings(page = 1, filters = {}) {
+    async function loadBookings(page = 1, filters = {}) {
+        if (bookingsLoading) return;
+        bookingsLoading = true;
+
+        try {
+            // Mostra loading
+            showBookingsLoading();
+
+            // Ottieni token di autenticazione
+            const token = getAuthToken();
+            if (!token) {
+                showBookingsError('Token di autenticazione non trovato. Effettua nuovamente il login.');
+                return;
+            }
+
+            // Costruisci parametri query
+            const queryParams = new URLSearchParams({
+                page: page.toString(),
+                limit: '10',
+                sortBy: 'created_at',
+                sortOrder: 'DESC',
+                ...filters
+            });
+
+            // Chiamata API per ottenere prenotazioni del manager
+            const response = await fetch(`http://localhost:3000/api/manager/bookings?${queryParams}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.message || `HTTP error! status: ${response.status}`);
+            }
+
+            if (!result.success) {
+                throw new Error(result.message || 'Errore durante il caricamento delle prenotazioni');
+            }
+
+            // Aggiorna dati globali
+            bookingsData = result.bookings || [];
+            currentBookingsPage = page;
+
+            console.log(`✅ Caricate ${bookingsData.length} prenotazioni per il manager`);
+
+            // Renderizza le prenotazioni
+            renderBookingsTable(result.bookings, result.pagination);
+
+        } catch (error) {
+            console.error('❌ Errore caricamento prenotazioni manager:', error);
+            showBookingsError(error.message || 'Errore durante il caricamento delle prenotazioni');
+        } finally {
+            bookingsLoading = false;
+        }
+    }
+
+    function showBookingsLoading() {
         const tableBody = document.getElementById('bookingsTableBody');
         const showCount = document.getElementById('bookingsShowing');
         const totalCount = document.getElementById('bookingsTotal');
-        const pagination = document.getElementById('bookingsPagination');
 
-        tableBody.innerHTML = `<tr><td class="text-center py-4" colspan="7"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Caricamento...</span></div></td></tr>`;
+        if (tableBody) {
+            tableBody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Caricamento...</span>
+                    </div>
+                    <div class="mt-2">Caricamento prenotazioni...</div>
+                </td>
+            </tr>
+        `;
+        }
 
-        setTimeout(() => {
-            let filteredBookings = bookingsData.filter(booking => {
-                const searchMatch = !filters.search || booking.userName.toLowerCase().includes(filters.search.toLowerCase()) || booking.spaceName.toLowerCase().includes(filters.search.toLowerCase());
-                const statusMatch = !filters.status || booking.status === filters.status;
-                const dateMatch = !filters.date || booking.date === filters.date;
-                return searchMatch && statusMatch && dateMatch;
-            });
-
-            const itemsPerPage = 10;
-            const startIndex = (page - 1) * itemsPerPage;
-            const endIndex = startIndex + itemsPerPage;
-            const paginatedBookings = filteredBookings.slice(startIndex, endIndex);
-
-            tableBody.innerHTML = '';
-            if (paginatedBookings.length === 0) {
-                tableBody.innerHTML = `<tr><td class="text-center py-4 text-muted" colspan="7">Nessuna prenotazione trovata.</td></tr>`;
-            } else {
-                paginatedBookings.forEach(booking => {
-                    const row = document.createElement('tr');
-                    let statusClass = '';
-                    switch (booking.status) {
-                        case 'confermata':
-                            statusClass = 'status-active';
-                            break;
-                        case 'in-attesa':
-                            statusClass = 'status-suspended';
-                            break;
-                        case 'cancellata':
-                            statusClass = 'status-inactive';
-                            break;
-                        case 'completata':
-                            statusClass = 'status-active';
-                            break;
-                    }
-
-                    row.innerHTML = `
-                        <td>${booking.id}</td>
-                        <td>${booking.userName}</td>
-                        <td>${booking.spaceName}</td>
-                        <td>${booking.date}</td>
-                        <td>${booking.startTime} - ${booking.endTime}</td>
-                        <td><span class="status-badge ${statusClass}">${booking.status}</span></td>
-                        <td>
-                            <button class="btn btn-sm btn-outline-info me-2" onclick="showBookingDetailsModal(${booking.id})"><i class="fas fa-eye"></i></button>
-                            <button class="btn btn-sm btn-outline-primary me-2" onclick="editBooking(${booking.id})"><i class="fas fa-edit"></i></button>
-                            <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteBookingModal" data-booking-id="${booking.id}"><i class="fas fa-trash"></i></button>
-                        </td>
-                    `;
-                    tableBody.appendChild(row);
-                });
-            }
-
-            showCount.textContent = paginatedBookings.length;
-            totalCount.textContent = filteredBookings.length;
-
-            renderBookingPagination(filteredBookings.length, itemsPerPage, page);
-        }, 500);
+        if (showCount) showCount.textContent = '0';
+        if (totalCount) totalCount.textContent = '0';
     }
 
-    function renderBookingPagination(totalItems, itemsPerPage, currentPage) {
-        const pagination = document.getElementById('bookingsPagination');
-        pagination.innerHTML = '';
-        const totalPages = Math.ceil(totalItems / itemsPerPage);
-
-        for (let i = 1; i <= totalPages; i++) {
-            const li = document.createElement('li');
-            li.className = `page-item ${i === currentPage ? 'active' : ''}`;
-            li.innerHTML = `<a class="page-link" href="#" onclick="loadBookings(${i}, getBookingFilters())">${i}</a>`;
-            pagination.appendChild(li);
+    function showBookingsError(message) {
+        const tableBody = document.getElementById('bookingsTableBody');
+        if (tableBody) {
+            tableBody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center py-4">
+                    <div class="text-danger">
+                        <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                        <div class="h5">Errore caricamento prenotazioni</div>
+                        <div class="text-muted">${message}</div>
+                        <button class="btn btn-primary mt-3" onclick="loadBookings()">
+                            <i class="fas fa-sync-alt me-2"></i>Riprova
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
         }
+    }
+
+    function renderBookingsTable(bookings, pagination) {
+        const tableBody = document.getElementById('bookingsTableBody');
+        const showCount = document.getElementById('bookingsShowing');
+        const totalCount = document.getElementById('bookingsTotal');
+        const paginationEl = document.getElementById('bookingsPagination');
+
+        if (!tableBody) {
+            console.error('Elemento bookingsTableBody non trovato');
+            return;
+        }
+
+        // Se non ci sono prenotazioni
+        if (!bookings || bookings.length === 0) {
+            tableBody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center py-4">
+                    <div class="text-muted">
+                        <i class="fas fa-calendar-times fa-2x mb-3"></i>
+                        <div class="h5">Nessuna prenotazione trovata</div>
+                        <div>Non ci sono prenotazioni per i tuoi spazi al momento.</div>
+                    </div>
+                </td>
+            </tr>
+        `;
+            if (showCount) showCount.textContent = '0';
+            if (totalCount) totalCount.textContent = '0';
+            if (paginationEl) paginationEl.innerHTML = '';
+            return;
+        }
+
+        // Renderizza le prenotazioni reali
+        tableBody.innerHTML = '';
+        bookings.forEach(booking => {
+            const row = document.createElement('tr');
+
+            // Mappa gli status del database agli status dell'interfaccia
+            const statusMap = {
+                'pending': { class: 'warning', text: 'In Attesa' },
+                'confirmed': { class: 'success', text: 'Confermata' },
+                'completed': { class: 'info', text: 'Completata' },
+                'cancelled': { class: 'danger', text: 'Cancellata' }
+            };
+
+            const statusInfo = statusMap[booking.status] || { class: 'secondary', text: booking.status };
+
+            // Formatta le date
+            const startDate = new Date(booking.start_date);
+            const endDate = new Date(booking.end_date);
+            const dateStr = startDate.toLocaleDateString('it-IT');
+            const startTime = startDate.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+            const endTime = endDate.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+
+            row.innerHTML = `
+            <td>
+                <div class="fw-bold">#${booking.id.substring(0, 8)}</div>
+                <small class="text-muted">€${parseFloat(booking.total_price || 0).toFixed(2)}</small>
+            </td>
+            <td>
+                <div class="fw-bold">${booking.client_first_name || 'N/A'} ${booking.client_last_name || ''}</div>
+                <small class="text-muted">${booking.client_email || 'Email non disponibile'}</small>
+            </td>
+            <td>
+                <div class="fw-bold">${booking.space_name || 'Spazio non trovato'}</div>
+                <small class="text-muted">${booking.space_type || ''} - ${booking.space_city || ''}</small>
+            </td>
+            <td>
+                <div class="fw-bold">${dateStr}</div>
+            </td>
+            <td>
+                <div class="btn-group" role="group">
+                    <button class="btn btn-sm btn-outline-info" onclick="showBookingDetails('${booking.id}')" title="Visualizza dettagli">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+            </td>
+        `;
+
+            tableBody.appendChild(row);
+        });
+
+        // Aggiorna contatori
+        if (showCount) showCount.textContent = bookings.length;
+        if (totalCount && pagination) totalCount.textContent = pagination.totalBookings || 0;
+
+        // Renderizza paginazione
+        if (paginationEl && pagination) {
+            renderBookingsPagination(pagination);
+        }
+    }
+
+    function renderBookingsPagination(pagination) {
+        const paginationEl = document.getElementById('bookingsPagination');
+        if (!paginationEl || !pagination) return;
+
+        const { currentPage, totalPages, hasNextPage, hasPreviousPage } = pagination;
+
+        let paginationHTML = '';
+
+        // Pulsante precedente
+        if (hasPreviousPage) {
+            paginationHTML += `
+            <li class="page-item">
+                <a class="page-link" href="#" onclick="loadBookings(${currentPage - 1}, getBookingFilters())">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+            </li>
+        `;
+        }
+
+        // Numeri pagina
+        for (let i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, currentPage + 2); i++) {
+            paginationHTML += `
+            <li class="page-item ${i === currentPage ? 'active' : ''}">
+                <a class="page-link" href="#" onclick="loadBookings(${i}, getBookingFilters())">${i}</a>
+            </li>
+        `;
+        }
+
+        // Pulsante successivo
+        if (hasNextPage) {
+            paginationHTML += `
+            <li class="page-item">
+                <a class="page-link" href="#" onclick="loadBookings(${currentPage + 1}, getBookingFilters())">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            </li>
+        `;
+        }
+
+        paginationEl.innerHTML = paginationHTML;
+    }
+
+    function getAuthToken() {
+        return localStorage.getItem('auth_token');
     }
 
     function getBookingFilters() {
         return {
-            search: document.getElementById('bookingSearch').value,
-            status: document.getElementById('bookingStatusFilter').value,
-            date: document.getElementById('bookingDateFilter').value
+            search: document.getElementById('bookingSearch')?.value || '',
+            status: document.getElementById('bookingStatusFilter')?.value || '',
+            start_date_from: document.getElementById('bookingDateFilter')?.value || ''
         };
     }
 
@@ -1408,18 +2034,109 @@
     }
 
     function resetBookingFilters() {
-        document.getElementById('bookingSearch').value = '';
-        document.getElementById('bookingStatusFilter').value = '';
-        document.getElementById('bookingDateFilter').value = '';
+        const searchEl = document.getElementById('bookingSearch');
+        const statusEl = document.getElementById('bookingStatusFilter');
+        const dateEl = document.getElementById('bookingDateFilter');
+
+        if (searchEl) searchEl.value = '';
+        if (statusEl) statusEl.value = '';
+        if (dateEl) dateEl.value = '';
+
         loadBookings();
     }
 
-    function showAddBookingModal() {
-        document.getElementById('bookingModalTitle').textContent = 'Nuova Prenotazione';
-        document.getElementById('bookingId').value = '';
-        document.getElementById('bookingForm').reset();
-        const bookingModal = new bootstrap.Modal(document.getElementById('bookingModal'));
-        bookingModal.show();
+    async function showBookingDetails(bookingId) {
+        try {
+            const token = getAuthToken();
+            if (!token) {
+                alert('Token di autenticazione non trovato');
+                return;
+            }
+
+            const response = await fetch(`http://localhost:3000/api/manager/bookings/${bookingId}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const result = await response.json();
+
+            if (result.success && result.booking) {
+                const booking = result.booking;
+                const startDate = new Date(booking.start_date);
+                const endDate = new Date(booking.end_date);
+
+                alert(`Dettagli Prenotazione:
+ID: ${booking.id}
+Cliente: ${booking.client_first_name} ${booking.client_last_name}
+Email: ${booking.client_email}
+Spazio: ${booking.space_name}
+Data: ${startDate.toLocaleDateString('it-IT')}
+Ospiti: ${booking.guests_count || 1}
+Prezzo: €${parseFloat(booking.total_price || 0).toFixed(2)}
+Note: ${booking.notes || 'Nessuna nota'}`);
+            } else {
+                alert('Errore nel caricamento dei dettagli della prenotazione');
+            }
+        } catch (error) {
+            console.error('Errore nel caricamento dettagli:', error);
+            alert('Errore nel caricamento dei dettagli della prenotazione');
+        }
+    }
+
+    async function confirmBooking(bookingId) {
+        if (!confirm('Sei sicuro di voler confermare questa prenotazione?')) return;
+
+        try {
+            const token = getAuthToken();
+            const response = await fetch(`http://localhost:3000/api/bookings/${bookingId}/confirm`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert('Prenotazione confermata con successo!');
+                loadBookings(currentBookingsPage, getBookingFilters());
+            } else {
+                alert(result.message || 'Errore nella conferma della prenotazione');
+            }
+        } catch (error) {
+            console.error('Errore conferma prenotazione:', error);
+            alert('Errore nella conferma della prenotazione');
+        }
+    }
+
+    async function cancelBooking(bookingId, reason = '') {
+        try {
+            const token = getAuthToken();
+            const response = await fetch(`http://localhost:3000/api/bookings/${bookingId}/cancel`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ reason })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert('Prenotazione cancellata con successo!');
+                loadBookings(currentBookingsPage, getBookingFilters());
+            } else {
+                alert(result.message || 'Errore nella cancellazione della prenotazione');
+            }
+        } catch (error) {
+            console.error('Errore cancellazione prenotazione:', error);
+            alert('Errore nella cancellazione della prenotazione');
+        }
     }
 
     function saveBooking() {
@@ -1447,31 +2164,6 @@
         loadBookings();
         const modal = bootstrap.Modal.getInstance(document.getElementById('bookingModal'));
         modal.hide();
-    }
-
-    function editBooking(id) {
-        const booking = bookingsData.find(b => b.id === id);
-        if (booking) {
-            document.getElementById('bookingModalTitle').textContent = 'Modifica Prenotazione';
-            document.getElementById('bookingId').value = booking.id;
-            document.getElementById('userId').value = booking.userId;
-            document.getElementById('spaceId').value = booking.spaceId;
-            document.getElementById('bookingDate').value = booking.date;
-            document.getElementById('startTime').value = booking.startTime;
-            document.getElementById('endTime').value = booking.endTime;
-            document.getElementById('bookingStatus').value = booking.status;
-            document.getElementById('bookingNotes').value = booking.notes || '';
-            const bookingModal = new bootstrap.Modal(document.getElementById('bookingModal'));
-            bookingModal.show();
-        }
-    }
-
-    function showBookingDetailsModal(id) {
-        const booking = bookingsData.find(b => b.id === id);
-        if (booking) {
-            // Implement logic to show booking details in a modal
-            alert(`Dettagli Prenotazione #${booking.id}: Cliente ${booking.userName}, Spazio ${booking.spaceName}, Data ${booking.date}`);
-        }
     }
 
     function deleteBooking(id) {

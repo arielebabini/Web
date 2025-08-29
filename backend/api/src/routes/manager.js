@@ -75,7 +75,9 @@ router.get('/spaces',
     ],
     async (req, res) => {
         try {
-            // Forza il filtro per manager_id
+            const managerId = req.user.id;
+            const managerEmail = req.user.email;
+
             const filters = {
                 ...req.query,
                 manager_id: req.user.id
@@ -232,12 +234,13 @@ router.get('/bookings',
     async (req, res) => {
         try {
             const managerId = req.user.id;
-            const filters = {
-                ...req.query,
-                manager_id: managerId
-            };
+            const managerEmail = req.user.email;
 
-            const bookings = await BookingController.getManagerBookings(filters);
+            const bookings = await BookingController.getManagerBookings(
+                req.query,
+                managerId,
+                managerEmail
+            );
 
             res.json({
                 success: true,
@@ -259,25 +262,35 @@ router.get('/bookings',
  * @desc    Statistiche prenotazioni del manager
  * @access  Private (solo manager)
  */
-router.get('/bookings/stats', requireAuth, ensureManager, async (req, res) => {
-    try {
-        const managerId = req.user.id;
-        const { date_from, date_to } = req.query;
+router.get('/bookings/stats',
+    requireAuth,
+    ensureManager,
+    async (req, res) => {
+        try {
+            const managerId = req.user.id;
+            const managerEmail = req.user.email;
+            const { date_from, date_to } = req.query;
 
-        const stats = await BookingController.getManagerBookingStats(managerId, { date_from, date_to });
+            // ✅ Chiamata corretta con tutti i parametri
+            const stats = await BookingController.getManagerBookingStats(
+                managerId,
+                managerEmail,
+                { date_from, date_to }
+            );
 
-        res.json({
-            success: true,
-            stats
-        });
-    } catch (error) {
-        console.error('Error getting manager booking stats:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Errore nel caricamento delle statistiche'
-        });
+            res.json({
+                success: true,
+                stats
+            });
+        } catch (error) {
+            console.error('Error getting manager booking stats:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Errore nel caricamento delle statistiche'
+            });
+        }
     }
-});
+);
 
 /**
  * @route   GET /api/manager/bookings/:bookingId
@@ -294,13 +307,18 @@ router.get('/bookings/:bookingId',
         try {
             const { bookingId } = req.params;
             const managerId = req.user.id;
+            const managerEmail = req.user.email;
 
-            const booking = await BookingController.getBookingForManager(bookingId, managerId);
+            const booking = await BookingController.getBookingForManager(
+                bookingId,
+                managerId,
+                managerEmail
+            );
 
             if (!booking) {
                 return res.status(404).json({
                     success: false,
-                    message: 'Prenotazione non trovata'
+                    message: 'Prenotazione non trovata o non autorizzata'
                 });
             }
 
