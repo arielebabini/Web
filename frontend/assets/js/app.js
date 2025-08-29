@@ -1149,10 +1149,11 @@ function loadMoreSpaces() {
 /**
  * Mostra la sezione "Le Mie Prenotazioni" e carica i dati.
  */
-function showSection(sectionId) {
+/*function showSection(section) {
     // Definisci tutti gli ID delle sezioni che possono esistere
-    const allSections = ['homeSection', 'spacesSection', 'bookingsSection', 'aboutSection', 'supportSection'];
+    console.log('Mostrando sezione:', section);
 
+    const allSections = ['homeSection', 'spacesSection', 'bookingsSection', 'aboutSection', 'supportSection'];
     allSections.forEach(id => {
         const section = document.getElementById(id);
         if (section) {
@@ -1160,21 +1161,28 @@ function showSection(sectionId) {
         }
     });
 
-    // Mostra solo la sezione desiderata, verificando la sua esistenza
-    const targetSection = document.getElementById(sectionId + 'Section');
+    const targetSection = document.getElementById(section + 'Section');
     if (targetSection) {
         targetSection.style.display = 'block';
     }
 
-    // Se la sezione è quella delle prenotazioni, avvia il caricamento dei dati
-    if (sectionId === 'bookings') {
-        if (window.BookingManager) {
-            window.BookingManager.loadBookings();
-        } else {
-            console.error('BookingManager non è stato trovato. Assicurati che booking.js sia caricato correttamente.');
-        }
+    if (section === 'bookings') {
+        // Funzione che aspetta che BookingManager sia disponibile
+        const waitForBookingManager = (attempts = 0) => {
+            if (window.BookingManager && window.BookingManager.loadBookings) {
+                console.log('BookingManager trovato, caricamento prenotazioni...');
+                window.BookingManager.loadBookings();
+            } else if (attempts < 50) { // Max 5 secondi di attesa
+                console.log(`BookingManager non ancora disponibile, tentativo ${attempts + 1}/50`);
+                setTimeout(() => waitForBookingManager(attempts + 1), 100);
+            } else {
+                console.error('BookingManager non disponibile dopo 5 secondi di attesa');
+            }
+        };
+
+        waitForBookingManager();
     }
-}
+}*/
 
 // Funzione placeholder per l'annullamento della prenotazione
 function cancelBooking(bookingId) {
@@ -1244,7 +1252,7 @@ function debugDOM() {
 
 // ===== INIZIALIZZAZIONE =====
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🎬 DOMContentLoaded fired');
+    console.log('DOMContentLoaded fired');
 
     // Debug DOM
     setTimeout(() => {
@@ -1262,47 +1270,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Mostra cookie banner dopo 2 secondi
     setTimeout(showCookieBanner, 2000);
 
-    console.log('🎉 CoWorkSpace Frontend inizializzato e connesso al backend!');
+    console.log('CoWorkSpace Frontend inizializzato e connesso al backend!');
 });
 
-document.addEventListener('DOMContentLoaded', () => {
-    // Aggiungi qui l'inizializzazione del BookingManager
-    // In questo modo, l'istanza viene creata solo dopo che tutti gli script
-    // sono stati caricati e il DOM è pronto.
-    if (window.Booking) {
-        window.BookingManager = new Booking();
-    } else {
-        console.error('La classe Booking non è definita. Assicurati che il file booking.js sia caricato prima di app.js.');
-    }
-
-    // Qui puoi definire le funzioni globali che verranno usate nell'HTML
-    window.showSection = function(sectionId) {
-        // Nascondi tutte le sezioni principali
-        const allSections = ['homeSection', 'spacesSection', 'bookingsSection', 'aboutSection', 'supportSection'];
-        allSections.forEach(id => {
-            const section = document.getElementById(id);
-            if (section) {
-                section.style.display = 'none';
-            }
-        });
-
-        // Mostra solo la sezione desiderata
-        const targetSection = document.getElementById(sectionId + 'Section');
-        if (targetSection) {
-            targetSection.style.display = 'block';
-        }
-
-        // Carica i dati delle prenotazioni solo se la sezione è attiva
-        if (sectionId === 'bookings' && window.BookingManager) {
-            window.BookingManager.loadBookings();
-        }
-    };
-
-    // Funzione specifica per il link "Le Mie Prenotazioni"
-    window.showMyBookingsSection = function() {
-        showSection('bookings');
-    };
-});
 
 // Rendi le funzioni globalmente accessibili
 window.showLogin = showLogin;
@@ -1333,7 +1303,172 @@ window.clearFilters = function() {
     window.coworkspaceApp.clearFilters();
 };
 
-console.log('✅ Script loaded completely');
+window.showSection = function(sectionId) {
+    console.log('Mostrando sezione:', sectionId);
+
+    // Nascondi tutte le sezioni
+    const allSections = ['homeSection', 'spacesSection', 'bookingsSection', 'aboutSection', 'supportSection'];
+    allSections.forEach(id => {
+        const section = document.getElementById(id);
+        if (section) {
+            section.style.display = 'none';
+        }
+    });
+
+    // Mostra la sezione richiesta
+    const targetSection = document.getElementById(sectionId + 'Section');
+    if (targetSection) {
+        targetSection.style.display = 'block';
+    }
+
+    // Se è la sezione prenotazioni, carica direttamente
+    if (sectionId === 'bookings') {
+        loadUserBookingsDirectly();
+    }
+};
+
+// Funzione che carica le prenotazioni senza dipendere da BookingManager
+async function loadUserBookingsDirectly() {
+    console.log('Caricamento prenotazioni diretto...');
+
+    const container = document.getElementById('bookingsContainer');
+    if (!container) {
+        console.error('Container prenotazioni non trovato');
+        return;
+    }
+
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+        container.innerHTML = `
+            <div class="col-12 text-center py-5">
+                <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                <h4>Accesso Richiesto</h4>
+                <p class="text-muted">Devi effettuare il login per vedere le prenotazioni.</p>
+                <button class="btn btn-primary" onclick="showLogin()">
+                    <i class="fas fa-sign-in-alt me-2"></i>Accedi
+                </button>
+            </div>
+        `;
+        return;
+    }
+
+    // Mostra loading
+    container.innerHTML = `
+        <div class="col-12 text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Caricamento...</span>
+            </div>
+            <p class="mt-3">Caricamento prenotazioni...</p>
+        </div>
+    `;
+
+    try {
+        const response = await fetch('http://localhost:3000/api/bookings/me', {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.message || 'Errore nel caricamento delle prenotazioni');
+        }
+
+        const bookings = data.data || [];
+        renderBookingsDirectly(bookings, container);
+
+    } catch (error) {
+        console.error('Errore caricamento prenotazioni:', error);
+        container.innerHTML = `
+            <div class="col-12 text-center py-5">
+                <i class="fas fa-exclamation-circle fa-3x text-danger mb-3"></i>
+                <h4>Errore nel caricamento</h4>
+                <p class="text-muted">Impossibile caricare le prenotazioni: ${error.message}</p>
+                <button class="btn btn-outline-primary" onclick="loadUserBookingsDirectly()">
+                    <i class="fas fa-redo me-2"></i>Riprova
+                </button>
+            </div>
+        `;
+    }
+}
+
+function renderBookingsDirectly(bookings, container) {
+    if (bookings.length === 0) {
+        container.innerHTML = `
+            <div class="col-12 text-center py-5">
+                <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                <h4>Nessuna prenotazione trovata</h4>
+                <p class="text-muted">Non hai ancora effettuato alcuna prenotazione.</p>
+                <a href="#" onclick="showSection('spaces')" class="btn btn-primary">
+                    <i class="fas fa-search me-2"></i>Cerca Spazi
+                </a>
+            </div>
+        `;
+        return;
+    }
+
+    let bookingsHtml = '';
+    bookings.forEach(booking => {
+        const formattedStartDate = formatDate(booking.start_date);
+        const formattedEndDate = formatDate(booking.end_date);
+
+        bookingsHtml += `
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card booking-card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <small class="text-muted">ID: ${booking.id.substring(0, 8)}...</small>
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">${booking.space_name || 'Spazio Coworking'}</h5>
+                        <p class="card-text">
+                            <i class="fas fa-map-marker-alt text-primary me-2"></i>
+                            ${booking.space_city || 'Non specificato'}
+                        </p>
+                        <div class="booking-details">
+                            <div class="mb-2">
+                                <i class="fas fa-calendar text-primary me-2"></i>
+                                <strong>Dal:</strong> ${formattedStartDate}
+                            </div>
+                            <div class="mb-2">
+                                <i class="fas fa-calendar text-primary me-2"></i>
+                                <strong>Al:</strong> ${formattedEndDate}
+                            </div>
+                            ${booking.start_time ? `
+                                <div class="mb-2">
+                                    <i class="fas fa-clock text-primary me-2"></i>
+                                    <strong>Orario:</strong> ${booking.start_time} - ${booking.end_time}
+                                </div>
+                            ` : ''}
+                            <div class="mb-2">
+                                <i class="fas fa-users text-primary me-2"></i>
+                                <strong>Persone:</strong> ${booking.people_count}
+                            </div>
+                            <div class="mb-2">
+                                <i class="fas fa-euro-sign text-primary me-2"></i>
+                                <strong>Prezzo:</strong> €${parseFloat(booking.total_price).toFixed(2)}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+
+    function formatDate(dateString) {
+        return new Date(dateString).toLocaleDateString('it-IT', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
+    }
+
+    container.innerHTML = bookingsHtml;
+}
+
+console.log('Script loaded completely');
 
 // Export per moduli
 if (typeof module !== 'undefined' && module.exports) {

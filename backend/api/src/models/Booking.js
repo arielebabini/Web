@@ -604,6 +604,33 @@ class Booking {
             throw error;
         }
     }
+
+    /**
+     * Trova tutte le prenotazioni di un utente specifico
+     * @param {string} userId - ID dell'utente
+     * @returns {Promise<Object[]>} Prenotazioni dell'utente
+     */
+    static async findByUserId(userId) {
+        try {
+            const result = await query(`
+            SELECT 
+                b.*,
+                s.name as space_name,
+                s.type as space_type,
+                s.city as space_city,
+                s.address as space_address
+            FROM bookings b
+            LEFT JOIN spaces s ON b.space_id = s.id
+            WHERE b.user_id = $1
+            ORDER BY b.start_date DESC
+        `, [userId]);
+
+            return result.rows;
+        } catch (error) {
+            logger.error('Error finding bookings by user ID:', error);
+            throw error;
+        }
+    }
 }
 
 module.exports = Booking;

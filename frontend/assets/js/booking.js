@@ -1,5 +1,7 @@
 class Booking {
     constructor() {
+        this.apiUrl = '/api/bookings';
+
         // Properties from Booking
         this.currentSpace = null;
         this.selectedDates = null;
@@ -1338,40 +1340,41 @@ class Booking {
      * Carica e visualizza le prenotazioni dell'utente.
      */
     async loadBookings() {
-        const bookingsContainer = document.getElementById('bookingsContainer');
-        if (!bookingsContainer) { return; }
+        console.log('Loading user bookings...');
 
-        bookingsContainer.innerHTML = '<div class="col-12 text-center py-5"><p>Caricamento delle tue prenotazioni...</p></div>';
         const token = localStorage.getItem('auth_token');
         if (!token) {
-            bookingsContainer.innerHTML = '<div class="col-12 text-center py-5"><p>Devi effettuare il login per vedere le tue prenotazioni.</p></div>';
+            console.error('No auth token found');
+            this.showError('Devi effettuare il login per vedere le prenotazioni');
             return;
         }
 
         try {
-            const response = await fetch('http://localhost:3000/api/bookings/me', {
+            const response = await fetch(`${this.apiUrl}/me`, {
                 method: 'GET',
-                headers: { 'Authorization': `Bearer ${token}` }
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
             });
 
+            const data = await response.json();
+
             if (!response.ok) {
-                let errorMessage = `Errore HTTP: ${response.status} ${response.statusText}`;
-                try {
-                    const errorData = await response.json();
-                    errorMessage = errorData.message || errorMessage;
-                } catch (jsonError) {}
-                throw new Error(errorMessage);
+                throw new Error(data.message || 'Errore nel caricamento delle prenotazioni');
             }
 
-            const data = await response.json();
             if (data.success) {
-                this.renderBookings(data.data, bookingsContainer);
+                this.currentBookings = data.data || [];
+                this.renderBookings();
+                console.log('Bookings loaded successfully:', this.currentBookings.length);
             } else {
-                throw new Error(data.message || 'Errore nel caricamento delle prenotazioni.');
+                throw new Error(data.message || 'Errore sconosciuto');
             }
+
         } catch (error) {
-            console.error('❌ Errore nel caricamento delle prenotazioni:', error);
-            bookingsContainer.innerHTML = `<div class="col-12 text-center py-5"><p class="text-danger">Errore nel caricamento: ${error.message}</p></div>`;
+            console.error('Error loading bookings:', error);
+            this.showError(error.message || 'Errore nel caricamento delle prenotazioni');
         }
     }
 
@@ -1414,30 +1417,113 @@ class Booking {
      * @param {Array} bookings - L'array di oggetti prenotazione da visualizzare.
      * @param {HTMLElement} container - Il contenitore dove visualizzare le prenotazioni.
      */
-    renderBookings(bookings) {
+    renderBookings() {
         const container = document.getElementById('bookingsContainer');
         if (!container) {
-            console.error('Bookings container not found!');
+            console.error('Booking container not found');
             return;
         }
 
-        container.innerHTML = ''; // Pulisci il container
-
-        if (bookings.length === 0) {
+        if (this.currentBookings.length === 0) {
             container.innerHTML = `
-                <div class="col-12">
-                    <div class="alert alert-info text-center" role="alert">
-                        Nessuna prenotazione trovata.
-                    </div>
+                <div class="col-12 text-center py-5">
+                    <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                    <h4>Nessuna prenotazione trovata</h4>
+                    <p class="text-muted">Non hai ancora effettuato alcuna prenotazione.</p>
+                    <a href="#" onclick="showSection('spaces')" class="btn btn-primary">
+                        <i class="fas fa-search me-2"></i>Cerca Spazi
+                    </a>
                 </div>
             `;
             return;
         }
 
-        bookings.forEach(booking => {
-            const bookingCard = this.generateBookingCardHTML(booking);
-            container.insertAdjacentHTML('beforeend', bookingCard);
+        let bookingsHtml = '';
+        this.currentBookings.forEach(booking => {
+            bookingsHtml += this.renderBookingCard(booking);
         });
+
+        container.innerHTML = bookingsHtml;
+    }
+
+    /**
+     * Renderizza una singola card di prenotazione
+     */
+    renderBookingCard(booking) {
+        const statusClass = this.getStatusClass(booking.status);
+        const statusText = this.getStatusText(booking.status);
+        const formattedStartDate = this.formatDate(booking.start_date);
+        const formattedEndDate = this.formatDate(booking.end_date);
+
+        return `
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card booking-card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <small class="text-muted">ID: ${booking.id.substring(0, 8)}...</small>
+                        <span class="badge ${statusClass}">${statusText}</span>
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">${booking.space_name}</h5>
+                        <p class="card-text">
+                            <i class="fas fa-map-marker-alt text-primary me-2"></i>
+                            ${booking.space_city || 'Non specificato'}
+                        </p>
+                        <div class="booking-details">
+                            <div class="mb-2">
+                                <i class="fas fa-calendar text-primary me-2"></i>
+                                <strong>Dal:</strong> ${formattedStartDate}
+                            </div>
+                            <div class="mb-2">
+                                <i class="fas fa-calendar text-primary me-2"></i>
+                                <strong>Al:</strong> ${formattedEndDate}
+                            </div>
+                            ${booking.start_time ? `
+                                <div class="mb-2">
+                                    <i class="fas fa-clock text-primary me-2"></i>
+                                    <strong>Orario:</strong> ${booking.start_time} - ${booking.end_time}
+                                </div>
+                            ` : ''}
+                            <div class="mb-2">
+                                <i class="fas fa-users text-primary me-2"></i>
+                                <strong>Persone:</strong> ${booking.people_count}
+                            </div>
+                            <div class="mb-2">
+                                <i class="fas fa-euro-sign text-primary me-2"></i>
+                                <strong>Prezzo:</strong> €${parseFloat(booking.total_price).toFixed(2)}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        ${this.renderBookingActions(booking)}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Renderizza le azioni disponibili per una prenotazione
+     */
+    renderBookingActions(booking) {
+        let actions = '';
+
+        if (booking.status === 'pending') {
+            actions += `
+                <button class="btn btn-outline-danger btn-sm me-2" 
+                        onclick="cancelBooking('${booking.id}')">
+                    <i class="fas fa-times me-1"></i>Cancella
+                </button>
+            `;
+        }
+
+        actions += `
+            <button class="btn btn-outline-primary btn-sm" 
+                    onclick="viewBookingDetails('${booking.id}')">
+                <i class="fas fa-eye me-1"></i>Dettagli
+            </button>
+        `;
+
+        return actions;
     }
 
     // Genera l'HTML per una singola prenotazione
@@ -1555,23 +1641,6 @@ class Booking {
     }
 }
 
-function showBookings() {
-    // Nascondi tutte le sezioni
-    document.querySelectorAll('section').forEach(section => {
-        section.style.display = 'none';
-    });
-
-    // Mostra la sezione delle prenotazioni
-    document.getElementById('bookingsSection').style.display = 'block';
-
-    // Chiama la funzione per recuperare e visualizzare le prenotazioni
-    if (window.BookingManager) {
-        window.BookingManager.fetchAndRenderUserBookings();
-    } else {
-        console.error("BookingManager non è stato inizializzato. Controlla l'ordine degli script in index.html");
-    }
-}
-
 // ===== FUNZIONE GLOBALE PER I BOTTONI =====
 window.bookSpace = function(spaceId) {
     // Verifica autenticazione
@@ -1593,3 +1662,51 @@ window.bookSpace = function(spaceId) {
     // Apri il modal di prenotazione
     window.BookingManager.openBookingModal(spaceId);
 };
+
+window.cancelBooking = function(bookingId) {
+    if (confirm('Sei sicuro di voler cancellare questa prenotazione?')) {
+        // Implementa la cancellazione
+        console.log('Cancelling booking:', bookingId);
+        alert('Funzionalità di cancellazione in sviluppo');
+    }
+};
+
+console.log('File booking.js caricato completamente');
+console.log('Classe Booking definita:', typeof Booking);
+window.Booking = Booking; // Esporta esplicitamente
+console.log('Booking esportata su window.Booking');
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Inizializzazione BookingManager dal booking.js...');
+
+    if (typeof Booking !== 'undefined') {
+        window.BookingManager = new Booking();
+        console.log('BookingManager inizializzato con successo');
+
+        // Definisci anche la funzione showSection qui se non è già definita in app.js
+        if (!window.showSection) {
+            window.showSection = function(section) {
+                console.log('Mostrando sezione:', section);
+
+                const allSections = ['homeSection', 'spacesSection', 'bookingsSection', 'aboutSection', 'supportSection'];
+                allSections.forEach(id => {
+                    const section = document.getElementById(id);
+                    if (section) {
+                        section.style.display = 'none';
+                    }
+                });
+
+                const targetSection = document.getElementById(section + 'Section');
+                if (targetSection) {
+                    targetSection.style.display = 'block';
+                }
+
+                if (section === 'bookings') {
+                    if (window.BookingManager && window.BookingManager.loadBookings) {
+                        window.BookingManager.loadBookings();
+                    }
+                }
+            };
+        }
+    }
+});

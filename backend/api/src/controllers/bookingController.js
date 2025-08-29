@@ -660,14 +660,7 @@ class BookingController {
     static async getUserBookings(req, res) {
         try {
             const userId = req.user.id;
-            const bookings = await Booking.findAll({
-                where: { user_id: userId },
-                include: [{
-                    model: Space,
-                    attributes: ['name']
-                }],
-                order: [['start_date', 'DESC']]
-            });
+            const bookings = await Booking.findByUserId(userId);
 
             const formattedBookings = bookings.map(booking => ({
                 id: booking.id,
@@ -678,7 +671,12 @@ class BookingController {
                 status: booking.status,
                 total_price: booking.total_price,
                 space_id: booking.space_id,
-                space_name: booking.Space ? booking.Space.name : 'Nome Spazio Sconosciuto'
+                space_name: booking.space_name || 'Nome Spazio Sconosciuto',
+                space_city: booking.space_city,
+                space_address: booking.space_address,
+                people_count: booking.people_count,
+                created_at: booking.created_at,
+                total_days: booking.total_days
             }));
 
             res.status(200).json({
@@ -686,8 +684,9 @@ class BookingController {
                 message: 'Prenotazioni recuperate con successo',
                 data: formattedBookings
             });
+
         } catch (error) {
-            console.error('Errore nel recupero delle prenotazioni:', error);
+            logger.error('Errore nel recupero delle prenotazioni utente:', error);
             res.status(500).json({
                 success: false,
                 message: 'Errore interno del server'
