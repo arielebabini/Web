@@ -446,11 +446,11 @@ class CoWorkSpaceApp {
                 // Reindirizza in base al ruolo
                 setTimeout(() => {
                     if (userData.role === 'admin') {
-                        console.log('🚀 Redirecting admin to dashboard...');
-                        window.location.href = './template/admin-dashboard.html';
-                    } else {
-                        console.log('🚀 Redirecting user to dashboard...');
-                        window.location.href = './template/user-dashboard.html';
+                        window.location.href = '/template/admin-dashboard.html';
+                    } else if (userData.role === 'manager'){
+                        window.location.href = '/template/manager-dashboard.html';
+                    } else{
+                        window.location.href = 'index.html';
                     }
                 }, 10);
 
@@ -1026,6 +1026,15 @@ class CoWorkSpaceApp {
     }
 }
 
+function showManagerMenuItem(userRole) {
+    const managerMenuItem = document.getElementById('managerMenuItem');
+    if (userRole === 'manager' && managerMenuItem) {
+        managerMenuItem.style.display = 'block';
+    } else {
+        managerMenuItem.style.display = 'none';
+    }
+}
+
 // ===== FUNZIONI GLOBALI =====
 
 // Logout
@@ -1145,44 +1154,6 @@ function loadMoreSpaces() {
         console.log('App non inizializzata o metodo loadSpaces non trovato');
     }
 }
-
-/**
- * Mostra la sezione "Le Mie Prenotazioni" e carica i dati.
- */
-/*function showSection(section) {
-    // Definisci tutti gli ID delle sezioni che possono esistere
-    console.log('Mostrando sezione:', section);
-
-    const allSections = ['homeSection', 'spacesSection', 'bookingsSection', 'aboutSection', 'supportSection'];
-    allSections.forEach(id => {
-        const section = document.getElementById(id);
-        if (section) {
-            section.style.display = 'none';
-        }
-    });
-
-    const targetSection = document.getElementById(section + 'Section');
-    if (targetSection) {
-        targetSection.style.display = 'block';
-    }
-
-    if (section === 'bookings') {
-        // Funzione che aspetta che BookingManager sia disponibile
-        const waitForBookingManager = (attempts = 0) => {
-            if (window.BookingManager && window.BookingManager.loadBookings) {
-                console.log('BookingManager trovato, caricamento prenotazioni...');
-                window.BookingManager.loadBookings();
-            } else if (attempts < 50) { // Max 5 secondi di attesa
-                console.log(`BookingManager non ancora disponibile, tentativo ${attempts + 1}/50`);
-                setTimeout(() => waitForBookingManager(attempts + 1), 100);
-            } else {
-                console.error('BookingManager non disponibile dopo 5 secondi di attesa');
-            }
-        };
-
-        waitForBookingManager();
-    }
-}*/
 
 // Funzione placeholder per l'annullamento della prenotazione
 function cancelBooking(bookingId) {

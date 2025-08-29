@@ -504,9 +504,10 @@ class ApiClient {
             // Dopo aver salvato i dati, reindirizza l'utente
             if (result.data.user.role === 'admin') {
                 window.location.href = '/template/admin-dashboard.html';
-            } else {
-                // Reindirizza altrove se non è un admin
-                window.location.href = '/template/user-dashboard.html';
+            } else if (result.data.user.role === 'manager'){
+                window.location.href = '/template/manager-dashboard.html';
+            } else{
+                window.location.href = 'index.html';
             }
 
             // Trigger login event

@@ -640,6 +640,129 @@ class SpaceController {
             });
         }
     }
+
+    //================= GESTIONE MANAGER ==================
+    /**
+     * Ottiene spazi del manager con filtri
+     */
+    static async getManagerSpaces(options = {}) {
+        const {
+            manager_id,
+            page = 1,
+            limit = 20,
+            city,
+            type,
+            search,
+            sortBy = 'created_at',
+            sortOrder = 'DESC'
+        } = options;
+
+        try {
+            // Forza il filtro per manager specifico
+            const spaceOptions = {
+                ...options,
+                manager_id, // Questo è obbligatorio per i manager
+            };
+
+            return await Space.findAll(spaceOptions);
+        } catch (error) {
+            logger.error('Error getting manager spaces:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Ottiene statistiche spazi per manager specifico
+     */
+    static async getManagerSpaceStats(managerId) {
+        try {
+            const result = await query(`
+            SELECT 
+                COUNT(*) as total_spaces,
+                COUNT(CASE WHEN is_active = true THEN 1 END) as active_spaces,
+                COUNT(CASE WHEN is_featured = true THEN 1 END) as featured_spaces,
+                AVG(price_per_day) as average_price,
+                SUM(capacity) as total_capacity,
+                COUNT(CASE WHEN created_at >= CURRENT_DATE - INTERVAL '30 days' THEN 1 END) as new_spaces_month
+            FROM spaces 
+            WHERE manager_id = $1
+        `, [managerId]);
+
+            // Ottieni anche statistiche prenotazioni per gli spazi del manager
+            const bookingResult = await query(`
+            SELECT 
+                COUNT(b.id) as total_bookings,
+                COUNT(CASE WHEN b.status = 'confirmed' THEN 1 END) as confirmed_bookings,
+                COUNT(CASE WHEN b.start_date = CURRENT_DATE THEN 1 END) as today_bookings,
+                COALESCE(SUM(CASE WHEN b.status IN ('confirmed', 'completed') THEN b.total_price END), 0) as total_revenue,
+                COUNT(CASE WHEN b.created_at >= CURRENT_DATE - INTERVAL '30 days' THEN 1 END) as new_bookings_month
+            FROM bookings b
+            INNER JOIN spaces s ON b.space_id = s.id
+            WHERE s.manager_id = $1
+        `, [managerId]);
+
+            return {
+                ...result.rows[0],
+                bookings: bookingResult.rows[0]
+            };
+        } catch (error) {
+            logger.error('Error getting manager space stats:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Ottiene spazio per manager (con verifica ownership)
+     */
+    static async getSpaceByIdForManager(spaceId, managerId) {
+        try {
+            const result = await query(`
+            SELECT s.*,
+                   u.first_name as manager_first_name,
+                   u.last_name as manager_last_name,
+                   u.email as manager_email
+            FROM spaces s
+            LEFT JOIN users u ON s.manager_id = u.id
+            WHERE s.id = $1 AND s.manager_id = $2 AND s.is_active = true
+        `, [spaceId, managerId]);
+
+            return result.rows[0] || null;
+        } catch (error) {
+            logger.error('Error getting space for manager:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Aggiorna spazio del manager
+     */
+    static async updateManagerSpace(spaceId, updateData, managerId) {
+        try {
+            // Prima verifica che il manager sia proprietario
+            const space = await this.getSpaceByIdForManager(spaceId, managerId);
+            if (!space) {
+                throw new Error('Spazio non trovato o non autorizzato');
+            }
+
+            // Rimuovi campi che il manager non può modificare
+            const allowedFields = [
+                'name', 'description', 'type', 'capacity', 'price_per_day',
+                'amenities', 'images', 'coordinates'
+            ];
+
+            const filteredData = {};
+            Object.keys(updateData).forEach(key => {
+                if (allowedFields.includes(key)) {
+                    filteredData[key] = updateData[key];
+                }
+            });
+
+            return await Space.update(spaceId, filteredData);
+        } catch (error) {
+            logger.error('Error updating manager space:', error);
+            throw error;
+        }
+    }
 }
 
 module.exports = SpaceController;

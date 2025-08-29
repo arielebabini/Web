@@ -631,6 +631,51 @@ class Booking {
             throw error;
         }
     }
+
+    //=============== GESTIONE MANAGER ==============
+    /**
+     * Lista prenotazioni con filtro per manager_id
+     * Modifica del metodo findAll esistente
+     */
+    static async findAllManager(options = {}) {
+        const {
+            page = 1,
+            limit = 20,
+            user_id,
+            space_id,
+            manager_id, // NUOVO: filtra per manager
+            status,
+            start_date_from,
+            start_date_to,
+            sortBy = 'created_at',
+            sortOrder = 'DESC'
+        } = options;
+
+        const offset = (page - 1) * limit;
+        const conditions = [];
+        const values = [];
+        let paramIndex = 1;
+
+        // Filtri esistenti...
+        if (user_id) {
+            conditions.push(`b.user_id = $${paramIndex}`);
+            values.push(user_id);
+            paramIndex++;
+        }
+
+        if (space_id) {
+            conditions.push(`b.space_id = $${paramIndex}`);
+            values.push(space_id);
+            paramIndex++;
+        }
+
+        // NUOVO: Filtro per manager
+        if (manager_id) {
+            conditions.push(`s.manager_id = $${paramIndex}`);
+            values.push(manager_id);
+            paramIndex++;
+        }
+    }
 }
 
 module.exports = Booking;

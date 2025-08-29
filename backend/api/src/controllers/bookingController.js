@@ -693,6 +693,235 @@ class BookingController {
             });
         }
     }
+
+    //===================== GESTIONE MANAGER =====================
+    /**
+     * Ottiene prenotazioni per manager (solo dei suoi spazi)
+     */
+    static async getManagerBookings(options = {}) {
+        const {
+            manager_id,
+            page = 1,
+            limit = 20,
+            space_id,
+            start_date_from,
+            start_date_to,
+            sortBy = 'created_at',
+            sortOrder = 'DESC'
+        } = options;
+
+        try {
+            const bookingOptions = {
+                ...options,
+                manager_id // Filtra per spazi del manager
+            };
+
+            return await Booking.findAll(bookingOptions);
+        } catch (error) {
+            logger.error('Error getting manager bookings:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Ottiene statistiche prenotazioni per manager
+     */
+    static async getManagerBookingStats(managerId, filters = {}) {
+        try {
+            const { date_from, date_to } = filters;
+
+            let whereClause = 'WHERE s.manager_id = $1';
+            const params = [managerId];
+            let paramIndex = 2;
+
+            if (date_from) {
+                whereClause += ` AND b.start_date >= $${paramIndex}`;
+                params.push(date_from);
+                paramIndex++;
+            }
+
+            if (date_to) {
+                whereClause += ` AND b.start_date <= $${paramIndex}`;
+                params.push(date_to);
+                paramIndex++;
+            }
+
+            const result = await query(`
+            SELECT
+                COUNT(b.id) as total_bookings,
+                COUNT(CASE WHEN b.status = 'pending' THEN 1 END) as pending_bookings,
+                COUNT(CASE WHEN b.status = 'confirmed' THEN 1 END) as confirmed_bookings,
+                COUNT(CASE WHEN b.status = 'completed' THEN 1 END) as completed_bookings,
+                COUNT(CASE WHEN b.status = 'cancelled' THEN 1 END) as cancelled_bookings,
+                COALESCE(SUM(CASE WHEN b.status IN ('confirmed', 'completed') THEN b.total_price END), 0) as total_revenue,
+                COALESCE(AVG(CASE WHEN b.status IN ('confirmed', 'completed') THEN b.total_price END), 0) as avg_booking_value,
+                COUNT(CASE WHEN b.start_date = CURRENT_DATE THEN 1 END) as today_bookings,
+                COUNT(CASE WHEN b.created_at >= CURRENT_DATE - INTERVAL '7 days' THEN 1 END) as week_bookings,
+                COUNT(CASE WHEN b.created_at >= CURRENT_DATE - INTERVAL '30 days' THEN 1 END) as month_bookings
+            FROM bookings b
+            INNER JOIN spaces s ON b.space_id = s.id
+            ${whereClause}
+        `, params);
+
+            // Ottieni anche la tendenza mensile
+            const trendResult = await query(`
+            SELECT 
+                DATE_TRUNC('month', b.created_at) as month,
+                COUNT(b.id) as bookings_count,
+                COALESCE(SUM(CASE WHEN b.status IN ('confirmed', 'completed') THEN b.total_price END), 0) as revenue
+            FROM bookings b
+            INNER JOIN spaces s ON b.space_id = s.id
+            WHERE s.manager_id = $1 
+                AND b.created_at >= CURRENT_DATE - INTERVAL '12 months'
+            GROUP BY DATE_TRUNC('month', b.created_at)
+            ORDER BY month DESC
+            LIMIT 12
+        `, [managerId]);
+
+            return {
+                ...result.rows[0],
+                monthlyTrend: trendResult.rows
+            };
+        } catch (error) {
+            logger.error('Error getting manager booking stats:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Ottiene prenotazione per manager (con verifica ownership spazio)
+     */
+    static async getBookingForManager(bookingId, managerId) {
+        try {
+            const result = await query(`
+            SELECT b.*,
+                   s.name as space_name,
+                   s.type as space_type,
+                   s.address as space_address,
+                   s.city as space_city,
+                   u.first_name as user_first_name,
+                   u.last_name as user_last_name,
+                   u.email as user_email,
+                   u.phone as user_phone
+            FROM bookings b
+            INNER JOIN spaces s ON b.space_id = s.id
+            LEFT JOIN users u ON b.user_id = u.id
+            WHERE b.id = $1 AND s.manager_id = $2
+        `, [bookingId, managerId]);
+
+            return result.rows[0] || null;
+        } catch (error) {
+            logger.error('Error getting booking for manager:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Conferma prenotazione come manager
+     */
+    static async confirmBookingAsManager(bookingId, managerId) {
+        try {
+            // Verifica che la prenotazione appartenga a uno spazio del manager
+            const booking = await this.getBookingForManager(bookingId, managerId);
+            if (!booking) {
+                throw new Error('Prenotazione non trovata o non autorizzata');
+            }
+
+            if (booking.status !== 'pending') {
+                throw new Error('Solo le prenotazioni sono confermate');
+            }
+
+            return await Booking.confirm(bookingId);
+        } catch (error) {
+            logger.error('Error confirming booking as manager:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Cancella prenotazione come manager
+     */
+    static async cancelBookingAsManager(bookingId, managerId, reason) {
+        try {
+            // Verifica che la prenotazione appartenga a uno spazio del manager
+            const booking = await this.getBookingForManager(bookingId, managerId);
+            if (!booking) {
+                throw new Error('Prenotazione non trovata o non autorizzata');
+            }
+
+            if (booking.status === 'cancelled') {
+                throw new Error('La prenotazione è già stata cancellata');
+            }
+
+            if (booking.status === 'completed') {
+                throw new Error('Non è possibile cancellare una prenotazione completata');
+            }
+
+            return await Booking.cancel(bookingId, reason);
+        } catch (error) {
+            logger.error('Error cancelling booking as manager:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Ottiene calendario prenotazioni per manager
+     */
+    static async getManagerCalendar(managerId, options = {}) {
+        try {
+            const { start_date, end_date, space_id } = options;
+
+            let whereClause = 'WHERE s.manager_id = $1';
+            const params = [managerId];
+            let paramIndex = 2;
+
+            if (space_id) {
+                whereClause += ` AND s.id = $${paramIndex}`;
+                params.push(space_id);
+                paramIndex++;
+            }
+
+            if (start_date) {
+                whereClause += ` AND b.start_date >= $${paramIndex}`;
+                params.push(start_date);
+                paramIndex++;
+            }
+
+            if (end_date) {
+                whereClause += ` AND b.end_date <= $${paramIndex}`;
+                params.push(end_date);
+                paramIndex++;
+            }
+
+            const result = await query(`
+            SELECT 
+                b.id,
+                b.start_date,
+                b.end_date,
+                b.start_time,
+                b.end_time,
+                b.people_count,
+                b.total_price,
+                s.id as space_id,
+                s.name as space_name,
+                s.type as space_type,
+                u.first_name as user_first_name,
+                u.last_name as user_last_name,
+                u.email as user_email
+            FROM bookings b
+            INNER JOIN spaces s ON b.space_id = s.id
+            LEFT JOIN users u ON b.user_id = u.id
+            ${whereClause}
+            AND b.status IN ('confirmed', 'pending', 'completed')
+            ORDER BY b.start_date, b.start_time
+        `, params);
+
+            return result.rows;
+        } catch (error) {
+            logger.error('Error getting manager calendar:', error);
+            throw error;
+        }
+    }
 }
 
 module.exports = BookingController;
