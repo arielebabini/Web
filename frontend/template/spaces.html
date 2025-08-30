@@ -70,15 +70,20 @@
                                     <small class="text-muted" id="userEmail"></small>
                                 </div></li>
                                 <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="#" onclick="showProfile()">
+                                <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#profileModal">
                                     <i class="fas fa-user-circle"></i> Profilo
                                 </a></li>
-                                <li><a class="dropdown-item" href="#" onclick="showBookings()">
+                                <li><a class="dropdown-item" href="#" onclick="showSection('bookings')">
                                     <i class="fas fa-calendar-check"></i> Le Mie Prenotazioni
                                 </a></li>
                                 <li><hr class="dropdown-divider"></li>
+                                <li id="managerMenuItem" style="display: none;">
+                                    <a class="dropdown-item" href="manager-dashboard.html">
+                                        <i class="fas fa-user-tie me-2"></i> Pannello Manager
+                                    </a>
+                                </li>
                                 <li id="adminMenuItem" style="display: none;">
-                                    <a class="dropdown-item" href="template/admin-dashboard.html">
+                                    <a class="dropdown-item" href="admin-dashboard.html">
                                         <i class="fas fa-cog me-2"></i> Pannello Admin
                                     </a>
                                 </li>
@@ -96,33 +101,8 @@
 </div>
 
 <!-- Spaces Section -->
-<section class="section-padding" style="margin-top: 80px;">
+<section class="section-padding" style="margin-top: 10px;">
     <div class="container">
-        <!-- Search and Filters Bar -->
-        <div class="search-filters-bar">
-            <div class="row align-items-center">
-                <div class="col-md-6">
-                    <div class="search-input-group">
-                        <i class="fas fa-search"></i>
-                        <input type="text" class="form-control" id="searchSpaces"
-                               placeholder="Cerca per nome, città o servizi...">
-                    </div>
-                </div>
-                <div class="col-md-6 text-end">
-                    <button class="btn btn-outline-primary me-2" onclick="showFilters()">
-                        <i class="fas fa-filter"></i> Filtri
-                    </button>
-                    <select class="form-select d-inline-block w-auto" id="sortSpaces">
-                        <option value="relevance">Rilevanza</option>
-                        <option value="rating">Migliore Valutazione</option>
-                        <option value="price-low">Prezzo: Basso → Alto</option>
-                        <option value="price-high">Prezzo: Alto → Basso</option>
-                        <option value="distance">Distanza</option>
-                    </select>
-                </div>
-            </div>
-        </div>
-
         <!-- Results Header with View Toggle -->
         <div class="results-header">
             <div class="d-flex justify-content-between align-items-center flex-wrap">
@@ -133,31 +113,14 @@
             </div>
         </div>
 
-        <!-- Quick Filters -->
-        <div class="quick-filters">
-            <span class="filter-label">Filtri rapidi:</span>
-            <button class="quick-filter-btn" data-filter="available">
-                <i class="fas fa-check-circle"></i> Disponibili Ora
-            </button>
-            <button class="quick-filter-btn" data-filter="featured">
-                <i class="fas fa-star"></i> In Evidenza
-            </button>
-            <button class="quick-filter-btn" data-filter="hot-desk">
-                <i class="fas fa-laptop"></i> Hot Desk
-            </button>
-            <button class="quick-filter-btn" data-filter="meeting-room">
-                <i class="fas fa-users"></i> Sale Riunioni
-            </button>
-        </div>
-
         <!-- Spaces Grid -->
         <div id="spacesContainer" class="spaces-grid">
             <script>
                 // Inizializza la pagina spazi
                 document.addEventListener('DOMContentLoaded', function() {
                     // Inizializza auth manager per mantenere stato login
-                    if (window.Auth) {
-                        window.Auth.init();
+                    if (window.auth) {
+                        window.auth.init();
                     }
 
                     // Carica componenti comuni (escludi navbar che è ora diretta)
@@ -327,11 +290,32 @@
 <script src="../assets/js/spaces.js"></script>
 <script src="../assets/js/app.js"></script>
 
-
-<!-- Poi i tuoi script esistenti -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
-
 <script>
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // Attendiamo che window.auth sia disponibile
+        if (window.auth && window.BookingManager) {
+            // Se l'utente è loggato, inizializziamo il gestore di prenotazioni
+            if (window.auth.isAuthenticated()) {
+                console.log('✅ Utente autenticato. Inizializzazione gestore prenotazioni.');
+                window.BookingManager.init();
+
+                // Aggiorniamo la UI (es. pulsante di login/logout)
+                window.auth.updateUI();
+            } else {
+                console.log('⛔ Utente non autenticato. Mostriamo solo gli spazi.');
+            }
+        } else {
+            console.error('Errore: AuthManager o BookingManager non sono disponibili.');
+        }
+    });
+
+    function logout() {
+        if (window.auth) {
+            window.auth.handleLogout();
+        }
+    }
+
     // Implementazione funzioni mancanti
     window.loadComponent = async function(containerId, componentPath) {
         const container = document.getElementById(containerId);
@@ -430,10 +414,6 @@
                     <div class="space-badge" style="margin-left: auto;">
                         <span class="badge ${typeBadge.class}">${typeBadge.label}</span>
                     </div>
-
-                    <button class="favorite-btn ${space.is_favorite ? 'active' : ''}" onclick="toggleFavorite('${space.id}', event)">
-                        <i class="fas fa-heart"></i>
-                    </button>
                 </div>
 
                 <div class="space-content">
@@ -531,29 +511,6 @@
 
         console.log('✅ Spaces page ready');
     });
-
-    window.toggleFavorite = function(spaceId, event) {
-        event.stopPropagation();
-
-        let favorites = JSON.parse(localStorage.getItem('space_favorites') || '[]');
-        const index = favorites.indexOf(spaceId);
-
-        if (index === -1) {
-            favorites.push(spaceId);
-            event.target.closest('.favorite-btn').classList.add('active');
-            if (window.showNotification) {
-                window.showNotification('Spazio aggiunto ai preferiti!', 'success');
-            }
-        } else {
-            favorites.splice(index, 1);
-            event.target.closest('.favorite-btn').classList.remove('active');
-            if (window.showNotification) {
-                window.showNotification('Spazio rimosso dai preferiti', 'info');
-            }
-        }
-
-        localStorage.setItem('space_favorites', JSON.stringify(favorites));
-    };
 
     window.viewSpaceDetails = function(spaceId) {
         console.log('👁️ Viewing details for space:', spaceId);

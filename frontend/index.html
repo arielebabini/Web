@@ -70,8 +70,8 @@
                                 <small class="text-muted" id="userEmail"></small>
                             </div></li>
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="#" onclick="showProfile()">
-                                <i class="fas fa-user-circle"></i> Profilo
+                            <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#profileModal">
+                                    <i class="fas fa-user-circle"></i> Profilo
                             </a></li>
                             <li><a class="dropdown-item" href="#" onclick="showSection('bookings')">
                                 <i class="fas fa-calendar-check"></i> Le Mie Prenotazioni
@@ -98,6 +98,42 @@
         </div>
     </div>
 </nav>
+
+<!-- Profilo Utente -->
+<div class="modal fade" id="profileModal" tabindex="-1" aria-labelledby="profileModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="profileModalLabel">
+                    <i class="fas fa-user-circle me-2"></i>Profilo Utente
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item">
+                        <strong>Nome:</strong> <span id="profileName"></span>
+                    </li>
+                    <li class="list-group-item">
+                        <strong>Cognome:</strong> <span id="profileSurname"></span>
+                    </li>
+                    <li class="list-group-item">
+                        <strong>Email:</strong> <span id="profileEmail"></span>
+                    </li>
+                    <li class="list-group-item">
+                        <strong>Telefono:</strong> <span id="profilePhone"></span>
+                    </li>
+                    <li class="list-group-item">
+                        <strong>Azienda:</strong> <span id="profileCompany"></span>
+                    </li>
+                </ul>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- Main Content Container -->
 <div id="mainContent">
@@ -491,6 +527,27 @@
 <button id="backToTop" class="back-to-top" style="display: none;" onclick="scrollToTop()">
     <i class="fas fa-chevron-up"></i>
 </button>
+
+
+<script>
+    function showProfile() {
+        // Verifica se l'utente è loggato
+        if (loggedInUser) {
+            // Popola il modal del profilo con i dati dell'utente
+            document.getElementById('profileName').innerText = loggedInUser.name;
+            document.getElementById('profileSurname').innerText = loggedInUser.surname;
+            document.getElementById('profileEmail').innerText = loggedInUser.email;
+            document.getElementById('profilePhone').innerText = loggedInUser.phone;
+            document.getElementById('profileCompany').innerText = loggedInUser.company;
+
+            // Mostra il modal
+            const profileModal = new bootstrap.Modal(document.getElementById('profileModal'));
+            profileModal.show();
+        } else {
+            alert('Devi essere loggato per vedere il tuo profilo.');
+        }
+    }
+</script>
 
 <!-- Scripts -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>

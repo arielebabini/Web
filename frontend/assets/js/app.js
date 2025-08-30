@@ -17,18 +17,59 @@ class APIClient {
     constructor(config) {
         this.config = config;
         this.token = localStorage.getItem('auth_token');
+        this.restoreTokenFromStorage();
         console.log('🔧 APIClient initialized with token:', this.token ? 'YES' : 'NO');
     }
 
-    setToken(token) {
-        this.token = token;
-        if (token) {
-            localStorage.setItem('auth_token', token);
-            console.log('🔐 Token saved:', token.substring(0, 20) + '...');
-        } else {
-            localStorage.removeItem('auth_token');
-            console.log('🗑️ Token removed');
+    restoreTokenFromStorage() {
+        const storedToken = localStorage.getItem('auth_token');
+        if (storedToken) {
+            this.token = storedToken;
+            console.log('🔄 Token restored from localStorage on API client init');
         }
+    }
+
+    setToken(token) {
+        console.log('🔐 setToken called with:', token ? `${token.substring(0, 20)}...` : 'null');
+
+        this.token = token;
+
+        if (token) {
+            // Salva sempre nel localStorage quando impostiamo un token
+            try {
+                localStorage.setItem('auth_token', token);
+                console.log('✅ Token saved to localStorage');
+            } catch (error) {
+                console.warn('⚠️ Could not save token to localStorage:', error);
+            }
+        } else {
+            const isLoggingIn = localStorage.getItem('just_logged_in') === 'true';
+            if (!isLoggingIn) {
+                localStorage.removeItem('auth_token');
+                console.log('🗑️ Token removed from localStorage');
+            } else {
+                console.log('⚠️ Prevented token removal during login process');
+            }
+        }
+    }
+
+    hasValidToken() {
+        const memoryToken = this.token;
+        const storageToken = localStorage.getItem('auth_token');
+
+        // Se abbiamo token in memoria, tutto ok
+        if (memoryToken) {
+            return true;
+        }
+
+        // Se abbiamo token in storage ma non in memoria, ripristina
+        if (storageToken && !memoryToken) {
+            console.log('🔄 Restoring token from storage to memory');
+            this.token = storageToken;
+            return true;
+        }
+
+        return false;
     }
 
     async request(endpoint, options = {}) {
@@ -40,8 +81,15 @@ class APIClient {
             ...options.headers
         };
 
-        if (this.token && !options.skipAuth) {
-            headers.Authorization = `Bearer ${this.token}`;
+        if (!this.hasValidToken() && !options.skipAuth) {
+            console.warn('⚠️ No valid token found for authenticated request');
+
+            // Prova a ripristinare dal localStorage
+            const storedToken = localStorage.getItem('auth_token');
+            if (storedToken) {
+                console.log('🔄 Attempting token recovery from localStorage');
+                this.token = storedToken;
+            }
         }
 
         const requestOptions = {
@@ -207,6 +255,111 @@ class CoWorkSpaceApp {
         }
     }
 
+    async initializeAuth() {
+        console.log('🔐 Initializing authentication with enhanced token protection...');
+
+        const justLoggedIn = localStorage.getItem('just_logged_in') === 'true';
+        const loginInProgress = sessionStorage.getItem('login_in_progress') === 'true';
+
+        console.log('🔍 Login status:', { justLoggedIn, loginInProgress });
+
+        const savedToken = localStorage.getItem('auth_token');
+        const savedUser = localStorage.getItem('user');
+
+        console.log('📦 Stored data check:', {
+            hasToken: !!savedToken,
+            hasUser: !!savedUser,
+            tokenLength: savedToken?.length,
+            userEmail: savedUser ? (() => {
+                try { return JSON.parse(savedUser).email; }
+                catch { return 'INVALID_JSON'; }
+            })() : null
+        });
+
+        if (savedToken && savedUser) {
+            try {
+                console.log('🔄 Restoring authentication state...');
+
+                // 1. Ripristina token nell'API client
+                this.state.api.setToken(savedToken);
+
+                // 2. Ripristina dati utente
+                this.state.currentUser = JSON.parse(savedUser);
+                this.state.isAuthenticated = true;
+
+                // 3. Verifica coerenza tra API client e localStorage
+                if (this.state.api.token !== savedToken) {
+                    console.warn('⚠️ Token mismatch, fixing...');
+                    this.state.api.setToken(savedToken);
+                }
+
+                console.log('✅ Authentication state restored:', {
+                    email: this.state.currentUser.email,
+                    role: this.state.currentUser.role,
+                    isAuthenticated: this.state.isAuthenticated,
+                    tokenPresent: !!this.state.api.token
+                });
+
+                // 4. Se appena loggato, pulisci flag e mostra welcome
+                if (justLoggedIn) {
+                    setTimeout(() => {
+                        localStorage.setItem('just_logged_in', 'false');
+                        this.showNotification(`Benvenuto, ${this.state.currentUser.firstName || this.state.currentUser.first_name || this.state.currentUser.email}!`, 'success');
+                    }, 1000);
+                }
+
+                // 5. Verifica token solo se NON appena loggato (evita rallentamenti)
+                if (!justLoggedIn && !loginInProgress) {
+                    try {
+                        console.log('🔍 Verifying token with server...');
+                        const profileCheck = await this.state.api.getProfile();
+                        if (profileCheck.success) {
+                            // Aggiorna con dati freschi
+                            this.state.currentUser = profileCheck.data;
+                            localStorage.setItem('user', JSON.stringify(profileCheck.data));
+                            console.log('✅ Token verified and user data refreshed');
+                        } else {
+                            throw new Error('Token validation failed');
+                        }
+                    } catch (verificationError) {
+                        console.warn('⚠️ Token verification failed:', verificationError.message);
+
+                        // NON fare clear se siamo sulla home page o appena loggati
+                        const onHomePage = ['/', '/index.html'].includes(window.location.pathname);
+                        if (!onHomePage && !justLoggedIn) {
+                            console.log('🧹 Clearing invalid authentication');
+                            this.clearAuth();
+                            return;
+                        } else {
+                            console.log('🛡️ Keeping authentication despite verification failure (on home page or just logged in)');
+                        }
+                    }
+                }
+
+                this.updateAuthUI();
+
+            } catch (restoreError) {
+                console.warn('⚠️ Error restoring authentication:', restoreError);
+
+                if (!justLoggedIn && !loginInProgress) {
+                    this.clearAuth();
+                } else {
+                    console.log('🛡️ Prevented auth clear during login process');
+                }
+            }
+        } else {
+            console.log('📝 No authentication data found, starting as guest');
+            this.updateAuthUI();
+        }
+
+        // Pulisci flag obsoleti dopo l'inizializzazione
+        setTimeout(() => {
+            if (justLoggedIn) {
+                localStorage.setItem('just_logged_in', 'false');
+            }
+        }, 5000);
+    }
+
     async testAPIConnection() {
         try {
             console.log('🔗 Testing API connection...');
@@ -230,7 +383,6 @@ class CoWorkSpaceApp {
         this.state.api.setToken(null);
 
         const savedToken = localStorage.getItem('auth_token');
-        // FIX: Usa 'user' come chiave principale, 'user_data' come fallback
         const savedUser = localStorage.getItem('user') || localStorage.getItem('user_data');
 
         console.log('💾 Saved data:', {
@@ -256,17 +408,36 @@ class CoWorkSpaceApp {
 
     clearAuth() {
         console.log('🧹 Clearing authentication...');
+
+        // Verifica se dobbiamo davvero fare clear
+        const justLoggedIn = localStorage.getItem('just_logged_in') === 'true';
+        const loginInProgress = sessionStorage.getItem('login_in_progress') === 'true';
+        const onHomePage = ['/', '/index.html'].includes(window.location.pathname);
+
+        console.log('🔍 Clear auth check:', { justLoggedIn, loginInProgress, onHomePage });
+
+        // Previeni clear inappropriato
+        if ((justLoggedIn || loginInProgress) && onHomePage) {
+            console.log('⚠️ Prevented inappropriate auth clear');
+            return;
+        }
+
+        // Procedi con il clear
         this.state.currentUser = null;
         this.state.isAuthenticated = false;
         this.state.api.setToken(null);
 
-        // IMPORTANTE: Rimuovi ENTRAMBE le chiavi localStorage per essere sicuri
+        // Pulisci tutto il localStorage relativo all'auth
         localStorage.removeItem('auth_token');
-        localStorage.removeItem('user');        // Quella usata nel login
-        localStorage.removeItem('user_data');   // Quella usata altrove
+        localStorage.removeItem('user');
+        localStorage.removeItem('user_data');
         localStorage.removeItem('refresh_token');
+        localStorage.removeItem('just_logged_in');
+        sessionStorage.removeItem('login_success');
+        sessionStorage.removeItem('login_in_progress');
 
         this.updateAuthUI();
+        console.log('✅ Authentication cleared');
     }
 
     updateAuthUI() {
@@ -325,6 +496,22 @@ class CoWorkSpaceApp {
     setupGlobalListeners() {
         console.log('👂 Setting up global listeners...');
 
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('🚀 App starting with improved auth handling...');
+
+            try {
+                window.coworkspaceApp = new CoWorkSpaceApp();
+
+                // Inizializza l'autenticazione con il nuovo sistema
+                await window.coworkspaceApp.initializeAuth();
+
+                console.log('✅ App initialization completed');
+
+            } catch (error) {
+                console.error('❌ Errore durante inizializzazione:', error);
+            }
+        });
+
         // Gestione form di login e registrazione
         document.addEventListener('submit', async (e) => {
             console.log('📝 Form submit detected:', e.target.id);
@@ -378,10 +565,13 @@ class CoWorkSpaceApp {
             password: formData.get('password')
         };
 
-        console.log('Login credentials:', { email: credentials.email, password: '[HIDDEN]' });
+        console.log('Login credentials:', {email: credentials.email, password: '[HIDDEN]'});
 
         try {
             this.showFormLoading(form, true);
+
+            localStorage.setItem('just_logged_in', 'true');
+            sessionStorage.setItem('login_in_progress', 'true');
 
             const result = await this.state.api.login(credentials);
             console.log('🎯 Login API result:', result);
@@ -420,32 +610,63 @@ class CoWorkSpaceApp {
                     throw new Error('Dati utente incompleti ricevuti dal server');
                 }
 
-                // Salva il token
-                if (tokenData) {
+                console.log('💾 Saving authentication data...');
+
+                try {
+                    // 1. Salva il token nell'API client E localStorage
                     this.state.api.setToken(tokenData);
+
+                    // 2. Doppia verifica salvataggio token
                     localStorage.setItem('auth_token', tokenData);
-                    console.log('💾 Token saved to localStorage');
-                } else {
-                    throw new Error('Token di accesso non ricevuto dal server');
+                    const tokenCheck1 = localStorage.getItem('auth_token');
+                    if (!tokenCheck1) {
+                        throw new Error('Token non salvato correttamente (primo tentativo)');
+                    }
+
+                    // 3. Salva dati utente
+                    localStorage.setItem('user', JSON.stringify(userData));
+                    const userCheck = localStorage.getItem('user');
+                    if (!userCheck) {
+                        throw new Error('Dati utente non salvati correttamente');
+                    }
+
+                    // 4. Salva refresh token se presente
+                    if (refreshToken) {
+                        localStorage.setItem('refresh_token', refreshToken);
+                    }
+
+                    // 5. Aggiorna stato app
+                    this.state.currentUser = userData;
+                    this.state.isAuthenticated = true;
+
+                    // 6. Verifica finale multipla
+                    setTimeout(() => {
+                        const finalTokenCheck = localStorage.getItem('auth_token');
+                        const finalUserCheck = localStorage.getItem('user');
+                        const apiTokenCheck = this.state.api.token;
+
+                        console.log('🔍 Final verification:', {
+                            localStorage_token: !!finalTokenCheck,
+                            localStorage_user: !!finalUserCheck,
+                            api_token: !!apiTokenCheck,
+                            app_authenticated: this.state.isAuthenticated,
+                            token_match: finalTokenCheck === apiTokenCheck
+                        });
+
+                        if (!finalTokenCheck || !apiTokenCheck || finalTokenCheck !== apiTokenCheck) {
+                            console.error('❌ Token mismatch detected! Re-saving...');
+                            localStorage.setItem('auth_token', tokenData);
+                            this.state.api.setToken(tokenData);
+                        }
+                    }, 100);
+
+                    console.log('✅ Authentication data saved successfully');
+
+                } catch (saveError) {
+                    console.error('❌ Error saving authentication data:', saveError);
+                    localStorage.setItem('just_logged_in', 'false');
+                    throw saveError;
                 }
-
-                // Salva refresh token se presente
-                if (refreshToken) {
-                    localStorage.setItem('refresh_token', refreshToken);
-                    console.log('💾 Refresh token saved');
-                }
-
-                // Salva i dati utente
-                this.state.currentUser = userData;
-                this.state.isAuthenticated = true;
-                localStorage.setItem('user', JSON.stringify(userData));  // Nota: 'user' non 'user_data'
-                console.log('💾 User data saved to localStorage:', userData);
-
-                // Verifica che i dati siano stati salvati correttamente
-                const savedUser = localStorage.getItem('user');
-                const savedToken = localStorage.getItem('auth_token');
-                console.log('🔍 Verification - Saved user:', savedUser);
-                console.log('🔍 Verification - Saved token length:', savedToken?.length);
 
                 // Chiudi modal
                 const loginModal = document.getElementById('loginModal');
@@ -454,28 +675,46 @@ class CoWorkSpaceApp {
                     modal.hide();
                 }
 
+                // Aggiorna UI per mostrare utente loggato
                 this.updateAuthUI();
                 this.showNotification('Login effettuato con successo!', 'success');
 
-                // Reindirizza in base al ruolo
-                setTimeout(() => {
-                    if (userData.role === 'admin') {
-                        window.location.href = '/template/admin-dashboard.html';
-                    } else if (userData.role === 'manager'){
-                        window.location.href = '/template/manager-dashboard.html';
-                    } else{
-                        window.location.href = 'index.html';
-                    }
-                }, 10);
+                console.log('🎯 Preparing redirect for role:', userData.role);
 
+                // ===== REDIRECT MIGLIORATO PER CLIENT =====
+                if (userData.role === 'admin') {
+                    setTimeout(() => {
+                        window.location.href = '/template/admin-dashboard.html';
+                    }, 500);
+                } else if (userData.role === 'manager') {
+                    setTimeout(() => {
+                        window.location.href = '/template/manager-dashboard.html';
+                    }, 500);
+                } else {
+                    // Per CLIENT: redirect senza perdere autenticazione
+                    console.log('👥 Client user - setting up persistent redirect');
+
+                    // Salva un flag per indicare che è appena stato fatto login
+                    localStorage.setItem('just_logged_in', 'true');
+                    sessionStorage.setItem('login_success', 'true');
+
+                    setTimeout(() => {
+                        console.log('🚀 Redirecting client to index.html with preserved auth');
+                        window.location.href = 'index.html';
+                    }, 500);
+                }
             } else {
+                localStorage.setItem('just_logged_in', 'false');
                 console.error('❌ Login failed:', result.message);
                 this.showNotification(result.message || 'Credenziali non valide', 'error');
             }
         } catch (error) {
+            localStorage.setItem('just_logged_in', 'false');
+            sessionStorage.removeItem('login_in_progress');
             console.error('❌ Login error:', error);
             this.showNotification('Errore durante il login: ' + error.message, 'error');
         } finally {
+            sessionStorage.removeItem('login_in_progress');
             this.showFormLoading(form, false);
         }
     }
@@ -1311,6 +1550,108 @@ window.showSection = function(sectionId) {
         loadUserBookingsDirectly();
     }
 };
+
+window.addEventListener('beforeunload', () => {
+    // Salva token prima di uscire dalla pagina
+    if (window.coworkspaceApp?.state?.isAuthenticated) {
+        const currentToken = window.coworkspaceApp.state.api.token;
+        const currentUser = window.coworkspaceApp.state.currentUser;
+
+        if (currentToken && currentUser) {
+            localStorage.setItem('auth_token', currentToken);
+            localStorage.setItem('user', JSON.stringify(currentUser));
+            console.log('💾 Auth preserved before page unload');
+        }
+    }
+});
+
+setInterval(() => {
+    // Controlla ogni 10 secondi se il token è sincronizzato
+    if (window.coworkspaceApp?.state?.isAuthenticated) {
+        const apiToken = window.coworkspaceApp.state.api.token;
+        const storageToken = localStorage.getItem('auth_token');
+
+        if (storageToken && !apiToken) {
+            console.log('🔄 Auto-recovery: Restoring API token from storage');
+            window.coworkspaceApp.state.api.setToken(storageToken);
+        } else if (!storageToken && apiToken) {
+            console.log('🔄 Auto-recovery: Saving API token to storage');
+            localStorage.setItem('auth_token', apiToken);
+        }
+    }
+}, 10000);
+
+// Gestisci il ritorno del focus sulla finestra
+window.addEventListener('focus', () => {
+    // Quando l'utente torna sulla tab, verifica che l'auth sia presente
+    const token = localStorage.getItem('auth_token');
+    const user = localStorage.getItem('user');
+
+    if (token && user && !this.state.isAuthenticated) {
+        console.log('🔄 Restoring authentication on window focus');
+        try {
+            this.state.currentUser = JSON.parse(user);
+            this.state.isAuthenticated = true;
+            this.state.api.setToken(token);
+            this.updateAuthUI();
+            console.log('✅ Authentication restored on focus');
+        } catch (error) {
+            console.warn('⚠️ Failed to restore auth on focus:', error);
+        }
+    }
+});
+
+// ===== 5. DEBUG HELPER (rimuovi in produzione) =====
+window.debugAuthDetailed = function() {
+    const app = window.coworkspaceApp;
+    const token = localStorage.getItem('auth_token');
+    const user = localStorage.getItem('user');
+    const refreshToken = localStorage.getItem('refresh_token');
+    const justLoggedIn = localStorage.getItem('just_logged_in');
+
+    console.log('🔍 DETAILED AUTH DEBUG:', {
+        localStorage: {
+            auth_token: token ? `${token.substring(0, 20)}...` : null,
+            user_email: user ? JSON.parse(user).email : null,
+            refresh_token: refreshToken ? 'Present' : 'Missing',
+            just_logged_in: justLoggedIn
+        },
+        appState: app ? {
+            isAuthenticated: app.state.isAuthenticated,
+            currentUserEmail: app.state.currentUser?.email,
+            apiToken: app.state.api.token ? `${app.state.api.token.substring(0, 20)}...` : null
+        } : 'App not initialized',
+        consistency: {
+            tokensMatch: app && token && app.state.api.token === token,
+            userDataValid: app && user && app.state.currentUser?.email === JSON.parse(user).email
+        }
+    });
+};
+
+// ===== ESEMPIO DI INIZIALIZZAZIONE CORRETTA =====
+document.addEventListener('DOMContentLoaded', async function() {
+    console.log('🚀 App starting with improved client auth handling...');
+
+    try {
+        // Crea l'app
+        window.coworkspaceApp = new CoWorkSpaceApp();
+
+        // Inizializza l'autenticazione con il nuovo sistema
+        await window.coworkspaceApp.initializeAuth();
+
+        // Resto dell'inizializzazione...
+
+        console.log('✅ App initialization completed');
+
+        // Debug in dev mode
+        if (window.location.hostname === 'localhost') {
+            console.log('🔧 Debug mode - use debugAuth() for troubleshooting');
+        }
+
+    } catch (error) {
+        console.error('❌ Errore durante inizializzazione:', error);
+    }
+});
 
 // Funzione che carica le prenotazioni senza dipendere da BookingManager
 async function loadUserBookingsDirectly() {

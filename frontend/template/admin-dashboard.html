@@ -3560,7 +3560,6 @@
     window.applyFilters = applyFilters;
     window.applySpaceFilters = applySpaceFilters;
     window.resetSpaceFilters = resetSpaceFilters;
-    window.testConnection = testConnection;
     window.retryLastRequest = retryLastRequest;
 
     // INIZIALIZZAZIONE AUTOMATICA
@@ -3568,12 +3567,6 @@
         console.log('🚀 Page loaded with correct API configuration');
         console.log('🔧 Server:', API_CONFIG.API_BASE_URL);
         console.log('🌐 Frontend:', `http://localhost:${API_CONFIG.FRONTEND_PORT}`);
-
-        // Test connessione automatico
-        setTimeout(() => {
-            console.log('🔌 Running automatic connection test...');
-            testConnection();
-        }, 1000);
     });
 
     document.addEventListener('DOMContentLoaded', function() {

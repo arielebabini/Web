@@ -900,9 +900,9 @@
         if (typeof showRegister === 'function') {
             console.log('✅ Using global showRegister function');
             showRegister();
-        } else if (window.Auth && window.Auth.showRegister) {
+        } else if (window.auth && window.auth.showRegister) {
             console.log('✅ Using window.Auth.showRegister');
-            window.Auth.showRegister();
+            window.auth.showRegister();
         } else if (window.App && window.App.auth && window.App.auth.showRegister) {
             console.log('✅ Using window.App.auth.showRegister');
             window.App.auth.showRegister();
@@ -956,7 +956,7 @@
         }
 
         // 3. Controlla oggetti globali di autenticazione
-        if (window.Auth && window.Auth.state && window.Auth.state.isAuthenticated) {
+        if (window.auth && window.auth.state && window.auth.state.isAuthenticated) {
             console.log('✅ Found auth in window.Auth');
             return true;
         }
