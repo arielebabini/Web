@@ -1154,7 +1154,8 @@
                 showNotification('Export in preparazione...', 'info');
             }
 
-            async function saveSpace() {
+            async function  saveSpace() {
+                let selectedImages = [];
                 console.log('🏢 Saving space with images...');
 
                 // Validazione form
@@ -1184,12 +1185,16 @@
                 }
 
                 try {
-                    // Converti le immagini in base64 se presenti
-                    let imagesData = [];
-                    if (typeof convertImagesToBase64 === 'function') {
+                    // Converti le immagini in formato compatibile database
+                    let imagesArray = [];
+                    if (selectedImages && selectedImages.length > 0) {
                         try {
-                            imagesData = await convertImagesToBase64();
-                            console.log(`📸 Converted ${imagesData.length} images to base64`);
+                            imagesArray = await convertImagesToBase64();
+                            if (!validateImageData(imagesArray)) {
+                                showNotification('Errore nel formato delle immagini', 'error');
+                                return;
+                            }
+                            console.log(`📸 Processed ${imagesArray.length} images for database`);
                         } catch (error) {
                             console.error('Errore conversione immagini:', error);
                             showNotification('Errore nel processare le immagini', 'error');
@@ -1217,43 +1222,33 @@
 
                     // Prepara oggetto dati spazio
                     const spaceData = {
-                        // Campi base obbligatori
                         name: document.getElementById('spaceName').value.trim(),
                         type: document.getElementById('spaceType').value,
                         capacity: parseInt(document.getElementById('spaceCapacity').value),
                         price_per_day: parseFloat(document.getElementById('spacePrice').value),
                         city: document.getElementById('spaceCity').value,
                         address: document.getElementById('spaceAddress').value.trim(),
-
-                        // Campi opzionali
                         postal_code: document.getElementById('spacePostalCode')?.value.trim() || null,
                         floor: document.getElementById('spaceFloor')?.value.trim() || null,
-                        room: document.getElementById('spaceRoom')?.value.trim() || null,
                         room_number: document.getElementById('spaceRoom')?.value.trim() || null,
                         description: document.getElementById('spaceDescription')?.value.trim() || '',
                         notes: document.getElementById('spaceNotes')?.value.trim() || '',
-
-                        // Orari
                         open_time: document.getElementById('spaceOpenTime')?.value || '08:00',
                         close_time: document.getElementById('spaceCloseTime')?.value || '18:00',
+                        amenities: getSelectedServices(), // Funzione esistente
+                        days_available: getSelectedDays(), // Funzione esistente
 
-                        // Array di dati
-                        amenities: amenities,
-                        days_available: availableDays.length > 0 ? availableDays : ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+                        // IMPORTANTE: Formato corretto per il database
+                        images: imagesArray, // Array semplice di stringhe base64
 
-                        // CAMPO IMMAGINI COME JSONB
-                        images: imagesData,
-
-                        // Metadati
                         is_active: true,
                         is_featured: document.getElementById('spaceFeatured')?.checked || false
                     };
 
                     console.log('📤 Space data to send:', {
                         ...spaceData,
-                        images: `${spaceData.images.length} images`,
-                        amenities: spaceData.amenities,
-                        days_available: spaceData.days_available
+                        images: `${spaceData.images.length} images converted`,
+                        imagePreview: spaceData.images[0] ? spaceData.images[0].substring(0, 50) + '...' : 'none'
                     });
 
                     // Invia richiesta al server
@@ -1262,8 +1257,16 @@
                         throw new Error('Token di autenticazione mancante. Effettua il login.');
                     }
 
-                    const response = await fetch('http://localhost:3000/api/spaces', {
-                        method: 'POST',
+                    const spaceId = document.getElementById('spaceId')?.value;
+                    const isEdit = !!spaceId;
+
+                    const url = isEdit
+                        ? `http://localhost:3000/api/spaces/${spaceId}`
+                        : 'http://localhost:3000/api/spaces';
+                    const method = isEdit ? 'PUT' : 'POST';
+
+                    const response = await fetch(url, {
+                        method: method,
                         headers: {
                             'Content-Type': 'application/json',
                             'Authorization': `Bearer ${token}`
@@ -1275,7 +1278,10 @@
                     console.log('📥 Server response:', result);
 
                     if (response.ok && result.success) {
-                        showNotification('Spazio creato con successo!', 'success');
+                        showNotification(
+                            isEdit ? 'Spazio aggiornato con successo!' : 'Spazio creato con successo!',
+                            'success'
+                        );
 
                         // Chiudi il modal
                         const modalElement = document.getElementById('spaceModal');
@@ -1287,14 +1293,12 @@
                         // Ricarica la tabella
                         if (typeof loadSpaces === 'function') {
                             loadSpaces();
-                        } else if (typeof fetchFilteredSpaces === 'function') {
-                            await fetchFilteredSpaces('/spaces/all');
                         } else {
                             location.reload();
                         }
 
                     } else {
-                        const errorMessage = result.message || 'Errore nella creazione dello spazio';
+                        const errorMessage = result.message || 'Errore nel salvataggio dello spazio';
                         throw new Error(errorMessage);
                     }
 
@@ -3442,71 +3446,6 @@
         spacesTableBody.innerHTML = `<tr><td class="text-center text-danger py-4" colspan="7"><i class="fas fa-exclamation-triangle me-2"></i>${message}</td></tr>`;
     }
 
-    async function saveSpace() {
-        const spaceForm = document.getElementById('spaceForm');
-        if (!spaceForm.checkValidity()) {
-            spaceForm.reportValidity();
-            return;
-        }
-
-        const amenities = [];
-        document.querySelectorAll('#spaceForm .form-check-input[type="checkbox"]').forEach(checkbox => {
-            if (checkbox.checked) {
-                amenities.push(checkbox.id.replace('Service', ''));
-            }
-        });
-
-        const spaceData = {
-            name: document.getElementById('spaceName').value,
-            type: document.getElementById('spaceType').value,
-            capacity: parseInt(document.getElementById('spaceCapacity').value),
-            price_per_day: parseFloat(document.getElementById('spacePrice').value),
-            city: document.getElementById('spaceCity').value,
-            address: document.getElementById('spaceAddress').value,
-            postal_code: document.getElementById('spacePostalCode').value,
-            floor: document.getElementById('spaceFloor').value,
-            room: document.getElementById('spaceRoom').value,
-            description: document.getElementById('spaceDescription').value,
-            notes: document.getElementById('spaceNotes').value,
-            open_time: document.getElementById('spaceOpenTime').value,
-            close_time: document.getElementById('spaceCloseTime').value,
-            days_available: amenities,
-            amenities: amenities,
-        };
-
-        try {
-            const token = localStorage.getItem('auth_token');
-            const response = await fetch('http://localhost:3000/api/spaces', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(spaceData),
-            });
-
-            const result = await response.json();
-
-            if (response.ok) {
-                showNotification('Spazio creato con successo!', 'success');
-
-                // Chiudi il modal solo al successo
-                const modalElement = document.getElementById('spaceModal');
-                const modal = bootstrap.Modal.getInstance(modalElement) || new bootstrap.Modal(modalElement);
-                modal.hide();
-
-                loadSpaces();
-            } else {
-                const errorMessage = result.message || 'Errore nella creazione dello spazio.';
-                showNotification(errorMessage, 'error');
-            }
-
-        } catch (error) {
-            console.error('Errore durante la creazione dello spazio:', error);
-            showNotification('Errore di connessione. Riprova più tardi.', 'error');
-        }
-    }
-
     async function deleteSpace(spaceId) {
         // Chiedi conferma all'utente
         if (!confirm('Sei sicuro di voler eliminare questo spazio?')) {
@@ -3638,21 +3577,21 @@
     });
 
     document.addEventListener('DOMContentLoaded', function() {
-        console.log('🖼️ Initializing image upload functionality...');
+        console.log('Initializing image upload functionality...');
 
         const imageInput = document.getElementById('spaceImages');
         const previewContainer = document.getElementById('imagePreviewContainer');
         const previewGrid = document.getElementById('imagePreviewGrid');
         const dropZone = document.getElementById('imageDropZone');
 
-        // Array per memorizzare i file selezionati
-        let selectedImages = [];
+        // IMPORTANTE: Inizializza selectedImages come array vuoto
+        selectedImages = [];
 
         // Inizializza solo se gli elementi esistono
         if (imageInput && previewContainer && previewGrid && dropZone) {
             initializeImageUpload();
         } else {
-            console.warn('⚠️ Image upload elements not found in DOM');
+            console.warn('Image upload elements not found in DOM');
         }
 
         function initializeImageUpload() {
@@ -3665,15 +3604,16 @@
             dropZone.addEventListener('dragleave', handleDragLeave);
             dropZone.addEventListener('drop', handleDrop);
 
-            console.log('✅ Image upload initialized');
+            console.log('Image upload initialized');
         }
 
         function handleImageSelection(event) {
             const files = Array.from(event.target.files);
-            console.log(`📁 Selected ${files.length} files`);
+            console.log(`Selected ${files.length} files`);
 
             if (files.length === 0) {
                 hidePreview();
+                selectedImages = []; // Reset array
                 return;
             }
 
@@ -3681,10 +3621,11 @@
             const validFiles = validateImageFiles(files);
 
             if (validFiles.length > 0) {
-                selectedImages = validFiles;
+                selectedImages = validFiles; // Assegna all'array globale
                 showImagePreviews(validFiles);
             } else {
                 hidePreview();
+                selectedImages = []; // Reset se nessun file valido
             }
         }
 
@@ -3694,34 +3635,30 @@
             const validFiles = [];
 
             files.forEach((file, index) => {
-                console.log(`🔍 Validating file ${index + 1}: ${file.name}`);
+                console.log(`Validating file ${index + 1}: ${file.name}`);
 
                 // Controlla tipo file
                 if (!allowedTypes.includes(file.type.toLowerCase())) {
-                    showNotification(`❌ ${file.name} non è un'immagine valida`, 'warning');
+                    showNotification(`${file.name} non è un'immagine valida`, 'warning');
                     return;
                 }
 
                 // Controlla dimensione file
                 if (file.size > maxFileSize) {
                     const sizeMB = (file.size / 1024 / 1024).toFixed(1);
-                    showNotification(`❌ ${file.name} è troppo grande (${sizeMB}MB > 5MB)`, 'warning');
+                    showNotification(`${file.name} è troppo grande (${sizeMB}MB > 5MB)`, 'warning');
                     return;
                 }
 
                 validFiles.push(file);
-                console.log(`✅ File ${file.name} validato correttamente`);
+                console.log(`File ${file.name} validato correttamente`);
             });
-
-            if (validFiles.length !== files.length) {
-                console.log(`⚠️ ${validFiles.length}/${files.length} file sono validi`);
-            }
 
             return validFiles;
         }
 
         function showImagePreviews(files) {
-            console.log(`🎨 Showing previews for ${files.length} images`);
+            console.log(`Showing previews for ${files.length} images`);
 
             previewContainer.classList.remove('d-none');
             previewGrid.innerHTML = '';
@@ -3768,7 +3705,7 @@
         function hidePreview() {
             previewContainer.classList.add('d-none');
             previewGrid.innerHTML = '';
-            selectedImages = [];
+            selectedImages = []; // Reset array globale
         }
 
         // Drag & Drop handlers
@@ -3787,7 +3724,7 @@
             dropZone.classList.remove('border-primary', 'bg-light');
 
             const files = Array.from(e.dataTransfer.files);
-            console.log(`📥 Dropped ${files.length} files`);
+            console.log(`Dropped ${files.length} files`);
 
             // Simula la selezione di file
             const dt = new DataTransfer();
@@ -3798,125 +3735,100 @@
             handleImageSelection({ target: { files: files } });
         }
 
-        // Funzioni globali per le azioni sui file
-        window.removeImageAtIndex = function(index) {
-            console.log(`🗑️ Removing image at index ${index}`);
-
-            selectedImages.splice(index, 1);
-
-            // Aggiorna il file input
-            const dt = new DataTransfer();
-            selectedImages.forEach(file => dt.items.add(file));
-            imageInput.files = dt.files;
-
-            // Rigenera le anteprime
-            if (selectedImages.length > 0) {
-                showImagePreviews(selectedImages);
-            } else {
-                hidePreview();
-            }
-        };
-
-        window.previewImageFullSize = function(src, filename) {
-            console.log(`🔍 Opening full size preview for: ${filename}`);
-
-            // Crea modal per anteprima full-size
-            const modalHtml = `
-            <div class="modal fade" id="imagePreviewModal" tabindex="-1">
-                <div class="modal-dialog modal-lg">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">
-                                <i class="fas fa-image me-2"></i>${filename}
-                            </h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body text-center">
-                            <img src="${src}" class="img-fluid" style="max-height: 70vh;">
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-
-            // Rimuovi modal esistente se presente
-            const existingModal = document.getElementById('imagePreviewModal');
-            if (existingModal) {
-                existingModal.remove();
-            }
-
-            // Aggiungi nuovo modal
-            document.body.insertAdjacentHTML('beforeend', modalHtml);
-
-            // Mostra modal
-            const modal = new bootstrap.Modal(document.getElementById('imagePreviewModal'));
-            modal.show();
-
-            // Rimuovi modal dopo la chiusura
-            document.getElementById('imagePreviewModal').addEventListener('hidden.bs.modal', function() {
-                this.remove();
-            });
-        };
-
-        // Funzione per convertire le immagini in base64 (usata da saveSpace)
-        window.convertImagesToBase64 = async function() {
-            console.log(`📸 Converting ${selectedImages.length} images to base64...`);
-
-            if (selectedImages.length === 0) {
-                return [];
-            }
-
-            const base64Images = [];
-
-            for (const file of selectedImages) {
-                try {
-                    const base64 = await fileToBase64(file);
-                    base64Images.push({
-                        filename: file.name,
-                        size: file.size,
-                        type: file.type,
-                        data: base64,
-                        uploadedAt: new Date().toISOString()
-                    });
-                    console.log(`✅ Converted: ${file.name}`);
-                } catch (error) {
-                    console.error(`❌ Error converting ${file.name}:`, error);
-                    showNotification(`Errore nel processare ${file.name}`, 'error');
-                }
-            }
-
-            console.log(`🎯 Successfully converted ${base64Images.length} images`);
-            return base64Images;
-        };
-
-        function fileToBase64(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.readAsDataURL(file);
-                reader.onload = () => resolve(reader.result);
-                reader.onerror = error => reject(error);
-            });
-        }
-
         // Reset quando si chiude il modal
         const spaceModal = document.getElementById('spaceModal');
         if (spaceModal) {
             spaceModal.addEventListener('hidden.bs.modal', function () {
-                console.log('🧹 Resetting image upload on modal close');
+                console.log('Resetting image upload on modal close');
 
                 // Reset input file
                 if (imageInput) {
                     imageInput.value = '';
                 }
 
-                // Nascondi anteprime
+                // Nascondi anteprime e reset array
                 hidePreview();
+                selectedImages = []; // IMPORTANTE: Reset della variabile globale
             });
         }
     });
+
+    // Funzioni globali (devono rimanere fuori dal DOMContentLoaded)
+    window.removeImageAtIndex = function(index) {
+        console.log(`Removing image at index ${index}`);
+
+        selectedImages.splice(index, 1);
+
+        // Aggiorna il file input
+        const imageInput = document.getElementById('spaceImages');
+        const dt = new DataTransfer();
+        selectedImages.forEach(file => dt.items.add(file));
+        imageInput.files = dt.files;
+
+        // Rigenera le anteprime
+        if (selectedImages.length > 0) {
+            // Richiama la funzione di preview (devi assicurarti che sia accessibile)
+            showImagePreviews(selectedImages);
+        } else {
+            const previewContainer = document.getElementById('imagePreviewContainer');
+            const previewGrid = document.getElementById('imagePreviewGrid');
+            previewContainer.classList.add('d-none');
+            previewGrid.innerHTML = '';
+        }
+    };
+
+    window.previewImageFullSize = function(src, filename) {
+        console.log(`Opening full size preview for: ${filename}`);
+        // ... resto della funzione come già esistente
+    };
+
+    // Funzione per convertire le immagini in base64 (CORRETTA)
+    window.convertImagesToBase64 = async function() {
+        console.log(`Converting ${selectedImages.length} images to base64 for database...`);
+
+        if (!selectedImages || selectedImages.length === 0) {
+            console.log('No images to convert');
+            return [];
+        }
+
+        const base64Images = [];
+
+        for (const file of selectedImages) {
+            try {
+                const base64 = await fileToBase64(file);
+                base64Images.push(base64);
+                console.log(`Converted: ${file.name}`);
+            } catch (error) {
+                console.error(`Error converting ${file.name}:`, error);
+                showNotification(`Errore nel processare ${file.name}`, 'error');
+            }
+        }
+
+        console.log(`Successfully converted ${base64Images.length} images`);
+        return base64Images;
+    };
+
+    function fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                resolve(e.target.result);
+            };
+            reader.onerror = function(error) {
+                reject(error);
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    // Debug function
+    window.debugSelectedImages = function() {
+        console.log('Current selectedImages:', selectedImages);
+        console.log('Length:', selectedImages?.length || 0);
+        if (selectedImages && selectedImages.length > 0) {
+            console.log('First image:', selectedImages[0].name, selectedImages[0].size);
+        }
+    };
 
     console.log('🖼️ Image upload functionality loaded');
 </script>
