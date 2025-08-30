@@ -126,26 +126,43 @@ class AuthManager {
         const token = localStorage.getItem('auth_token');
         const userData = localStorage.getItem('user_data');
 
+        console.log('🔍 Checking auth status:', {
+            hasToken: !!token,
+            hasUserData: !!userData,
+            tokenLength: token?.length
+        });
+
         if (token && userData) {
             try {
                 this.user = JSON.parse(userData);
+                console.log('✅ User data restored:', this.user);
 
-                // Verify token is still valid
-                if (window.api) {
-                    const profile = await window.api.getProfile();
-                    if (profile.success) {
-                        this.user = profile.data;
-                        this.updateStoredUserData(this.user);
-                        console.log('✅ User session restored:', this.user.email);
-                    } else {
-                        throw new Error('Invalid token');
+                // Verifica token SOLO se l'API è disponibile
+                if (window.api && typeof window.api.getProfile === 'function') {
+                    try {
+                        const profile = await window.api.getProfile();
+                        if (profile.success) {
+                            this.user = profile.data;
+                            this.updateStoredUserData(this.user);
+                            console.log('✅ User profile refreshed from API');
+                        } else {
+                            console.warn('⚠️ API profile validation failed:', profile.message);
+                            // NON cancellare la sessione se l'API fallisce
+                        }
+                    } catch (apiError) {
+                        console.warn('⚠️ API not available or failed, keeping local session:', apiError.message);
+                        // Mantieni la sessione locale anche se l'API non è disponibile
                     }
+                } else {
+                    console.log('ℹ️ API not available, using local session');
                 }
 
             } catch (error) {
-                console.warn('⚠️ Session restoration failed:', error.message);
+                console.error('❌ Failed to parse user data:', error);
                 this.clearSession();
             }
+        } else {
+            console.log('ℹ️ No auth data found');
         }
 
         this.updateUI();

@@ -3132,7 +3132,7 @@
                     </div>
                 </td>
                 <td>
-                    <button class="btn btn-sm btn-outline-danger" onclick="if(confirm('Eliminare questo spazio?')) alert('Elimina spazio: ${spaceId}')" title="Elimina">
+                    <button class="btn btn-sm btn-outline-danger" eonclick="showDeleteSpaceModal('${spaceId}')" title="Elimina">
                         <i class="fas fa-trash-alt"></i>
                     </button>
                 </td>
@@ -3446,31 +3446,62 @@
         spacesTableBody.innerHTML = `<tr><td class="text-center text-danger py-4" colspan="7"><i class="fas fa-exclamation-triangle me-2"></i>${message}</td></tr>`;
     }
 
-    async function deleteSpace(spaceId) {
-        // Chiedi conferma all'utente
-        if (!confirm('Sei sicuro di voler eliminare questo spazio?')) {
-            return;
-        }
+    function connectDeleteSpaceButtons() {
+        // Trova tutti i pulsanti di eliminazione e collega la funzione
+        document.querySelectorAll('.btn-outline-danger[onclick*="alert"]').forEach(button => {
+            const onclickAttr = button.getAttribute('onclick');
+            if (onclickAttr && onclickAttr.includes('Elimina spazio')) {
+                // Estrai l'ID dello spazio dal onclick originale
+                const spaceIdMatch = onclickAttr.match(/spazio: (\w+)/);
+                if (spaceIdMatch) {
+                    const spaceId = spaceIdMatch[1];
+                    // Sostituisci onclick con la funzione corretta
+                    button.setAttribute('onclick', `showDeleteSpaceModal('${spaceId}')`);
+                    console.log(`✅ Connected delete button for space ${spaceId}`);
+                }
+            }
+        });
+    }
 
+    async function deleteSpace(spaceId) {
         try {
-            const token = localStorage.getItem('auth_token'); // Recupera il token
+            const token = localStorage.getItem('auth_token');
+            if (!token) {
+                alert('Token di autenticazione non trovato');
+                return;
+            }
+
             const response = await fetch(`http://localhost:3000/api/spaces/${spaceId}`, {
                 method: 'DELETE',
                 headers: {
-                    'Authorization': `Bearer ${token}` // Invia il token nell'header
-                },
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
             });
 
-            if (response.ok) {
-                showNotification('Spazio eliminato con successo!', 'success');
-                loadSpaces(); // Ricarica la tabella per aggiornare la vista
+            const result = await response.json();
+
+            if (result.success) {
+                alert('Spazio eliminato con successo!');
+                // Ricarica la lista spazi
+                if (typeof loadSpaces === 'function') {
+                    loadSpaces();
+                } else if (typeof fetchFilteredSpaces === 'function') {
+                    fetchFilteredSpaces('/spaces/all');
+                }
             } else {
-                const errorData = await response.json();
-                showNotification(errorData.message || 'Errore durante l\'eliminazione dello spazio.', 'error');
+                alert(result.message || 'Errore nell\'eliminazione dello spazio');
             }
         } catch (error) {
-            console.error('Errore durante la cancellazione:', error);
-            showNotification('Errore di connessione. Riprova più tardi.', 'error');
+            console.error('Errore eliminazione spazio:', error);
+            alert('Errore nell\'eliminazione dello spazio');
+        }
+    }
+
+    // Funzione per mostrare il modal di conferma eliminazione
+    function showDeleteSpaceModal(spaceId) {
+        if (confirm('Sei sicuro di voler eliminare questo spazio? Questa azione non può essere annullata.')) {
+            deleteSpace(spaceId);
         }
     }
 
@@ -3548,6 +3579,26 @@
             spacesTotalEl.textContent = stats.total || 0;
         }
     }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Collega i pulsanti esistenti
+        connectDeleteSpaceButtons();
+
+        // Observer per collegare pulsanti aggiunti dinamicamente
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.addedNodes.length > 0) {
+                    connectDeleteSpaceButtons();
+                }
+            });
+        });
+
+        // Osserva la tabella degli spazi per nuovi elementi
+        const spacesTable = document.getElementById('spacesTableBody');
+        if (spacesTable) {
+            observer.observe(spacesTable, { childList: true, subtree: true });
+        }
+    });
 
     // Carica gli spazi all'avvio della pagina se la sezione spaces è attiva
     document.addEventListener('DOMContentLoaded', () => {

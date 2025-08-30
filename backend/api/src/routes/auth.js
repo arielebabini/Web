@@ -13,7 +13,7 @@ const emailService = require('../services/emailService');
 const { requireAuth } = require('../middleware/auth');
 
 // Rate limiting per autenticazione
-const authLimiter = rateLimit({
+/*const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minuti
     max: 5, // massimo 5 tentativi per IP
     message: {
@@ -23,7 +23,7 @@ const authLimiter = rateLimit({
     },
     standardHeaders: true,
     legacyHeaders: false,
-});
+});*/
 
 // Validatori per input
 const registerValidation = [
@@ -315,7 +315,7 @@ router.post('/register', registerValidation, async (req, res) => {
  * @desc    Login utente
  * @access  Public
  */
-router.post('/login', authLimiter, loginValidation, async (req, res) => {
+router.post('/login', loginValidation, async (req, res) => {
     try {
         // Validazione input
         const errors = validationResult(req);

@@ -122,12 +122,41 @@ class APIClient {
 
     // Auth endpoints
     async login(credentials) {
-        console.log('🔑 Attempting login with:', { email: credentials.email, password: '***' });
-        return this.request('/auth/login', {
+        console.log('🔐 Attempting login with:', { email: credentials.email, password: '***' });
+
+        const result = await this.request('/auth/login', {
             method: 'POST',
             body: credentials,
             skipAuth: true
         });
+
+        // FIX: Estrai correttamente il token dalla risposta
+        if (result.success && result.tokens) {
+            console.log('✅ Login successful, extracting token...');
+
+            // Il server restituisce { tokens: { accessToken, refreshToken } }
+            const accessToken = result.tokens.accessToken || result.tokens.access_token;
+            const refreshToken = result.tokens.refreshToken || result.tokens.refresh_token;
+
+            if (accessToken) {
+                console.log('✅ Access token found:', accessToken.substring(0, 20) + '...');
+
+                // Salva i token
+                this.setToken(accessToken);
+                localStorage.setItem('auth_token', accessToken);
+
+                if (refreshToken) {
+                    localStorage.setItem('refresh_token', refreshToken);
+                }
+
+                // Aggiungi il token al risultato per compatibilità
+                result.token = accessToken;
+            } else {
+                console.error('❌ No access token found in response:', result);
+            }
+        }
+
+        return result;
     }
 
     async register(userData) {
@@ -685,23 +714,17 @@ class CoWorkSpaceApp {
                 if (userData.role === 'admin') {
                     setTimeout(() => {
                         window.location.href = '/template/admin-dashboard.html';
-                    }, 500);
+                    }, 100);
                 } else if (userData.role === 'manager') {
                     setTimeout(() => {
                         window.location.href = '/template/manager-dashboard.html';
-                    }, 500);
+                    }, 100);
                 } else {
-                    // Per CLIENT: redirect senza perdere autenticazione
                     console.log('👥 Client user - setting up persistent redirect');
 
                     // Salva un flag per indicare che è appena stato fatto login
                     localStorage.setItem('just_logged_in', 'true');
                     sessionStorage.setItem('login_success', 'true');
-
-                    setTimeout(() => {
-                        console.log('🚀 Redirecting client to index.html with preserved auth');
-                        window.location.href = 'index.html';
-                    }, 500);
                 }
             } else {
                 localStorage.setItem('just_logged_in', 'false');
