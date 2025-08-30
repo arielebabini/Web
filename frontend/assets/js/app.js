@@ -16,10 +16,10 @@ const API_CONFIG = {
 class APIClient {
     constructor(config) {
         this.config = config;
-        this.token = localStorage.getItem('auth_token');
-        this.restoreTokenFromStorage();
+        this.token = localStorage.getItem('auth_token'); // Inizializza il token direttamente da localStorage
         console.log('🔧 APIClient initialized with token:', this.token ? 'YES' : 'NO');
     }
+
 
     restoreTokenFromStorage() {
         const storedToken = localStorage.getItem('auth_token');
@@ -35,20 +35,11 @@ class APIClient {
         this.token = token;
 
         if (token) {
-            // Salva sempre nel localStorage quando impostiamo un token
             try {
                 localStorage.setItem('auth_token', token);
                 console.log('✅ Token saved to localStorage');
             } catch (error) {
                 console.warn('⚠️ Could not save token to localStorage:', error);
-            }
-        } else {
-            const isLoggingIn = localStorage.getItem('just_logged_in') === 'true';
-            if (!isLoggingIn) {
-                localStorage.removeItem('auth_token');
-                console.log('🗑️ Token removed from localStorage');
-            } else {
-                console.log('⚠️ Prevented token removal during login process');
             }
         }
     }
@@ -57,66 +48,48 @@ class APIClient {
         const memoryToken = this.token;
         const storageToken = localStorage.getItem('auth_token');
 
-        // Se abbiamo token in memoria, tutto ok
         if (memoryToken) {
-            return true;
+            if (storageToken && storageToken === memoryToken) {
+                console.log('✅ Token in memoria e storage concordano.');
+                return true;
+            }
         }
 
-        // Se abbiamo token in storage ma non in memoria, ripristina
-        if (storageToken && !memoryToken) {
-            console.log('🔄 Restoring token from storage to memory');
-            this.token = storageToken;
-            return true;
-        }
-
+        console.log('❌ Token non valido o non presente.');
         return false;
     }
 
     async request(endpoint, options = {}) {
         const url = `${this.config.baseURL}${endpoint}`;
-        console.log(`🌐 API Request: ${options.method || 'GET'} ${url}`);
-
         const headers = {
             'Content-Type': 'application/json',
             ...options.headers
         };
 
-        if (!this.hasValidToken() && !options.skipAuth) {
-            console.warn('⚠️ No valid token found for authenticated request');
-
-            // Prova a ripristinare dal localStorage
-            const storedToken = localStorage.getItem('auth_token');
-            if (storedToken) {
-                console.log('🔄 Attempting token recovery from localStorage');
-                this.token = storedToken;
-            }
+        // Aggiungi il token di autenticazione se presente
+        if (this.token) {
+            headers['Authorization'] = `Bearer ${this.token}`;
         }
 
-        const requestOptions = {
+        const fetchOptions = {
             method: options.method || 'GET',
             headers,
-            ...options
+            body: options.body ? JSON.stringify(options.body) : null
         };
 
-        if (options.body && typeof options.body === 'object') {
-            requestOptions.body = JSON.stringify(options.body);
-            console.log('📦 Request body:', options.body);
-        }
-
         try {
-            const response = await fetch(url, requestOptions);
+            const response = await fetch(url, fetchOptions);
+
+            // Altrimenti, continua con la gestione normale della risposta
             const data = await response.json();
-
-            console.log(`📥 API Response (${response.status}):`, data);
-
-            if (!response.ok) {
-                throw new Error(data.message || `HTTP ${response.status}`);
-            }
-
             return data;
+
         } catch (error) {
-            console.error(`❌ API Error (${endpoint}):`, error);
-            throw error;
+            console.error('Errore nella richiesta API:', error);
+            return {
+                success: false,
+                message: 'Errore di connessione al server.'
+            };
         }
     }
 
@@ -407,9 +380,9 @@ class CoWorkSpaceApp {
         console.log('🔍 Checking existing authentication...');
 
         // IMPORTANTE: Pulisci sempre lo stato all'inizio per evitare dati fantasma
-        this.state.currentUser = null;
+        /*this.state.currentUser = null;
         this.state.isAuthenticated = false;
-        this.state.api.setToken(null);
+        this.state.api.setToken(null);*/
 
         const savedToken = localStorage.getItem('auth_token');
         const savedUser = localStorage.getItem('user') || localStorage.getItem('user_data');
@@ -452,9 +425,9 @@ class CoWorkSpaceApp {
         }
 
         // Procedi con il clear
-        this.state.currentUser = null;
+        /*this.state.currentUser = null;
         this.state.isAuthenticated = false;
-        this.state.api.setToken(null);
+        this.state.api.setToken(null);*/
 
         // Pulisci tutto il localStorage relativo all'auth
         localStorage.removeItem('auth_token');
@@ -1314,21 +1287,23 @@ function showManagerMenuItem(userRole) {
 // ===== FUNZIONI GLOBALI =====
 
 // Logout
-async function logout() {
-    console.log('👋 Logout function called');
-    try {
-        await AppState.api.logout();
-        window.coworkspaceApp.showNotification('Logout effettuato con successo', 'success');
-        setTimeout(() => {
-            window.location.href = 'index.html';
-        }, 1000);
-    } catch (error) {
-        console.error('Errore durante logout:', error);
-        // Forza logout locale anche se API fallisce
-        window.coworkspaceApp.clearAuth();
-        window.location.href = 'index.html';
+function logout() {
+    console.log('🚪 Eseguo il logout...');
+
+    // Usa l’istanza globale corretta
+    if (window.coworkspaceApp) {
+        window.coworkspaceApp.state.api.setToken(null);
     }
+
+    // Pulisci storage
+    localStorage.removeItem('auth_token');
+    sessionStorage.removeItem('login_success');
+    localStorage.removeItem('just_logged_in');
+
+    // Reindirizza
+    window.location.href = './index.html';
 }
+
 
 // Mostra modal login
 function showLogin() {
