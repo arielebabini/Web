@@ -178,6 +178,7 @@ class CoWorkSpaceApp {
     constructor() {
         this.state = AppState;
         console.log('🏗️ CoWorkSpaceApp constructor called');
+        this.checkAuth();
         this.init();
     }
 
@@ -222,8 +223,15 @@ class CoWorkSpaceApp {
 
     async checkAuth() {
         console.log('🔍 Checking existing authentication...');
+
+        // IMPORTANTE: Pulisci sempre lo stato all'inizio per evitare dati fantasma
+        this.state.currentUser = null;
+        this.state.isAuthenticated = false;
+        this.state.api.setToken(null);
+
         const savedToken = localStorage.getItem('auth_token');
-        const savedUser = localStorage.getItem('user_data');
+        // FIX: Usa 'user' come chiave principale, 'user_data' come fallback
+        const savedUser = localStorage.getItem('user') || localStorage.getItem('user_data');
 
         console.log('💾 Saved data:', {
             token: savedToken ? 'YES' : 'NO',
@@ -235,13 +243,15 @@ class CoWorkSpaceApp {
                 this.state.api.setToken(savedToken);
                 this.state.currentUser = JSON.parse(savedUser);
                 this.state.isAuthenticated = true;
-                this.updateAuthUI();
-                console.log('🔐 Utente autenticato:', this.state.currentUser.email);
+                console.log('🔓 Utente ripristinato:', this.state.currentUser.email);
             } catch (e) {
                 console.warn('⚠️ Dati utente corrotti, reset auth');
                 this.clearAuth();
             }
         }
+
+        // IMPORTANTE: Aggiorna l'UI alla fine
+        this.updateAuthUI();
     }
 
     clearAuth() {
@@ -249,9 +259,13 @@ class CoWorkSpaceApp {
         this.state.currentUser = null;
         this.state.isAuthenticated = false;
         this.state.api.setToken(null);
+
+        // IMPORTANTE: Rimuovi ENTRAMBE le chiavi localStorage per essere sicuri
         localStorage.removeItem('auth_token');
-        localStorage.removeItem('user_data');
+        localStorage.removeItem('user');        // Quella usata nel login
+        localStorage.removeItem('user_data');   // Quella usata altrove
         localStorage.removeItem('refresh_token');
+
         this.updateAuthUI();
     }
 

@@ -1027,6 +1027,7 @@
         if (loadingOverlay) loadingOverlay.style.display = 'block';
         if (errorSection) errorSection.style.display = 'none';
 
+
         try {
             console.log('🔄 Loading manager dashboard stats...');
 
@@ -1065,6 +1066,8 @@
             // ===== AGGIORNA STATISTICHE PRENOTAZIONI =====
             const bookingStats = data.bookings || {};
             document.getElementById('total-bookings').textContent = bookingStats.total_bookings || 0;
+            const averagePayment = parseFloat(bookingStats.avg_booking_value || 0);
+            document.getElementById('average-transaction').textContent = '€' + averagePayment.toFixed(2);
 
             // Revenue
             const totalRevenue = parseFloat(bookingStats.total_revenue || 0);
@@ -1072,15 +1075,20 @@
 
             // ===== CALCOLO CRESCITA REVENUE =====
             // Per ora usiamo i dati disponibili, in futuro si può implementare un confronto mensile
-            const monthBookings = parseInt(bookingStats.month_bookings || 0);
             const weekBookings = parseInt(bookingStats.week_bookings || 0);
+            const monthBookings = parseInt(bookingStats.month_bookings || 0);
 
-            document.getElementById('current-revenue').textContent = '€' + totalRevenue.toFixed(2);
-            document.getElementById('previous-revenue').textContent = '€' + (totalRevenue * 0.9).toFixed(2); // Placeholder
+            // Stima revenue settimanale
+            const weeklyRevenue = (totalRevenue / monthBookings) * weekBookings;
+            const remainingRevenue = totalRevenue - weeklyRevenue;
 
-            // Calcola crescita percentuale (placeholder)
-            const growthPercent = monthBookings > 0 ? ((weekBookings / monthBookings) * 100).toFixed(1) : 0;
-            document.getElementById('revenue-growth').textContent = '+' + growthPercent + '%';
+            document.getElementById('current-revenue').textContent = '€' + weeklyRevenue.toFixed(2);
+            document.getElementById('previous-revenue').textContent = '€' + remainingRevenue.toFixed(2);
+
+            // Calcola crescita
+            const growthPercent = remainingRevenue > 0 ? ((weeklyRevenue - remainingRevenue) / remainingRevenue * 100).toFixed(1) : 0;
+            const growthText = growthPercent >= 0 ? '+' + growthPercent + '%' : growthPercent + '%';
+            document.getElementById('revenue-growth').textContent = growthText;
 
             // ===== TOP SPAZI (genera dalla capacità degli spazi) =====
             const topSpacesList = document.getElementById('top-spaces-list');
@@ -1099,38 +1107,56 @@
 
             // ===== GRAFICO REVENUE =====
             // Genera dati per il grafico basati sui dati mensili
-            const monthlyTrend = bookingStats.monthlyTrend || [];
             let revenueData = [];
             let labels = [];
 
-            if (monthlyTrend.length > 0) {
-                // Usa i dati reali del trend mensile
-                monthlyTrend.forEach(month => {
-                    const date = new Date(month.month);
-                    const monthName = date.toLocaleDateString('it-IT', { month: 'short' });
-                    labels.push(monthName);
-                    revenueData.push(parseFloat(month.revenue || 0));
-                });
-            } else {
-                // Fallback con dati simulati
-                labels = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu'];
-                const baseRevenue = totalRevenue / 6;
-                revenueData = [
-                    baseRevenue * 0.7,
-                    baseRevenue * 0.8,
-                    baseRevenue * 0.9,
-                    baseRevenue * 1.1,
-                    baseRevenue * 1.2,
-                    baseRevenue * 1.0
-                ];
+            const transactionResult = await fetch(`http://localhost:3000/api/manager/bookings?limit=50&sortBy=created_at&sortOrder=ASC`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (transactionResult.ok) {
+                const transactionData = await transactionResult.json();
+
+                if (transactionData.success && transactionData.bookings) {
+                    console.log('Transaction data for chart:', transactionData.bookings);
+
+                    // Crea un punto per ogni prenotazione
+                    let cumulativeRevenue = 0;
+
+                    transactionData.bookings.forEach((booking, index) => {
+                        const bookingDate = new Date(booking.created_at);
+                        const dateLabel = bookingDate.toLocaleDateString('it-IT', {
+                            day: '2-digit',
+                            month: '2-digit'
+                        });
+
+                        cumulativeRevenue += parseFloat(booking.total_price || 0);
+
+                        labels.push(`${dateLabel} (#${index + 1})`);
+                        revenueData.push(cumulativeRevenue);
+                    });
+                }
             }
 
-            // Distruggi grafico esistente
+// Fallback se non ci sono transazioni
+            if (revenueData.length === 0) {
+                console.log('No transaction data, using fallback');
+                labels = ['Nessun dato'];
+                revenueData = [0];
+            }
+
+            console.log('Chart data:', { labels, revenueData });
+
+// Distruggi grafico esistente
             if (window.revenueChart) {
                 window.revenueChart.destroy();
             }
 
-            // Crea nuovo grafico
+// Crea nuovo grafico
             const ctx = document.getElementById('revenueChartCanvas');
             if (ctx) {
                 window.revenueChart = new Chart(ctx.getContext('2d'), {
@@ -1138,24 +1164,41 @@
                     data: {
                         labels: labels,
                         datasets: [{
-                            label: 'Revenue (€)',
+                            label: 'Revenue Cumulativo (€)',
                             data: revenueData,
                             backgroundColor: 'rgba(40, 167, 69, 0.2)',
                             borderColor: '#28a745',
-                            borderWidth: 2,
-                            tension: 0.4,
+                            borderWidth: 3,
+                            tension: 0.1,
                             fill: true,
-                            // Aggiungi queste due proprietà
-                            spanGaps: true,
-                            pointRadius: 5
+                            pointRadius: 6,
+                            pointHoverRadius: 8,
+                            pointBackgroundColor: '#28a745',
+                            pointBorderColor: '#ffffff',
+                            pointBorderWidth: 2
                         }]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
+                        interaction: {
+                            intersect: false,
+                            mode: 'index'
+                        },
                         scales: {
+                            x: {
+                                display: true,
+                                title: {
+                                    display: true,
+                                    text: 'Prenotazioni (Cronologiche)'
+                                }
+                            },
                             y: {
                                 beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Revenue Cumulativo (€)'
+                                },
                                 ticks: {
                                     callback: function(value) {
                                         return '€' + value.toFixed(0);
@@ -1169,14 +1212,21 @@
                             },
                             tooltip: {
                                 callbacks: {
+                                    title: function(context) {
+                                        return `Prenotazione ${context[0].label}`;
+                                    },
                                     label: function(context) {
-                                        return context.dataset.label + ': €' + context.parsed.y.toFixed(2);
+                                        return 'Revenue totale: €' + context.parsed.y.toFixed(2);
                                     }
                                 }
                             }
                         }
                     }
                 });
+
+                console.log('Chart created successfully');
+            } else {
+                console.error('Canvas element not found');
             }
 
             // ===== AGGIORNA TIMESTAMP =====

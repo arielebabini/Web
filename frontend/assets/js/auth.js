@@ -311,20 +311,33 @@ class AuthManager {
 
     async handleLogout() {
         try {
-            this.showInfo('Disconnessione in corso...');
+            console.log('🚪 Handling logout...');
+            this.showNotification('Disconnessione in corso...', 'info');
 
-            // Track logout event
-            this.trackEvent('user_logout', {
-                userId: this.user?.id,
-                sessionDuration: this.getSessionDuration()
-            });
+            // Chiama API di logout se possibile
+            try {
+                await this.state.api.logout();
+            } catch (error) {
+                console.warn('⚠️ Logout API call failed:', error);
+            }
 
-            await window.api.logout();
+            // Pulisci tutto lo stato
+            this.clearAuth();
+
+            this.showNotification('Logout effettuato con successo', 'success');
+
+            // Se sei su una pagina protetta, reindirizza
+            const currentPage = window.location.pathname;
+            if (currentPage.includes('/template/') || currentPage.includes('admin') || currentPage.includes('manager')) {
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 1000);
+            }
 
         } catch (error) {
-            console.warn('⚠️ Logout error:', error);
-        } finally {
-            this.handleLogoutComplete();
+            console.error('❌ Logout error:', error);
+            this.clearAuth(); // Pulisci comunque lo stato locale
+            this.showNotification('Logout completato', 'info');
         }
     }
 
