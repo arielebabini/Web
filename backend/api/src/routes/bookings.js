@@ -3,12 +3,14 @@ const router = express.Router();
 const { body, param, query } = require('express-validator');
 const BookingController = require('../controllers/bookingController');
 const { requireAuth } = require('../middleware/auth');
+const Booking = require('../models/Booking');
 const {
     requireAdmin,
     requireManager,
     requireManagerOwnership,
     roleBasedRateLimit
 } = require('../middleware/roleAuth');
+const {Op} = require("sequelize");
 
 // Validatori comuni
 const bookingCreationValidation = [
@@ -119,6 +121,39 @@ const bookingRateLimit = roleBasedRateLimit({
 // ===============================================
 
 router.get('/me', requireAuth, BookingController.getUserBookings);
+
+router.post('/check-availability', async (req, res) => {
+    try {
+        const { space_id, startDate, endDate } = req.body;
+
+        // --- NUOVA LOGICA ---
+        // 1. Trova tutte le prenotazioni che si sovrappongono.
+        //    'findAll' è molto comune in ORM come Sequelize.
+        const overlappingBookings = await Booking.findAll({
+            where: {
+                space_id: space_id,
+                [Op.or]: [ // Assicurati di aver importato { Op } from 'sequelize'
+                    {
+                        start_date: { [Op.lte]: endDate },
+                        end_date: { [Op.gte]: startDate }
+                    }
+                ]
+            }
+        });
+
+        // 2. Controlla se l'array risultante ha elementi.
+        //    Se la lunghezza è 0, non ci sono conflitti e lo spazio è disponibile.
+        if (overlappingBookings.length > 0) {
+            res.json({ isAvailable: false }); // Trovate prenotazioni in conflitto
+        } else {
+            res.json({ isAvailable: true }); // Nessuna prenotazione in conflitto
+        }
+
+    } catch (error) {
+        console.error('Error in /check-availability:', error);
+        res.status(500).json({ message: 'Server error while checking availability' });
+    }
+});
 
 /**
  * @route   GET /api/bookings/all

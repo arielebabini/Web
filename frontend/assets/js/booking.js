@@ -658,6 +658,12 @@ class Booking {
             // Prepara i dati della prenotazione
             const bookingData = this.collectBookingData();
 
+            const isAvailable = await this.checkAvailability(bookingData.space_id, bookingData.start_date, bookingData.end_date);
+            if (!isAvailable) {
+                this.showError('Le date selezionate non sono più disponibili per questo spazio.');
+                return; // Interrompi il processo
+            }
+
             // Invia la richiesta di prenotazione
             const response = await this.createBooking(bookingData);
 
@@ -689,6 +695,51 @@ class Booking {
             people_count: parseInt(document.getElementById('peopleCount').value),
             notes: document.getElementById('bookingNotes').value.trim()
         };
+    }
+
+    /**
+     * @param {string} spaceId - L'ID dello spazio.
+     * @param {string} startDate - La data di inizio in formato YYYY-MM-DD.
+     * @param {string} endDate - La data di fine in formato YYYY-MM-DD.
+     * @returns {Promise<boolean>} - True se le date sono disponibili, altrimenti false.
+     */
+    async checkAvailability(spaceId, startDate, endDate) {
+        console.log(`🔍 Checking availability for space ${spaceId} from ${startDate} to ${endDate}`);
+        try {
+            const token = localStorage.getItem('auth_token');
+            const response = await fetch('http://localhost:3000/api/bookings/check-availability', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                // --- ECCO LA CORREZIONE ---
+                // Usiamo 'space_id' invece di 'spaceId' per coerenza con il resto dell'applicazione.
+                body: JSON.stringify({ space_id: spaceId, startDate, endDate })
+            });
+
+            const data = await response.json();
+            // Aggiunto un log per vedere cosa risponde esattamente il server
+            console.log('✅ Availability response from server:', data);
+
+            if (!response.ok) {
+                console.error('Server error during availability check:', data.message);
+                return false;
+            }
+
+            // Controlliamo che la proprietà 'isAvailable' esista nella risposta
+            if (typeof data.isAvailable === 'undefined') {
+                console.error("The server response does not contain the 'isAvailable' property.");
+                return false;
+            }
+
+            return data.isAvailable;
+
+        } catch (error) {
+            console.error('❌ Error checking availability:', error);
+            this.showError('Impossibile verificare la disponibilità. Controlla la tua connessione.');
+            return false;
+        }
     }
 
     async createBooking(bookingData) {

@@ -131,7 +131,7 @@ const requireManagerOwnership = (resourceType) => {
                         ownershipQuery = `
                             SELECT manager_id 
                             FROM spaces 
-                            WHERE id = $1 AND deleted_at IS NULL
+                            WHERE id = $1 
                         `;
                         break;
 
