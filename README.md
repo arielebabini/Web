@@ -1,6 +1,7 @@
 # CoWorkSpace Backend API
+Sistema completo di gestione spazi di coworking con autenticazione, prenotazioni, pagamenti Stripe e dashboard analytics.
 
-# team
+# Team:
 757608 --> Babini Ariele
 758017 --> Bottaro Federico
 
@@ -11,7 +12,7 @@ Strumenti:
 - Express.js
 - PostgreSQL
 
-Sistema completo di gestione spazi di coworking con autenticazione, prenotazioni, pagamenti Stripe e dashboard analytics.
+
 
 ## 📋 Indice
 
@@ -42,7 +43,6 @@ Sistema completo di gestione spazi di coworking con autenticazione, prenotazioni
 - **Rate limiting** basato su ruoli
 - **Validazione input** completa
 - **Error handling** professionale
-- **Logging** dettagliato con Winston
 - **CORS** configurabile
 - **Helmet** per security headers
 
@@ -70,10 +70,7 @@ Sistema completo di gestione spazi di coworking con autenticazione, prenotazioni
 - **Runtime**: Node.js 18+ Alpine
 - **Framework**: Express.js
 - **Database**: PostgreSQL 15
-- **Authentication**: JWT + bcrypt
 - **Payments**: Stripe API
-- **Email**: Nodemailer
-- **Logging**: Winston
 - **Validation**: express-validator
 - **Documentation**: Swagger/OpenAPI
 
