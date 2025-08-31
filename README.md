@@ -2,7 +2,7 @@
 Sistema completo di gestione spazi di coworking con autenticazione, prenotazioni, pagamenti Stripe e dashboard analytics.
 
 # Team:
-757608 --> Babini Ariele\\
+757608 --> Babini Ariele<br>
 758017 --> Bottaro Federico
 
 Strumenti:
