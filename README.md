@@ -339,6 +339,7 @@ Declined:       4000 0000 0000 0002
 - `type` (hot-desk/private-office/meeting-room/event-space)
 - `capacity`, `price_per_day`
 - `amenities` (JSONB)
+- `images` (JSONB)
 - `manager_id` (FK users)
 
 **bookings** - Prenotazioni
@@ -346,12 +347,13 @@ Declined:       4000 0000 0000 0002
 - `user_id` (FK users)
 - `space_id` (FK spaces)
 - `start_date`, `end_date`
-- `total_price`, `status`
+- `base_price`, `fees`,`total_price` 
+- `status`, `notes`
 
 **payments** - Transazioni
 - `id` (UUID, PK)
 - `booking_id` (FK bookings)
-- `stripe_payment_intent_id`
+- `stripe_payment_intent_id`, `payment_method`
 - `amount`, `currency`, `status`
 
 ### Migrazioni
