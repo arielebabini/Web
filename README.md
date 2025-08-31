@@ -1,6 +1,9 @@
-# CoWorkSpace - Frontend
-
+# CoWorkSpace Frontend 
 Frontend moderno per la piattaforma di prenotazione spazi di coworking. Un'applicazione web responsive costruita con Vanilla JavaScript, HTML5, e CSS3 moderni.
+
+# Team:
+757608 --> Babini Ariele<br>
+758017 --> Bottaro Federico
 
 ## 📋 Indice
 - [Caratteristiche](#-caratteristiche)
