@@ -116,11 +116,6 @@ DB_NAME=coworkspace
 DB_USER=coworkspace_user
 DB_PASSWORD=coworkspace_password
 
-# JWT Security
-JWT_SECRET=your-super-secret-key-min-32-chars
-JWT_EXPIRES_IN=24h
-JWT_REFRESH_EXPIRES_IN=7d
-
 # Email (modalità mock per sviluppo)
 EMAIL_FROM=noreply@coworkspace.com
 ```
@@ -149,26 +144,6 @@ CREATE TABLE users (
 - `user_role`: 'client', 'manager', 'admin'
 - `account_status`: 'active', 'inactive', 'suspended'
 
-## 🔐 Autenticazione JWT
-
-### Formato Token
-```javascript
-// Access Token (24h)
-{
-  "userId": "uuid",
-  "role": "client|manager|admin",
-  "iat": timestamp,
-  "exp": timestamp
-}
-
-// Refresh Token (7d)
-{
-  "userId": "uuid", 
-  "type": "refresh",
-  "iat": timestamp,
-  "exp": timestamp
-}
-```
 
 ### Headers richiesti per API protette
 ```http
@@ -280,12 +255,6 @@ Formato standard risposta errore:
 - [ ] Dashboard analytics
 - [ ] Sistema recensioni
 
-### Fase 4 - Deploy & Produzione
-- [ ] CI/CD pipeline
-- [ ] Deploy AWS/GCP
-- [ ] Monitoring APM
-- [ ] Email provider reale
-
 ## 💡 Tips
 
 ### Test rapidi durante sviluppo
@@ -313,9 +282,7 @@ SELECT id, email, first_name, last_name, role, created_at FROM users;
 Il backend CoWorkSpace è ora **completamente funzionante** con:
 - ✅ Database PostgreSQL connesso
 - ✅ API di autenticazione complete
-- ✅ JWT token system
 - ✅ Email service (mock mode)
 - ✅ Logging professionale
 - ✅ Docker environment
 
-**Pronto per lo sviluppo delle funzionalità business!** 🚀
