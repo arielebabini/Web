@@ -6,10 +6,6 @@ Sistema completo di gestione spazi di coworking con autenticazione, prenotazioni
 758017 --> Bottaro Federico
 
 Strumenti:
-- Docker e Docker Compose
-- Node.js
-- Bootstrap 5.3.5
-- Express.js
 - PostgreSQL
 
 # Schema del Database CoWorkSpace
