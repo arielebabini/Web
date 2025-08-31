@@ -121,11 +121,6 @@ DB_NAME=coworkspace
 DB_USER=coworkspace_user
 DB_PASSWORD=coworkspace_password
 
-# JWT Authentication
-JWT_SECRET=your-super-secret-jwt-key-min-32-chars
-JWT_EXPIRES_IN=24h
-JWT_REFRESH_EXPIRES_IN=7d
-
 # Stripe Payments (TEST MODE)
 STRIPE_SECRET_KEY=sk_test_your_stripe_secret_key
 STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_publishable_key
