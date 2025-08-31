@@ -7,7 +7,6 @@ API REST completa per la gestione di spazi di coworking costruita con Node.js, E
 - ✅ **Database PostgreSQL** connesso e funzionante
 - ✅ **API di Autenticazione** complete (register, login, refresh, logout)
 - ✅ **Email Service** in modalità mock per sviluppo
-- ✅ **JWT Authentication** con token access e refresh
 - ✅ **Validazioni robuste** password e email
 - ✅ **Logging completo** con Winston
 - ✅ **Error handling** professionale
