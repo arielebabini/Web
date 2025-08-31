@@ -37,6 +37,47 @@ class UserController {
         }
     }
 
+    static async getUserByEmail(req, res) {
+        try {
+            const { email } = req.query; // Riceve l'email come parametro query (?email=...)
+
+            if (!email) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Il parametro email è obbligatorio'
+                });
+            }
+
+            // La query esclude campi sensibili come la password_hash
+            const userResult = await query(`
+                SELECT 
+                    id, first_name, last_name, email, phone, 
+                    company, role, status, created_at, updated_at 
+                FROM users 
+                WHERE email = $1
+            `, [email.toLowerCase().trim()]);
+
+            if (userResult.rows.length === 0) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Utente non trovato con questa email'
+                });
+            }
+
+            res.json({
+                success: true,
+                user: userResult.rows[0]
+            });
+
+        } catch (error) {
+            logger.error('Error getting user by email:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Errore interno del server durante il recupero dell\'utente'
+            });
+        }
+    }
+
     /**
      * Aggiorna il profilo dell'utente corrente
      */

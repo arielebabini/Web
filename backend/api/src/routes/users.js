@@ -166,6 +166,8 @@ router.post('/',
     adaptUserController.createUser
 );
 
+router.post('/users/by-email', requireAuth, UserController.getUserByEmail);
+
 // ===============================================
 // ROUTE GESTIONE UTENTI (ADMIN/MANAGER)
 // ===============================================

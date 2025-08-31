@@ -30,6 +30,8 @@ const bcrypt = require('bcryptjs');
 
 // ===== EXPRESS APP SETUP =====
 const app = express();
+app.use(cors());
+
 
 // Trust proxy for accurate IP addresses
 app.set('trust proxy', 1);
@@ -192,6 +194,10 @@ if (process.env.ENABLE_REQUEST_LOGGING !== 'false') {
         }
     }));
 }
+
+app.listen(3000, () => {
+    console.log('Server in ascolto sulla porta 3000 con CORS abilitato');
+});
 
 // ===== BODY PARSING =====
 app.use(express.json({

@@ -1651,6 +1651,46 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 });
 
+// in app.js
+document.addEventListener('DOMContentLoaded', () => {
+    const loginForm = document.getElementById('loginForm');
+
+    if (loginForm) {
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            try {
+                const response = await fetch('http://localhost:3000/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    console.log("✅ LOGIN REALE RIUSCITO. Dati ricevuti:", data.user);
+                    window.User.login(data.user, data.token);
+
+                    const loginModalEl = document.getElementById('loginModal');
+                    const loginModal = bootstrap.Modal.getInstance(loginModalEl);
+                    if (loginModal) {
+                        loginModal.hide();
+                    }
+                } else {
+                    alert(data.message || 'Credenziali non valide.');
+                }
+            } catch (error) {
+                console.error("ERRORE NELLA CHIAMATA FETCH:", error);
+                alert("Si è verificato un errore di connessione.");
+            }
+        });
+    }
+});
+
 // Funzione che carica le prenotazioni senza dipendere da BookingManager
 async function loadUserBookingsDirectly() {
     console.log('Caricamento prenotazioni diretto...');

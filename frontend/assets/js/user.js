@@ -29,9 +29,10 @@ window.User = {
 
         this.setupEventListeners();
         this.loadUserSettings();
+        this.initializeUser();
 
         // Carica dati utente se autenticato
-        if (window.Auth && window.Auth.isAuthenticated()) {
+        if (window.auth && window.auth.isAuthenticated()) {
             await this.loadUserProfile();
         }
 
@@ -51,6 +52,12 @@ window.User = {
             }
         });
 
+        window.addEventListener('storage', (event) => {
+            if (event.key === 'currentUser' || event.key === 'authToken') {
+                this.initializeUser();
+            }
+        });
+
         console.log('✅ User module initialized');
     },
 
@@ -58,29 +65,246 @@ window.User = {
     async loadUserProfile() {
         if (this.state.isLoading) return;
 
+        // Per chiamare il nuovo endpoint, abbiamo bisogno dell'email dell'utente loggato.
+        // Assicuriamoci che sia presente nello stato dopo il login.
+        const loggedInUser = this.getCurrentUser();
+        if (!loggedInUser || !loggedInUser.email) {
+            console.error("Impossibile caricare il profilo: email dell'utente non disponibile.");
+            // Potresti voler mostrare un errore o fare un logout forzato qui.
+            this.logout();
+            return;
+        }
+
         this.state.isLoading = true;
 
         try {
-            console.log('📡 Loading user profile...');
-            const response = await window.api.getUserProfile();
+            console.log(`📡 Loading user profile via email: ${loggedInUser.email}`);
+
+            // Qui assumiamo che tu abbia una funzione `api.getUserByEmail` che chiama
+            // il nuovo endpoint GET /api/users/by-email?email=...
+            const response = await window.api.getUserByEmail(loggedInUser.email);
 
             if (response.success) {
-                this.state.currentUser = response.data;
+                // I nomi dei campi dal DB (first_name) sono diversi da quelli usati nel frontend (firstName)
+                // Eseguiamo una mappatura per garantire la compatibilità
+                const userData = response.user;
+                this.state.currentUser = {
+                    id: userData.id,
+                    firstName: userData.first_name, // Mappatura
+                    lastName: userData.last_name,   // Mappatura
+                    email: userData.email,
+                    phone: userData.phone,
+                    company: userData.company,
+                    role: userData.role,
+                    status: userData.status,
+                    createdAt: userData.created_at,
+                    lastLogin: userData.updated_at // o un campo specifico se lo hai
+                    // Aggiungi altri campi se necessario
+                };
+
+                // Salva l'utente aggiornato e completo nel localStorage
+                localStorage.setItem('currentUser', JSON.stringify(this.state.currentUser));
+
                 this.updateProfileUI();
                 await Promise.all([
                     this.loadUserBookings(),
-                    this.loadFavorites()
                 ]);
-                console.log('✅ User profile loaded');
+                console.log('✅ User profile loaded successfully via email');
             } else {
                 throw new Error(response.message);
             }
         } catch (error) {
-            console.error('❌ Error loading user profile:', error);
-            this.loadMockUserData();
+            console.error('❌ Error loading user profile by email:', error);
+            // In caso di errore, puoi decidere se caricare dati mock o mostrare un messaggio
+            this.showNotification('Errore nel caricamento del profilo.', 'error');
+            this.clearUserData();
         } finally {
             this.state.isLoading = false;
         }
+    },
+
+    updateAuthUI() {
+        const authButtons = document.getElementById('authButtons');
+        const userMenu = document.getElementById('userMenu');
+
+        if (this.isAuthenticated()) {
+            // L'utente è loggato
+            if (authButtons) authButtons.style.display = 'none';
+            if (userMenu) userMenu.style.display = 'block';
+
+            // Popola il menu utente
+            const user = this.getCurrentUser();
+            const userFullName = document.getElementById('userFullName');
+            const userEmail = document.getElementById('userEmail');
+            const userInitial = document.getElementById('userInitial');
+            const managerMenuItem = document.getElementById('managerMenuItem');
+            const adminMenuItem = document.getElementById('adminMenuItem');
+
+            if (userFullName) {
+                const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
+                userFullName.textContent = fullName || 'Utente';
+            }
+            if (userEmail) userEmail.textContent = user.email || '';
+            if (userInitial) {
+                const name = user.firstName || user.email || 'U';
+                userInitial.textContent = name.charAt(0).toUpperCase();
+            }
+
+            // Mostra/nascondi link pannelli admin/manager
+            if(managerMenuItem) managerMenuItem.style.display = user.role === 'manager' ? 'block' : 'none';
+            if(adminMenuItem) adminMenuItem.style.display = user.role === 'admin' ? 'block' : 'none';
+
+        } else {
+            // L'utente NON è loggato
+            if (authButtons) authButtons.style.display = 'flex'; // o 'block'
+            if (userMenu) userMenu.style.display = 'none';
+        }
+    },
+
+    populateProfileModal() {
+        // Se lo stato è vuoto, proviamo a caricarlo
+        if (!this.state.currentUser) {
+            console.log("Tentativo di caricamento utente da localStorage...");
+            try {
+                // Prova prima la chiave corretta 'currentUser'
+                let savedUserJson = localStorage.getItem('currentUser');
+
+                // Fallback: Prova la chiave 'user' (singolare)
+                if (!savedUserJson) {
+                    console.warn("Chiave 'currentUser' non trovata. Tento con 'user'...");
+                    savedUserJson = localStorage.getItem('user');
+                }
+
+                if (savedUserJson) {
+                    this.state.currentUser = JSON.parse(savedUserJson);
+                    console.log('✅ Utente caricato con successo da localStorage.', this.state.currentUser);
+                }
+            } catch (error) {
+                console.error('❌ Errore critico nel parsing dell\'utente da localStorage:', error);
+                this.state.currentUser = null;
+            }
+        }
+
+        // Controllo finale: se ancora non c'è un utente, è un problema.
+        if (!this.state.currentUser) {
+            console.error('ERRORE FINALE: Impossibile popolare il modal, nessun dato utente valido trovato.');
+            alert('Devi effettuare il login per vedere il tuo profilo.');
+            // Forza la chiusura del modal se è aperto
+            const profileModalEl = document.getElementById('profileModal');
+            if (profileModalEl) {
+                const modalInstance = bootstrap.Modal.getInstance(profileModalEl);
+                if (modalInstance) {
+                    modalInstance.hide();
+                }
+            }
+            return;
+        }
+
+        // Se tutto è andato bene, popola il modal
+        const user = this.state.currentUser;
+        document.getElementById('profileName').textContent = user.firstName || user.first_name || '-';
+        document.getElementById('profileSurname').textContent = user.lastName || user.last_name || '-';
+        document.getElementById('profileEmail').textContent = user.email || '-';
+        document.getElementById('profilePhone').textContent = user.phone || '-';
+        document.getElementById('profileCompany').textContent = user.company || '-';
+    },
+
+    // Metodo per ottenere l'utente corrente
+    getCurrentUser() {
+        return this.state.currentUser;
+    },
+
+    // Metodo per ottenere il token di autenticazione
+    getAuthToken() {
+        return localStorage.getItem('authToken') || null;
+    },
+
+    // Metodo per verificare se l'utente è autenticato
+    isAuthenticated() {
+        return this.state.currentUser !== null && this.getAuthToken() !== null;
+    },
+
+    // Metodo per inizializzare l'utente dal localStorage
+    initializeUser() {
+        try {
+            const savedUser = localStorage.getItem('currentUser');
+            const token = localStorage.getItem('authToken');
+
+            if (savedUser && token) {
+                this.state.currentUser = JSON.parse(savedUser);
+                console.log('✅ Utente inizializzato da localStorage.');
+            } else {
+                this.state.currentUser = null;
+            }
+        } catch (error) {
+            console.error('Errore inizializzazione utente, pulizia localStorage.', error);
+            localStorage.removeItem('currentUser');
+            localStorage.removeItem('authToken');
+            this.state.currentUser = null;
+        }
+
+        // Aggiorna l'interfaccia DOPO aver tentato di caricare l'utente
+        this.updateAuthUI();
+    },
+
+    /**
+     * Gestisce il salvataggio dei dati utente dopo un login riuscito.
+     * QUESTA FUNZIONE DEVE ESSERE CHIAMATA QUANDO IL LOGIN VA A BUON FINE.
+     * @param {object} userData - I dati dell'utente ricevuti dal server.
+     * @param {string} token - Il token di autenticazione.
+     */
+    login(userData, token) {
+        console.log("🚀 Esecuzione di User.login con:", userData);
+
+        // Mappatura per coerenza (backend usa snake_case, frontend usa camelCase)
+        const mappedUser = {
+            id: userData.id,
+            firstName: userData.first_name,
+            lastName: userData.last_name,
+            email: userData.email,
+            phone: userData.phone,
+            company: userData.company,
+            role: userData.role
+            // ...Aggiungi altri campi se necessario
+        };
+
+        // 1. Aggiorna lo stato interno
+        this.state.currentUser = mappedUser;
+        this.state.activeSession = true;
+
+        // 2. Salva in localStorage usando la CHIAVE CORRETTA
+        localStorage.setItem('currentUser', JSON.stringify(mappedUser));
+        localStorage.setItem('authToken', token);
+
+        console.log("✅ Dati utente e token salvati in localStorage.");
+
+        // 3. Aggiorna l'interfaccia utente
+        this.updateAuthUI();
+
+        // 4. Emetti un evento per notificare le altre parti dell'app
+        document.dispatchEvent(new CustomEvent('userLoggedIn', { detail: mappedUser }));
+    },
+
+    // Metodo per il logout
+    logout() {
+        // Pulisci lo stato
+        this.state.currentUser = null;
+
+        // Pulisci localStorage
+        localStorage.removeItem('currentUser');
+        localStorage.removeItem('authToken');
+
+        // Emetti evento di logout (opzionale, ma buona pratica)
+        document.dispatchEvent(new CustomEvent('userLoggedOut'));
+
+        // Aggiorna l'UI per mostrare i pulsanti di login/registrazione
+        this.updateAuthUI();
+
+        // Reindirizza alla home o aggiorna la sezione
+        if (window.Navigation && window.Navigation.showSection) {
+            window.Navigation.showSection('home');
+        }
+        console.log('🔒 Utente disconnesso.');
     },
 
     // ==================== GESTIONE SEZIONE PROFILO ====================
@@ -88,7 +312,7 @@ window.User = {
         const container = document.getElementById('profile-container');
         if (!container) return;
 
-        if (!window.Auth || !window.Auth.isAuthenticated()) {
+        if (!window.auth || !window.auth.isAuthenticated()) {
             this.showLoginPrompt(container);
             return;
         }
@@ -1180,34 +1404,38 @@ window.User = {
             this.showNotification('Errore nel caricamento delle prenotazioni', 'warning');
         }
     },
-
-    async loadFavorites() {
-        try {
-            console.log('❤️ Loading user favorites...');
-            console.log(`✅ Loaded ${this.state.favorites.length} favorites`);
-        } catch (error) {
-            console.error('❌ Error loading favorites:', error);
-        }
-    }
 };
 
 // ==================== AUTO-INIZIALIZZAZIONE ====================
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
-        if (window.api && window.Auth && window.Components) {
+        if (window.api && window.auth && window.Components) {
             window.User.init();
         } else {
             console.warn('⚠️ User module: Missing dependencies (api, Auth, Components)');
             // Retry dopo un breve delay
             setTimeout(() => {
-                if (window.api && window.Auth && window.Components) {
+                if (window.api && window.auth && window.Components) {
                     window.User.init();
                 }
             }, 1000);
         }
     });
-} else if (window.api && window.Auth && window.Components) {
+} else if (window.api && window.auth && window.Components) {
     window.User.init();
 } else {
     console.warn('⚠️ User module: Missing dependencies, will retry...');
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        if (window.User && window.User.init) {
+            window.User.init();
+        }
+    });
+} else {
+    // Il DOM è già caricato
+    if (window.User && window.User.init) {
+        window.User.init();
+    }
 }

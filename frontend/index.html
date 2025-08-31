@@ -70,8 +70,8 @@
                                 <small class="text-muted" id="userEmail"></small>
                             </div></li>
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#profileModal">
-                                    <i class="fas fa-user-circle"></i> Profilo
+                            <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#profileModal" onclick="window.User.populateProfileModal()">
+                                <i class="fas fa-user-circle"></i> Profilo
                             </a></li>
                             <li><a class="dropdown-item" href="#" onclick="showSection('bookings')">
                                 <i class="fas fa-calendar-check"></i> Le Mie Prenotazioni
@@ -100,40 +100,75 @@
 </nav>
 
 <!-- Profilo Utente -->
-<div class="modal fade" id="profileModal" tabindex="-1" aria-labelledby="profileModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+<div class="modal fade" id="profileModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="profileModalLabel">
-                    <i class="fas fa-user-circle me-2"></i>Profilo Utente
+                <h5 class="modal-title">
+                    <i class="fas fa-user-circle text-primary"></i> Il Mio Profilo
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <ul class="list-group list-group-flush">
-                    <li class="list-group-item">
-                        <strong>Nome:</strong> <span id="profileName"></span>
-                    </li>
-                    <li class="list-group-item">
-                        <strong>Cognome:</strong> <span id="profileSurname"></span>
-                    </li>
-                    <li class="list-group-item">
-                        <strong>Email:</strong> <span id="profileEmail"></span>
-                    </li>
-                    <li class="list-group-item">
-                        <strong>Telefono:</strong> <span id="profilePhone"></span>
-                    </li>
-                    <li class="list-group-item">
-                        <strong>Azienda:</strong> <span id="profileCompany"></span>
-                    </li>
-                </ul>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-muted small">Nome</label>
+                        <div class="form-control-plaintext border rounded p-2 bg-light" id="profileName">-</div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-muted small">Cognome</label>
+                        <div class="form-control-plaintext border rounded p-2 bg-light" id="profileSurname">-</div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label text-muted small">Email</label>
+                        <div class="form-control-plaintext border rounded p-2 bg-light" id="profileEmail">-</div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-muted small">Telefono</label>
+                        <div class="form-control-plaintext border rounded p-2 bg-light" id="profilePhone">-</div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-muted small">Azienda</label>
+                        <div class="form-control-plaintext border rounded p-2 bg-light" id="profileCompany">-</div>
+                    </div>
+                </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Chiudi
+                </button>
             </div>
         </div>
     </div>
 </div>
+
+<style>
+    /* Stili aggiuntivi per il modal profilo */
+    .profile-stats .stat-number {
+        font-size: 1.5rem;
+        font-weight: bold;
+    }
+
+    .profile-stats .stat-label {
+        font-size: 0.875rem;
+    }
+
+    .form-control-plaintext {
+        background-color: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 0.375rem;
+        padding: 0.375rem 0.75rem;
+        min-height: 1.5rem;
+    }
+
+    .modal-header .modal-title i {
+        color: var(--bs-primary);
+    }
+</style>
 
 <!-- Main Content Container -->
 <div id="mainContent">
@@ -531,22 +566,337 @@
 
 <script>
     function showProfile() {
-        // Verifica se l'utente è loggato
-        if (loggedInUser) {
-            // Popola il modal del profilo con i dati dell'utente
-            document.getElementById('profileName').innerText = loggedInUser.name;
-            document.getElementById('profileSurname').innerText = loggedInUser.surname;
-            document.getElementById('profileEmail').innerText = loggedInUser.email;
-            document.getElementById('profilePhone').innerText = loggedInUser.phone;
-            document.getElementById('profileCompany').innerText = loggedInUser.company;
+        console.log('🔍 Opening profile modal...');
 
-            // Mostra il modal
-            const profileModal = new bootstrap.Modal(document.getElementById('profileModal'));
-            profileModal.show();
-        } else {
+        let currentUser = null;
+
+        // Verifica coworkspaceApp
+        console.log('🔍 Checking coworkspaceApp:', {
+            exists: !!window.coworkspaceApp,
+            hasState: !!(window.coworkspaceApp && window.coworkspaceApp.state),
+            hasCurrentUser: !!(window.coworkspaceApp && window.coworkspaceApp.state && window.coworkspaceApp.state.currentUser)
+        });
+
+        if (window.coworkspaceApp && window.coworkspaceApp.state && window.coworkspaceApp.state.currentUser) {
+            currentUser = window.coworkspaceApp.state.currentUser;
+            console.log('✅ User found from coworkspaceApp:', currentUser);
+        }
+        else {
+            console.log('⚠️ User not found in coworkspaceApp, trying localStorage...');
+            try {
+                const userJson = localStorage.getItem('user');
+                console.log('🔍 localStorage user JSON:', userJson);
+
+                if (userJson) {
+                    currentUser = JSON.parse(userJson);
+                    console.log('✅ User found from localStorage:', currentUser);
+                } else {
+                    console.log('❌ No user data in localStorage');
+                }
+            } catch (error) {
+                console.error('❌ Error parsing user data:', error);
+            }
+        }
+
+        // CONTROLLO CRITICO
+        if (!currentUser) {
+            console.log('❌ No user found anywhere!');
             alert('Devi essere loggato per vedere il tuo profilo.');
+            return;
+        }
+
+        console.log('🎯 About to call populateProfileModal with user:', currentUser);
+
+        // Mostra il modal
+        const profileModal = new bootstrap.Modal(document.getElementById('profileModal'));
+        profileModal.show();
+
+        // Popola con un piccolo delay per essere sicuri che il modal sia visibile
+        setTimeout(() => {
+            populateProfileModal(currentUser);
+        }, 200);
+    }
+
+    function populateProfileModal(user) {
+        console.log('📝 Populating profile modal with user:', user);
+
+        if (!user) {
+            console.error('❌ User object is null or undefined!');
+            alert('Errore: dati utente non disponibili');
+            return;
+        }
+
+        if (typeof user !== 'object') {
+            console.error('❌ User is not an object:', typeof user, user);
+            alert('Errore: formato dati utente non valido');
+            return;
+        }
+
+        console.log('✅ User object is valid, proceeding with mapping...');
+
+        // Mappatura dei campi (gestisce diverse varianti)
+        const userData = {
+            firstName: user.first_name || user.firstName || user.name || '',
+            lastName: user.last_name || user.lastName || user.surname || '',
+            email: user.email || '',
+            phone: user.phone || user.phoneNumber || '',
+            company: user.company || user.company_name || '',
+            role: user.role || 'user'
+        };
+
+        console.log('🔄 Mapped user data:', userData);
+
+        // Popola campi di visualizzazione (read-only)
+        const profileName = document.getElementById('profileName');
+        const profileSurname = document.getElementById('profileSurname');
+        const profileEmail = document.getElementById('profileEmail');
+        const profilePhone = document.getElementById('profilePhone');
+        const profileCompany = document.getElementById('profileCompany');
+
+        if (profileName) {
+            profileName.textContent = userData.firstName || '-';
+            console.log('✅ Set profileName:', userData.firstName);
+        }
+        if (profileSurname) {
+            profileSurname.textContent = userData.lastName || '-';
+            console.log('✅ Set profileSurname:', userData.lastName);
+        }
+        if (profileEmail) {
+            profileEmail.textContent = userData.email || '-';
+            console.log('✅ Set profileEmail:', userData.email);
+        }
+        if (profilePhone) {
+            profilePhone.textContent = userData.phone || '-';
+            console.log('✅ Set profilePhone:', userData.phone);
+        }
+        if (profileCompany) {
+            profileCompany.textContent = userData.company || '-';
+            console.log('✅ Set profileCompany:', userData.company);
+        }
+
+        // Popola campi di input per la modifica
+        const profileNameInput = document.getElementById('profileNameInput');
+        const profileSurnameInput = document.getElementById('profileSurnameInput');
+        const profilePhoneInput = document.getElementById('profilePhoneInput');
+        const profileCompanyInput = document.getElementById('profileCompanyInput');
+        const profileEmailStatic = document.getElementById('profileEmailStatic');
+
+        if (profileNameInput) {
+            profileNameInput.value = userData.firstName;
+            console.log('✅ Set profileNameInput:', userData.firstName);
+        }
+        if (profileSurnameInput) {
+            profileSurnameInput.value = userData.lastName;
+            console.log('✅ Set profileSurnameInput:', userData.lastName);
+        }
+        if (profilePhoneInput) {
+            profilePhoneInput.value = userData.phone;
+            console.log('✅ Set profilePhoneInput:', userData.phone);
+        }
+        if (profileCompanyInput) {
+            profileCompanyInput.value = userData.company;
+            console.log('✅ Set profileCompanyInput:', userData.company);
+        }
+        if (profileEmailStatic) {
+            profileEmailStatic.textContent = userData.email;
+            console.log('✅ Set profileEmailStatic:', userData.email);
+        }
+
+        // Popola statistiche (opzionale - dati mockup per ora)
+        populateUserStats(user);
+    }
+
+    function populateUserStats(user) {
+        // Trova gli elementi delle statistiche
+        const statElements = document.querySelectorAll('.profile-stats .stat-number');
+
+        if (statElements.length >= 4) {
+            // Usa dati reali se disponibili, altrimenti mockup
+            statElements[0].textContent = user.total_bookings || '0'; // Prenotazioni
+            statElements[1].textContent = user.total_favorites || '0'; // Preferiti
+            statElements[2].textContent = user.total_spent ? `€${user.total_spent}` : '€0'; // Speso
+
+            // Calcola giorni di membership
+            let memberDays = 0;
+            if (user.created_at || user.createdAt || user.registration_date) {
+                const createdDate = new Date(user.created_at || user.createdAt || user.registration_date);
+                const now = new Date();
+                memberDays = Math.floor((now - createdDate) / (1000 * 60 * 60 * 24));
+            }
+            statElements[3].textContent = memberDays > 0 ? memberDays.toString() : '0';
+
+            console.log('✅ Stats populated');
         }
     }
+
+    function saveProfile() {
+        console.log('💾 Saving profile changes...');
+
+        // Ottieni l'utente corrente
+        let currentUser = null;
+        if (window.coworkspaceApp && window.coworkspaceApp.state && window.coworkspaceApp.state.currentUser) {
+            currentUser = window.coworkspaceApp.state.currentUser;
+        } else {
+            try {
+                const userJson = localStorage.getItem('user');
+                if (userJson) {
+                    currentUser = JSON.parse(userJson);
+                }
+            } catch (error) {
+                console.error('❌ Error getting current user:', error);
+                alert('Errore nel caricamento dei dati utente');
+                return;
+            }
+        }
+
+        if (!currentUser) {
+            alert('Errore: utente non trovato');
+            return;
+        }
+
+        // Raccogli i dati dai campi di input
+        const updatedData = {
+            first_name: document.getElementById('profileNameInput')?.value || currentUser.first_name,
+            last_name: document.getElementById('profileSurnameInput')?.value || currentUser.last_name,
+            phone: document.getElementById('profilePhoneInput')?.value || currentUser.phone,
+            company: document.getElementById('profileCompanyInput')?.value || currentUser.company,
+            email: currentUser.email // L'email non si può modificare
+        };
+
+        console.log('📤 Sending updated data:', updatedData);
+
+        // Per ora salva solo localmente (in attesa del backend)
+        const mergedUser = { ...currentUser, ...updatedData };
+
+        try {
+            // Aggiorna localStorage
+            localStorage.setItem('user', JSON.stringify(mergedUser));
+
+            // Aggiorna lo stato dell'app se disponibile
+            if (window.coworkspaceApp && window.coworkspaceApp.state) {
+                window.coworkspaceApp.state.currentUser = mergedUser;
+            }
+
+            // Mostra messaggio di successo
+            if (window.coworkspaceApp && window.coworkspaceApp.showNotification) {
+                window.coworkspaceApp.showNotification('Profilo aggiornato con successo!', 'success');
+            } else {
+                alert('Profilo aggiornato con successo!');
+            }
+
+            // Chiudi il modal
+            const profileModal = bootstrap.Modal.getInstance(document.getElementById('profileModal'));
+            if (profileModal) profileModal.hide();
+
+            // Aggiorna l'UI del menu utente
+            updateUserMenuDisplay();
+
+            console.log('✅ Profile saved successfully');
+
+        } catch (error) {
+            console.error('❌ Error saving profile:', error);
+            if (window.coworkspaceApp && window.coworkspaceApp.showNotification) {
+                window.coworkspaceApp.showNotification('Errore durante il salvataggio del profilo', 'error');
+            } else {
+                alert('Errore durante il salvataggio del profilo');
+            }
+        }
+    }
+
+    function updateUserMenuDisplay() {
+        console.log('🔄 Updating user menu display...');
+
+        let currentUser = null;
+        if (window.coworkspaceApp && window.coworkspaceApp.state && window.coworkspaceApp.state.currentUser) {
+            currentUser = window.coworkspaceApp.state.currentUser;
+        } else {
+            try {
+                const userJson = localStorage.getItem('user');
+                if (userJson) {
+                    currentUser = JSON.parse(userJson);
+                }
+            } catch (error) {
+                console.error('❌ Error getting current user:', error);
+            }
+        }
+
+        if (currentUser) {
+            // Aggiorna elementi nel navbar
+            const userFullName = document.getElementById('userFullName');
+            const userEmail = document.getElementById('userEmail');
+            const userInitial = document.getElementById('userInitial');
+
+            if (userFullName) {
+                const fullName = `${currentUser.first_name || ''} ${currentUser.last_name || ''}`.trim();
+                userFullName.textContent = fullName || 'Utente';
+            }
+            if (userEmail) {
+                userEmail.textContent = currentUser.email || '';
+            }
+            if (userInitial) {
+                const name = currentUser.first_name || currentUser.email || 'U';
+                userInitial.textContent = name.charAt(0).toUpperCase();
+            }
+
+            console.log('✅ User menu display updated');
+        }
+    }
+
+    // DEBUG: Funzione per verificare lo stato dell'utente
+    function debugProfileModal() {
+        console.log('🔍 DEBUG PROFILE MODAL:');
+
+        const modal = document.getElementById('profileModal');
+        console.log('profileModal exists:', !!modal);
+
+        if (modal) {
+            const elements = {
+                profileName: document.getElementById('profileName'),
+                profileSurname: document.getElementById('profileSurname'),
+                profileEmail: document.getElementById('profileEmail'),
+                profilePhone: document.getElementById('profilePhone'),
+                profileCompany: document.getElementById('profileCompany'),
+                profileNameInput: document.getElementById('profileNameInput'),
+                profileSurnameInput: document.getElementById('profileSurnameInput'),
+                profilePhoneInput: document.getElementById('profilePhoneInput'),
+                profileCompanyInput: document.getElementById('profileCompanyInput'),
+                profileEmailStatic: document.getElementById('profileEmailStatic')
+            };
+
+            console.log('Modal elements found:');
+            Object.entries(elements).forEach(([key, element]) => {
+                console.log(`- ${key}:`, !!element, element ? `(${element.tagName})` : '');
+                if (element) {
+                    console.log(`  Content: "${element.textContent || element.value || 'empty'}"`);
+                }
+            });
+
+            // Mostra la struttura HTML del modal
+            console.log('Modal HTML structure:', modal.innerHTML.substring(0, 500) + '...');
+        }
+    }
+
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Verifica se l'utente è già loggato e aggiorna l'UI
+        if (window.User && window.User.getCurrentUser()) {
+            updateUserMenuDisplay();
+        }
+
+        // Ascolta gli eventi di login/logout per aggiornare l'UI
+        document.addEventListener('userLoggedIn', function(event) {
+            updateUserMenuDisplay();
+        });
+
+        document.addEventListener('userLoggedOut', function(event) {
+            // Reset dell'UI quando si fa logout
+            const authButtons = document.getElementById('authButtons');
+            const userMenu = document.getElementById('userMenu');
+
+            if (authButtons) authButtons.style.display = 'block';
+            if (userMenu) userMenu.style.display = 'none';
+        });
+    });
 </script>
 
 <!-- Scripts -->
@@ -554,6 +904,7 @@
 
 <!-- Custom Scripts - PERCORSI CORRETTI -->
 <script src="assets/js/app.js"></script>
+<script src="assets/js/user.js"></script>
 <script src="assets/js/booking.js"></script>
 <script src="assets/js/spaces.js"></script>
 </body>
