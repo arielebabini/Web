@@ -446,66 +446,43 @@ docker-compose restart api
 docker-compose down -v && docker-compose up --build
 ```
 
-## 🚀 Deploy
-
-### Ambiente Produzione
-
-1. **Environment Variables**
-   ```bash
-   NODE_ENV=production
-   JWT_SECRET=<strong-production-secret>
-   DB_PASSWORD=<secure-database-password>
-   STRIPE_SECRET_KEY=<live-stripe-key>  # Solo in produzione reale
-   ```
-
-2. **Docker Production Build**
-   ```bash
-   docker build -t coworkspace-api ./api
-   docker run -p 3000:3000 coworkspace-api
-   ```
-
-3. **Cloud Deploy Options**
-   - **Railway** - Deploy automatico da Git
-   - **Heroku** - Con PostgreSQL addon
-   - **AWS ECS** - Container orchestration
-   - **Google Cloud Run** - Serverless containers
-   - **DigitalOcean Apps** - Managed containers
-
-### CI/CD Pipeline
-
-```yaml
-# .github/workflows/deploy.yml
-name: Deploy API
-on:
-  push:
-    branches: [main]
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Build & Deploy
-        run: |
-          docker build -t api ./api
-          # Deploy commands
-```
-
 ## 🧪 Test
+La nostra strategia di test si basa sull'isolamento dei componenti e sulla simulazione delle dipendenze esterne. Questo ci permette di eseguire test unitari e di
+integrazione in un ambiente controllato, veloce e prevedibile, senza la necessità di un backend o di un database attivi.
+
+## 💡 Il Sistema di Mocking
+Ogni file di logica principale (es. user.js) ha un corrispondente file di mock (tests/mocks/user-mock.js). Questi file non contengono test, ma forniscono tutti
+gli "ingredienti" necessari per costruirli.
+
+La struttura tipica di un file *-mock.js è la seguente:
+- Dati Fittizi Puri: Oggetti e array che rappresentano le entità del dominio.
+- mockUsers: Utenti con ruoli, stati e permessi diversi.
+- mockBookings: Prenotazioni con vari stati (confermata, cancellata, etc.).
+- mockSpaces: Spazi di coworking con diverse caratteristiche.
+
+Simulazione Risposte API (apiResponses): Oggetti che replicano le risposte JSON del nostro backend. Questo ci permette di testare come il frontend reagisce a
+risposte di successo, errori, dati vuoti, etc.
+
+Simulazione Ambiente Browser (globalMocks): Un insieme di oggetti che imitano le API e gli oggetti globali del browser. Questo è fondamentale per testare le 
+funzioni che dipendono da:
+- localStorage: Per testare il salvataggio di token, preferiti o impostazioni.
+- navigator: Per testare la geolocalizzazione o il clipboard.
+- window e document: Per la manipolazione del DOM, cookie e URL.
+- fetch: Per intercettare e simulare le chiamate di rete.
+
+Simulazione Express.js (mockExpress): (Specifico per i test del backend) Una factory che genera oggetti req, res e next per testare i middleware in isolamento.
 
 ### Test Suite
 
 ```bash
-# Unit tests
+# Esegue tutti i test una volta
 npm test
 
-# Integration tests  
-npm run test:integration
+# Esegue i test in modalità "watch", rilanciandoli a ogni modifica
+npm test -- --watch
 
-# E2E tests
-npm run test:e2e
-
-# Coverage report
-npm run test:coverage
+# Esegue solo i test per un file specifico
+npm test -- user.test.jse
 ```
 
 ### Test Manuali
