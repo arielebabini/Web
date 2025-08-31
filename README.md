@@ -450,7 +450,7 @@ docker-compose down -v && docker-compose up --build
 La nostra strategia di test si basa sull'isolamento dei componenti e sulla simulazione delle dipendenze esterne. Questo ci permette di eseguire test unitari e di
 integrazione in un ambiente controllato, veloce e prevedibile, senza la necessità di un backend o di un database attivi.
 
-# 💡 Il Sistema di Mocking
+### 💡 Il Sistema di Mocking
 Ogni file di logica principale (es. user.js) ha un corrispondente file di mock (tests/mocks/user-mock.js). Questi file non contengono test, ma forniscono tutti
 gli "ingredienti" necessari per costruirli.
 
