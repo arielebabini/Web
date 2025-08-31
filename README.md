@@ -455,20 +455,20 @@ Ogni file di logica principale (es. user.js) ha un corrispondente file di mock (
 gli "ingredienti" necessari per costruirli.
 
 La struttura tipica di un file *-mock.js è la seguente:
-- Dati Fittizi Puri: Oggetti e array che rappresentano le entità del dominio.
-- mockUsers: Utenti con ruoli, stati e permessi diversi.
-- mockBookings: Prenotazioni con vari stati (confermata, cancellata, etc.).
-- mockSpaces: Spazi di coworking con diverse caratteristiche.
+- `Dati Fittizzi Puri`: Oggetti e array che rappresentano le entità del dominio.
+- `mockUsers`: Utenti con ruoli, stati e permessi diversi.
+- `mockBookings`: Prenotazioni con vari stati (confermata, cancellata, etc.).
+- `mockSpaces`: Spazi di coworking con diverse caratteristiche.
 
 Simulazione Risposte API (apiResponses): Oggetti che replicano le risposte JSON del nostro backend. Questo ci permette di testare come il frontend reagisce a
 risposte di successo, errori, dati vuoti, etc.
 
 Simulazione Ambiente Browser (globalMocks): Un insieme di oggetti che imitano le API e gli oggetti globali del browser. Questo è fondamentale per testare le 
 funzioni che dipendono da:
-- localStorage: Per testare il salvataggio di token, preferiti o impostazioni.
-- navigator: Per testare la geolocalizzazione o il clipboard.
-- window e document: Per la manipolazione del DOM, cookie e URL.
-- fetch: Per intercettare e simulare le chiamate di rete.
+- `localStorage`: Per testare il salvataggio di token, preferiti o impostazioni.
+- `navigator`: Per testare la geolocalizzazione o il clipboard.
+- `window e document`: Per la manipolazione del DOM, cookie e URL.
+- `fetch`: Per intercettare e simulare le chiamate di rete.
 
 Simulazione Express.js (mockExpress): (Specifico per i test del backend) Una factory che genera oggetti req, res e next per testare i middleware in isolamento.
 
