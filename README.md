@@ -25,7 +25,6 @@ Frontend moderno per la piattaforma di prenotazione spazi di coworking. Un'appli
 - **Dashboard Amministratore** per gestione spazi e utenti
 - **Sistema di Pagamenti** integrato con Stripe
 - **Notifiche Push** e sistema di messaggistica
-- **Visualizzazione Mappa** per localizzare spazi
 - **Upload Immagini** con drag & drop
 
 ### Caratteristiche Tecniche
@@ -165,16 +164,21 @@ Il frontend è configurato per comunicare con il backend su `localhost:3000`. Mo
 ### Funzionalità Principali
 
 #### Per Utenti
-- **Homepage**: Visualizza spazi in evidenza e statistiche
-- **Catalogo Spazi**: Cerca e filtra spazi disponibili
-- **Prenotazioni**: Gestisci le tue prenotazioni
-- **Profilo**: Aggiorna informazioni personali
+- **Homepage**: Menu rapido per filtraggio con reindirizzamento al catalogo spazi
+- **Catalogo Spazi**: Cerca e prenota spazi disponibili
+- **Prenotazioni**: Visualizza le tue prenotazioni
+- **Profilo**: Visualizza informazioni personali
 
 #### Per Amministratori
 - **Dashboard**: Overview delle metriche principali
 - **Gestione Spazi**: CRUD completo per spazi coworking
 - **Gestione Utenti**: Amministrazione utenti e ruoli
-- **Analytics**: Report e statistiche dettagliate
+- **Prenotazioni**: Gestione delle prenotazioni
+
+#### Per Manager
+- **Dashboard**: Overview delle metriche principali
+- **Gestione Spazi**: CRUD completo per spazi coworking
+- **Prenotazioni**: Gestione delle prenotazioni
 
 ## 🏗 Architettura
 
@@ -249,7 +253,6 @@ const Components = {
 - **Space Cards**: Visualizzazione spazi
 - **Data Tables**: Tabelle responsive
 - **Charts**: Grafici dashboard
-- **Map Integration**: Mappa interattiva
 
 ## 🔌 API Integration
 
