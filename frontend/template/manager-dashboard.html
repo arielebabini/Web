@@ -1399,96 +1399,6 @@
         }
     }
 
-    function renderSpacesTable(spaces, pagination) {
-        const tableBody = document.getElementById('spacesTableBody');
-        const showCount = document.getElementById('spacesShowing');
-        const totalCount = document.getElementById('spacesTotal');
-        const paginationEl = document.getElementById('spacesPagination');
-
-        if (!tableBody) {
-            console.error('Elemento spacesTableBody non trovato');
-            return;
-        }
-
-        // Se non ci sono spazi
-        if (!spaces || spaces.length === 0) {
-            tableBody.innerHTML = `
-            <tr>
-                <td colspan="7" class="text-center py-4">
-                    <div class="text-muted">
-                        <i class="fas fa-building fa-2x mb-3"></i>
-                        <div class="h5">Nessuno spazio trovato</div>
-                        <div>Non hai ancora creato spazi o non ce ne sono che corrispondono ai filtri.</div>
-                        <button class="btn btn-primary mt-3" onclick="showAddSpaceModal()">
-                            <i class="fas fa-plus me-2"></i>Crea Primo Spazio
-                        </button>
-                    </div>
-                </td>
-            </tr>
-        `;
-            if (showCount) showCount.textContent = '0';
-            if (totalCount) totalCount.textContent = '0';
-            if (paginationEl) paginationEl.innerHTML = '';
-            return;
-        }
-
-        // Renderizza gli spazi reali
-        tableBody.innerHTML = '';
-        spaces.forEach(space => {
-            const row = document.createElement('tr');
-
-            // Mappa i tipi di spazio
-            const typeMap = {
-                'hot-desk': { class: 'info', text: 'Hot Desk' },
-                'private-office': { class: 'success', text: 'Ufficio Privato' },
-                'meeting-room': { class: 'warning', text: 'Sala Riunioni' },
-                'event-space': { class: 'primary', text: 'Sala Eventi' }
-            };
-
-            const typeInfo = typeMap[space.type] || { class: 'secondary', text: space.type };
-
-            row.innerHTML = `
-            <td>
-                <div class="fw-bold">${space.name || 'Nome non disponibile'}</div>
-                <small class="text-muted">#${space.id.substring(0, 8)}</small>
-            </td>
-            <td>
-                <div>${space.city || 'Città non specificata'}</div>
-                <small class="text-muted">${space.address || ''}</small>
-            </td>
-            <td>
-                <span class="badge bg-${typeInfo.class}">${typeInfo.text}</span>
-            </td>
-            <td>
-                <span class="fw-bold">${space.capacity || 0}</span>
-                <small class="text-muted">persone</small>
-            </td>
-            <td>
-                <div class="fw-bold">€${parseFloat(space.price_per_day || 0).toFixed(2)}</div>
-                <small class="text-muted">al giorno</small>
-            </td>
-            <td>
-                <div class="btn-group" role="group">
-                    <button class="btn btn-sm btn-outline-danger" onclick="showDeleteSpaceModal('${space.id}')" title="Elimina spazio">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            </td>
-        `;
-
-            tableBody.appendChild(row);
-        });
-
-        // Aggiorna contatori
-        if (showCount) showCount.textContent = spaces.length;
-        if (totalCount && pagination) totalCount.textContent = pagination.totalSpaces || 0;
-
-        // Renderizza paginazione
-        if (paginationEl && pagination) {
-            renderSpacesPagination(pagination);
-        }
-    }
-
     // ✅ FUNZIONE PER RENDERIZZARE LA PAGINAZIONE
     function renderSpacesPagination(pagination) {
         const paginationEl = document.getElementById('spacesPagination');
@@ -1710,162 +1620,257 @@ Creato: ${new Date(space.created_at).toLocaleDateString('it-IT')}`);
         loadSpaces(1, getSpaceFilters());
     }
 
+        // Variabile globale per le immagini selezionate
+    let selectedImages = [];
+
+    /**
+     * Salva uno spazio nuovo o modificato inviando i dati al backend.
+     */
     async function saveSpace() {
+        console.log('🏢 Saving space...');
+
+        const spaceForm = document.getElementById('spaceForm');
+        if (!spaceForm || !spaceForm.checkValidity()) {
+            spaceForm?.reportValidity();
+            return;
+        }
+
         try {
-            // Raccogli i dati dal form
-            const spaceId = document.getElementById('spaceId').value;
-            const spaceName = document.getElementById('spaceName').value.trim();
-            const spaceDescription = document.getElementById('spaceDescription')?.value.trim() || '';
-            const spaceType = document.getElementById('spaceType').value;
-            const spaceCity = document.getElementById('spaceCity').value.trim();
-            const spaceAddress = document.getElementById('spaceAddress')?.value.trim() || '';
-            const spaceCapacity = parseInt(document.getElementById('spaceCapacity').value);
-            const spacePrice = parseFloat(document.getElementById('spacePrice').value);
-
-            // Validazioni client-side
-            if (!spaceName) {
-                alert('Il nome dello spazio è obbligatorio');
-                return;
+        // 1. Converti le immagini in Base64
+            let imagesArray = [];
+            if (selectedImages && selectedImages.length > 0) {
+                imagesArray = await convertImagesToBase64();
+                console.log(`📸 Processed ${imagesArray.length} images for database`);
             }
 
-            if (!spaceType) {
-                alert('Il tipo di spazio è obbligatorio');
-                return;
-            }
-
-            if (!spaceCity) {
-                alert('La città è obbligatoria');
-                return;
-            }
-
-            if (!spaceCapacity || spaceCapacity <= 0) {
-                alert('La capacità deve essere un numero positivo');
-                return;
-            }
-
-            if (!spacePrice || spacePrice <= 0) {
-                alert('Il prezzo deve essere un numero positivo');
-                return;
-            }
-
-            // Raccogli amenities/servizi se presenti nel form
-            const amenities = [];
-            const amenityCheckboxes = document.querySelectorAll('input[name="amenities"]:checked');
-            amenityCheckboxes.forEach(checkbox => {
-                amenities.push(checkbox.value);
-            });
-
-            // Crea oggetto dati per l'API
+        // 2. Raccogli i dati dal form
             const spaceData = {
-                name: spaceName,
-                description: spaceDescription,
-                type: spaceType,
-                city: spaceCity,
-                address: spaceAddress,
-                capacity: spaceCapacity,
-                price_per_day: spacePrice,
-                amenities: amenities,
-                is_active: true // Nuovo spazio attivo di default
+                name: document.getElementById('spaceName').value.trim(),
+                type: document.getElementById('spaceType').value,
+                capacity: parseInt(document.getElementById('spaceCapacity').value),
+                price_per_day: parseFloat(document.getElementById('spacePrice').value),
+                city: document.getElementById('spaceCity').value,
+                address: document.getElementById('spaceAddress').value.trim(),
+                description: document.getElementById('spaceDescription')?.value.trim() || '',
+                amenities: getSelectedServices(),
+                days_available: getSelectedDays(),
+                images: imagesArray,
+                is_active: true
             };
 
-            console.log('📤 Sending space data:', spaceData);
+            console.log('📤 Dati pronti per l\'invio:', { ...spaceData, images: `${imagesArray.length} immagini` });
 
-            // Ottieni token di autenticazione
-            const token = getAuthToken();
-            if (!token) {
-                alert('Token di autenticazione non trovato. Effettua nuovamente il login.');
-                return;
-            }
+            const token = localStorage.getItem('auth_token');
+            if (!token) throw new Error('Token di autenticazione mancante.');
 
-            // Disabilita il pulsante per evitare doppi click
-            const saveButton = document.querySelector('#spaceModal .btn-primary');
-            if (saveButton) {
-                saveButton.disabled = true;
-                saveButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Salvando...';
-            }
+            const spaceId = document.getElementById('spaceId')?.value;
+            const isEdit = !!spaceId;
+            const url = isEdit ? `http://localhost:3000/api/spaces/${spaceId}` : 'http://localhost:3000/api/spaces';
+            const method = isEdit ? 'PUT' : 'POST';
 
-            let response, result;
+            // 3. Invia i dati al server
+            const response = await fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(spaceData)
+            });
 
-            if (spaceId) {
-                // MODIFICA SPAZIO ESISTENTE
-                console.log('🔄 Updating existing space:', spaceId);
+            const result = await response.json();
 
-                response = await fetch(`http://localhost:3000/api/manager/spaces/${spaceId}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(spaceData)
-                });
-
-                result = await response.json();
-
-                if (response.ok && result.success) {
-                    alert('Spazio aggiornato con successo!');
-                    console.log('✅ Space updated successfully');
-                } else {
-                    throw new Error(result.message || `HTTP error! status: ${response.status}`);
-                }
-
+            if (response.ok && result.success) {
+                alert(isEdit ? 'Spazio aggiornato con successo!' : 'Spazio creato con successo!');
+                bootstrap.Modal.getInstance(document.getElementById('spaceModal'))?.hide();
+                await loadSpaces(); // Ricarica la tabella
             } else {
-                // CREA NUOVO SPAZIO
-                console.log('🆕 Creating new space');
-
-                response = await fetch('http://localhost:3000/api/spaces', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(spaceData)
-                });
-
-                result = await response.json();
-
-                if (response.ok && result.success) {
-                    alert('Spazio creato con successo!');
-                    console.log('✅ Space created successfully:', result.space);
-                } else {
-                    throw new Error(result.message || `HTTP error! status: ${response.status}`);
-                }
+                throw new Error(result.message || 'Errore nel salvataggio dello spazio');
             }
-
-            // Chiudi il modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('spaceModal'));
-            if (modal) {
-                modal.hide();
-            }
-
-            // Ricarica la lista degli spazi
-            loadSpaces(currentSpacesPage, getSpaceFilters());
 
         } catch (error) {
-            console.error('❌ Error saving space:', error);
-
-            let errorMessage = 'Errore durante il salvataggio dello spazio';
-
-            // Gestisci errori specifici
-            if (error.message.includes('già esiste')) {
-                errorMessage = 'Esiste già uno spazio con questo nome in questa città';
-            } else if (error.message.includes('not authorized') || error.message.includes('Non autorizzato')) {
-                errorMessage = 'Non hai i permessi per eseguire questa operazione';
-            } else if (error.message.includes('validation')) {
-                errorMessage = 'I dati inseriti non sono validi. Controlla tutti i campi obbligatori';
-            } else if (error.message) {
-                errorMessage = error.message;
-            }
-
-            alert(errorMessage);
-
-        } finally {
-            // Riabilita il pulsante
-            const saveButton = document.querySelector('#spaceModal .btn-primary');
-            if (saveButton) {
-                saveButton.disabled = false;
-                saveButton.innerHTML = '<i class="fas fa-save me-2"></i>Salva';
-            }
+            console.error('❌ Errore durante il salvataggio dello spazio:', error);
+            alert(`Errore: ${error.message}`);
         }
+    }
+
+    /**
+     * Mostra la tabella degli spazi con i dati ricevuti dal server.
+     */
+    function renderSpacesTable(spaces) {
+        const tableBody = document.getElementById('spacesTableBody');
+        if (!tableBody) return;
+
+        if (!spaces || spaces.length === 0) {
+            tableBody.innerHTML = `<tr><td colspan="7" class="text-center py-4">Nessuno spazio trovato.</td></tr>`;
+            return;
+        }
+
+        tableBody.innerHTML = spaces.map(space => {
+            const imageUrl = (space.images && Array.isArray(space.images) && space.images.length > 0 && space.images[0].startsWith('data:image'))
+            ? space.images[0]
+            : '/assets/images/placeholder-space.jpg';
+
+            return `
+                <tr data-space-id="${space.id}">
+                    <td>
+                        <img src="${imageUrl}" alt="${space.name}" style="width: 80px; height: 60px; object-fit: cover; border-radius: 8px;">
+                    </td>
+                    <td>
+                        <div class="fw-semibold">${space.name || 'N/A'}</div>
+                        <small class="text-muted">${space.city || 'N/A'}</small>
+                    </td>
+                    <td>${space.city || 'N/A'}</td>
+                    <td><span class="badge bg-primary">${space.type || 'N/A'}</span></td>
+                    <td>${space.capacity || 0} persone</td>
+                    <td>€${parseFloat(space.price_per_day || 0).toFixed(2)}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteSpace('${space.id}')" title="Elimina">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </td>
+                </tr>
+                `;
+        }).join('');
+    }
+
+        // ===============================================
+        // FUNZIONI HELPER PER LA GESTIONE IMMAGINI
+        // ===============================================
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const imageInput = document.getElementById('spaceImages');
+        const previewContainer = document.getElementById('imagePreviewContainer');
+        const previewGrid = document.getElementById('imagePreviewGrid');
+        const dropZone = document.getElementById('imageDropZone');
+        const spaceModal = document.getElementById('spaceModal');
+
+        if (imageInput && dropZone) {
+            imageInput.addEventListener('change', handleImageSelection);
+            dropZone.addEventListener('click', () => imageInput.click());
+            dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('border-primary'); });
+            dropZone.addEventListener('dragleave', e => { e.preventDefault(); dropZone.classList.remove('border-primary'); });
+            dropZone.addEventListener('drop', handleDrop);
+        }
+
+        if (spaceModal) {
+            spaceModal.addEventListener('hidden.bs.modal', hidePreview); // Pulisce le preview alla chiusura
+        }
+    });
+
+    function handleImageSelection(event) {
+        const files = Array.from(event.target.files);
+        if (files.length === 0) {
+            hidePreview();
+            return;
+        }
+        const validFiles = validateImageFiles(files);
+        if (validFiles.length > 0) {
+            selectedImages = validFiles;
+            showImagePreviews(validFiles);
+        } else {
+            hidePreview();
+        }
+    }
+
+    function handleDrop(event) {
+        event.preventDefault();
+        document.getElementById('imageDropZone').classList.remove('border-primary');
+        const files = Array.from(event.dataTransfer.files);
+        const imageInput = document.getElementById('spaceImages');
+        const dataTransfer = new DataTransfer();
+        files.forEach(file => dataTransfer.items.add(file));
+        imageInput.files = dataTransfer.files;
+        handleImageSelection({ target: imageInput });
+    }
+
+    function validateImageFiles(files) {
+        const maxFileSize = 5 * 1024 * 1024; // 5MB
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+        return files.filter(file => {
+            if (!allowedTypes.includes(file.type)) {
+                alert(`${file.name} non è un'immagine valida.`);
+                return false;
+            }
+            if (file.size > maxFileSize) {
+                alert(`${file.name} è troppo grande (max 5MB).`);
+                return false;
+            }
+            return true;
+        });
+    }
+
+    function showImagePreviews(files) {
+        const previewContainer = document.getElementById('imagePreviewContainer');
+        const previewGrid = document.getElementById('imagePreviewGrid');
+        previewContainer.classList.remove('d-none');
+        previewGrid.innerHTML = '';
+        files.forEach((file, index) => {
+            const reader = new FileReader();
+            reader.onload = e => {
+                previewGrid.innerHTML += `
+                        <div class="col-md-4 col-sm-6">
+                            <div class="card shadow-sm">
+                                <img src="${e.target.result}" class="card-img-top" style="height: 150px; object-fit: cover;">
+                                <div class="card-body p-2">
+                                    <button type="button" class="btn btn-sm btn-outline-danger w-100" onclick="removeImageAtIndex(${index})">
+                                        Rimuovi
+                                    </button>
+                                </div>
+                            </div>
+                        </div>`;
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function hidePreview() {
+        document.getElementById('imagePreviewContainer').classList.add('d-none');
+        document.getElementById('imagePreviewGrid').innerHTML = '';
+        document.getElementById('spaceImages').value = '';
+        selectedImages = [];
+    }
+
+    function removeImageAtIndex(index) {
+        selectedImages.splice(index, 1);
+        const imageInput = document.getElementById('spaceImages');
+        const dataTransfer = new DataTransfer();
+        selectedImages.forEach(file => dataTransfer.items.add(file));
+        imageInput.files = dataTransfer.files;
+        if (selectedImages.length > 0) {
+            showImagePreviews(selectedImages);
+        } else {
+            hidePreview();
+        }
+    }
+
+    function convertImagesToBase64() {
+        return Promise.all(selectedImages.map(file => fileToBase64(file)));
+    }
+
+    function fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = error => reject(error);
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function getSelectedServices() {
+        const services = [];
+        document.querySelectorAll('#spaceForm .form-check-input[id$="Service"]:checked').forEach(checkbox => {
+            services.push(checkbox.id.replace('Service', ''));
+        });
+        return services;
+    }
+
+    function getSelectedDays() {
+        const days = [];
+        document.querySelectorAll('#spaceForm .form-check-input[id^="day"]:checked').forEach(checkbox => {
+            days.push(checkbox.id.replace('day', ''));
+        });
+        return days;
     }
 
     function showAddSpaceModal() {

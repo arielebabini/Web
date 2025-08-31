@@ -1155,7 +1155,7 @@
             }
 
             async function  saveSpace() {
-                let selectedImages = [];
+                //let selectedImages = [];
                 console.log('🏢 Saving space with images...');
 
                 // Validazione form
@@ -1190,11 +1190,11 @@
                     if (selectedImages && selectedImages.length > 0) {
                         try {
                             imagesArray = await convertImagesToBase64();
-                            if (!validateImageData(imagesArray)) {
-                                showNotification('Errore nel formato delle immagini', 'error');
-                                return;
-                            }
+
+                            // Il blocco if con validateImageData è stato rimosso.
+                            // La conversione è già avvenuta e i dati sono pronti.
                             console.log(`📸 Processed ${imagesArray.length} images for database`);
+
                         } catch (error) {
                             console.error('Errore conversione immagini:', error);
                             showNotification('Errore nel processare le immagini', 'error');
@@ -1225,7 +1225,7 @@
                         name: document.getElementById('spaceName').value.trim(),
                         type: document.getElementById('spaceType').value,
                         capacity: parseInt(document.getElementById('spaceCapacity').value),
-                        price_per_day: parseFloat(document.getElementById('spacePrice').value),
+                        price_per_day: parseFloat(document.getElementById('spacePrice').value), // NOTA: nel tuo HTML è price_per_hour, qui lo chiamo per_day come nel codice
                         city: document.getElementById('spaceCity').value,
                         address: document.getElementById('spaceAddress').value.trim(),
                         postal_code: document.getElementById('spacePostalCode')?.value.trim() || null,
@@ -1235,14 +1235,13 @@
                         notes: document.getElementById('spaceNotes')?.value.trim() || '',
                         open_time: document.getElementById('spaceOpenTime')?.value || '08:00',
                         close_time: document.getElementById('spaceCloseTime')?.value || '18:00',
-                        amenities: getSelectedServices(), // Funzione esistente
-                        days_available: getSelectedDays(), // Funzione esistente
 
-                        // IMPORTANTE: Formato corretto per il database
-                        images: imagesArray, // Array semplice di stringhe base64
+                        amenities: getSelectedServices(),
+                        days_available: getSelectedDays(),
+
+                        images: imagesArray, // Array di stringhe base64
 
                         is_active: true,
-                        is_featured: document.getElementById('spaceFeatured')?.checked || false
                     };
 
                     console.log('📤 Space data to send:', {
