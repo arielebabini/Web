@@ -1599,33 +1599,6 @@ window.addEventListener('focus', () => {
     }
 });
 
-// ===== 5. DEBUG HELPER (rimuovi in produzione) =====
-window.debugAuthDetailed = function() {
-    const app = window.coworkspaceApp;
-    const token = localStorage.getItem('auth_token');
-    const user = localStorage.getItem('user');
-    const refreshToken = localStorage.getItem('refresh_token');
-    const justLoggedIn = localStorage.getItem('just_logged_in');
-
-    console.log('🔍 DETAILED AUTH DEBUG:', {
-        localStorage: {
-            auth_token: token ? `${token.substring(0, 20)}...` : null,
-            user_email: user ? JSON.parse(user).email : null,
-            refresh_token: refreshToken ? 'Present' : 'Missing',
-            just_logged_in: justLoggedIn
-        },
-        appState: app ? {
-            isAuthenticated: app.state.isAuthenticated,
-            currentUserEmail: app.state.currentUser?.email,
-            apiToken: app.state.api.token ? `${app.state.api.token.substring(0, 20)}...` : null
-        } : 'App not initialized',
-        consistency: {
-            tokensMatch: app && token && app.state.api.token === token,
-            userDataValid: app && user && app.state.currentUser?.email === JSON.parse(user).email
-        }
-    });
-};
-
 // ===== ESEMPIO DI INIZIALIZZAZIONE CORRETTA =====
 document.addEventListener('DOMContentLoaded', async function() {
     console.log('🚀 App starting with improved client auth handling...');

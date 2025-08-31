@@ -335,9 +335,6 @@
                         <p class="mb-0">Non hai un account?
                             <a href="#" onclick="switchToRegister()">Registrati qui</a>
                         </p>
-                        <a href="#" class="text-muted small" onclick="alert('Funzione di recupero password in arrivo!')">
-                            Hai dimenticato la password?
-                        </a>
                     </div>
                 </div>
             </div>
@@ -565,6 +562,51 @@
 
 
 <script>
+
+    const resetPasswordForm = document.getElementById('resetPasswordForm');
+    if (resetPasswordForm) {
+        resetPasswordForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            const email = document.getElementById('resetEmail').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmNewPassword = document.getElementById('confirmNewPassword').value;
+
+            // --- Validazione Frontend ---
+            if (!email || !newPassword || !confirmNewPassword) {
+                alert('Per favore, compila tutti i campi.');
+                return;
+            }
+
+            if (newPassword !== confirmNewPassword) {
+                alert('Le password non coincidono. Riprova.');
+                return;
+            }
+
+            // --- SIMULAZIONE QUERY DATABASE ---
+            // ATTENZIONE: Questa è solo una simulazione a scopo di sviluppo.
+            // La password non dovrebbe mai essere gestita o inviata in chiaro in questo modo.
+            console.log('--- 🚀 SIMULAZIONE AGGIORNAMENTO DATABASE ---');
+            console.log(`UPDATE users SET password = '[HASHED_PASSWORD]' WHERE email = '${email}';`);
+            console.log('Password in chiaro da "hashare":', newPassword);
+            console.log('-----------------------------------------');
+
+            // Chiudi il modal
+            const resetModal = bootstrap.Modal.getInstance(document.getElementById('resetPasswordModal'));
+            resetModal.hide();
+
+            // Mostra notifica di successo
+            if (window.coworkspaceApp && window.coworkspaceApp.showNotification) {
+                window.coworkspaceApp.showNotification('Password aggiornata con successo!', 'success');
+            } else {
+                alert('Password aggiornata con successo!');
+            }
+
+            // Pulisci i campi del form
+            resetPasswordForm.reset();
+        });
+    }
+
     function showProfile() {
         console.log('🔍 Opening profile modal...');
 

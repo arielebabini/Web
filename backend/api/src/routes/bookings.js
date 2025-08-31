@@ -126,9 +126,6 @@ router.post('/check-availability', async (req, res) => {
     try {
         const { space_id, startDate, endDate } = req.body;
 
-        // --- NUOVA LOGICA ---
-        // 1. Trova tutte le prenotazioni che si sovrappongono.
-        //    'findAll' è molto comune in ORM come Sequelize.
         const overlappingBookings = await Booking.findAll({
             where: {
                 space_id: space_id,
@@ -141,8 +138,6 @@ router.post('/check-availability', async (req, res) => {
             }
         });
 
-        // 2. Controlla se l'array risultante ha elementi.
-        //    Se la lunghezza è 0, non ci sono conflitti e lo spazio è disponibile.
         if (overlappingBookings.length > 0) {
             res.json({ isAvailable: false }); // Trovate prenotazioni in conflitto
         } else {
