@@ -372,7 +372,7 @@ api/src/
 ├── config/
 │   ├── database.js          # Connessione PostgreSQL
 │   ├── redis.js             # Cache (opzionale)
-│   └── swagger.js           # API documentation
+│   └── stripeConfig.js      # Configurazione per pagamento con Stripe
 ├── controllers/
 │   ├── authController.js    # Autenticazione
 │   ├── userController.js    # Gestione utenti
@@ -383,6 +383,7 @@ api/src/
 ├── middleware/
 │   ├── auth.js              # JWT authentication
 │   ├── roleAuth.js          # Role-based access
+│   ├── routeAdapter.js      # Route-based access
 │   └── errorHandler.js      # Error management
 ├── models/
 │   ├── User.js              # User data access
@@ -390,13 +391,16 @@ api/src/
 │   ├── Booking.js           # Booking data access
 │   └── Payment.js           # Payment data access
 ├── routes/
+│   ├── admin.js             # Admin endpoints
 │   ├── auth.js              # Auth endpoints
 │   ├── users.js             # User endpoints
 │   ├── spaces.js            # Space endpoints
 │   ├── bookings.js          # Booking endpoints
+│   ├── manager.js           # Manager endpoints
 │   ├── payments.js          # Payment endpoints
 │   └── analytics.js         # Analytics endpoints
 ├── services/
+│   ├── analyticsService.js  # Analytics notifications
 │   ├── emailService.js      # Email notifications
 │   └── stripeService.js     # Stripe integration
 └── utils/
