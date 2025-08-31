@@ -46,48 +46,44 @@ Frontend moderno per la piattaforma di prenotazione spazi di coworking. Un'appli
 frontend/
 ├── assets/
 │   ├── css/
-│   │   ├── admin.css           # Stili admin dashboard
+│   │   ├── variables.css       # Definizione variabili globali
+│   │   ├── spaces.css          # Stili per gli spazi
+│   │   ├── responsive.css      # Stili per responsive pagna
+│   │   ├── layout.css          # Stili layout pagina
+│   │   ├── animation.css       # Stili per animazione
 │   │   ├── style.css           # Stili principali
 │   │   └── components.css      # Stili componenti
 │   ├── js/
-│   │   ├── app.js             # Entry point principale
-│   │   ├── api.js             # Client API e HTTP requests
-│   │   ├── auth.js            # Sistema autenticazione
-│   │   ├── components.js      # Componenti UI riutilizzabili
-│   │   ├── config.js          # Configurazioni globali
-│   │   ├── navigation.js      # Sistema di navigazione
-│   │   ├── notification.js    # Sistema notifiche
-│   │   ├── spaces.js          # Gestione spazi coworking
-│   │   ├── user.js            # Gestione profilo utente
-│   │   └── utils.js           # Utility e helpers
-│   └── images/
-│       ├── icons/             # Icone applicazione
-│       ├── logos/             # Logo e branding
-│       └── spaces/            # Immagini spazi (placeholder)
+│   │   ├── app.js                                 # Entry point principale
+│   │   ├── admin.js                               # Sistema gestione admin
+│   │   ├── admin-controller.js                    # Controller dell'admin
+│   │   ├── admin-dashboard-loader.js              # Sistema dashboard per admin
+│   │   ├── api.js                                 # Client API e HTTP requests
+│   │   ├── auth.js                # Sistema autenticazione
+│   │   ├── booking.js             # Componente gestione prenotazione
+│   │   ├── booking-payment.js     # Componente per gestione pagamenti
+│   │   ├── components.js          # Componenti UI riutilizzabili
+│   │   ├── config.js              # Configurazioni globali
+│   │   ├── dashboard.js           # Sistema di controllo
+│   │   ├── navigation.js          # Sistema di navigazione
+│   │   ├── notification.js        # Sistema notifiche
+│   │   ├── spaces.js              # Gestione spazi coworking
+│   │   ├── support.js            # Sistema per il supporto
+│   │   ├── user.js                # Gestione profilo utente
+│   │   └── utils.js               # Utility e helpers
 ├── components/
 │   ├── navbar.html            # Barra di navigazione
 │   ├── footer.html            # Footer globale
-│   ├── modals.html            # Modali riutilizzabili
-│   └── sidebar.html           # Sidebar admin
-├── pages/
-│   ├── index.html             # Homepage
+├── template/
 │   ├── spaces.html            # Catalogo spazi
-│   ├── booking.html           # Pagina prenotazioni
-│   ├── profile.html           # Profilo utente
+│   ├── about.html             # Pagina informazioni
+│   ├── dashboard.html         # Pagina home
+│   ├── manager-dashboard.html # Controllo dashboard
+│   ├── support.html           # Pagina supporto utente
 │   ├── admin-dashboard.html   # Dashboard amministratore
 │   └── about.html             # Pagina chi siamo
-├── docs/
-│   ├── api-reference.md       # Documentazione API
-│   ├── components.md          # Guida componenti
-│   └── deployment.md          # Guida deploy
-├── tests/
-│   ├── unit/                  # Test unitari
-│   ├── integration/           # Test integrazione
-│   └── e2e/                   # Test end-to-end
-├── .env.example               # Variabili ambiente example
-├── package.json               # Dipendenze e scripts
+├── index.html                 # Homepage
 ├── README.md                  # Questo file
-└── server.js                  # Server sviluppo (opzionale)
 ```
 
 ## 🚀 Installazione
@@ -340,35 +336,6 @@ navigateTo('#/space/123');
 navigateTo('#/bookings', { filter: 'active' });
 ```
 
-## 🔐 Autenticazione
-
-### Gestione Token JWT
-```javascript
-class AuthManager {
-    constructor(apiClient) {
-        this.api = apiClient;
-        this.token = localStorage.getItem('auth_token');
-        this.user = null;
-    }
-    
-    async login(credentials) {
-        const response = await this.api.login(credentials);
-        if (response.success) {
-            this.setToken(response.token);
-            this.user = response.user;
-            this.updateUI();
-        }
-        return response;
-    }
-    
-    setToken(token) {
-        this.token = token;
-        localStorage.setItem('auth_token', token);
-        this.api.setAuthToken(token);
-    }
-}
-```
-
 ### Protezione Rotte
 ```javascript
 // Middleware per rotte protette
@@ -478,19 +445,7 @@ function loadState(key) {
         margin: 0 auto;
     }
 }
-```
 
-### Dark Mode Support
-```css
-:root {
-    --bg-primary: #ffffff;
-    --text-primary: #333333;
-}
-
-[data-theme="dark"] {
-    --bg-primary: #1a1a1a;
-    --text-primary: #ffffff;
-}
 ```
 
 ### Loading States
@@ -521,142 +476,6 @@ function showError(container, message, retry = null) {
 }
 ```
 
-## 🧪 Testing
-
-### Test Structure
-```
-tests/
-├── unit/
-│   ├── utils.test.js
-│   ├── api.test.js
-│   └── components.test.js
-├── integration/
-│   ├── auth-flow.test.js
-│   └── booking-flow.test.js
-└── e2e/
-    ├── user-journey.test.js
-    └── admin-workflow.test.js
-```
-
-### Running Tests
-```bash
-# Test unitari
-npm run test:unit
-
-# Test integrazione
-npm run test:integration
-
-# Test end-to-end
-npm run test:e2e
-
-# Tutti i test
-npm test
-
-# Test con coverage
-npm run test:coverage
-```
-
-### Test Examples
-```javascript
-// Test unitario
-describe('Utils', () => {
-    test('formatPrice should format correctly', () => {
-        expect(formatPrice(1234.56)).toBe('€ 1.234,56');
-    });
-});
-
-// Test integrazione
-describe('Auth Flow', () => {
-    test('should login successfully', async () => {
-        const response = await api.login({
-            email: 'test@example.com',
-            password: 'password123'
-        });
-        expect(response.success).toBe(true);
-    });
-});
-```
-
-## 🚀 Deploy
-
-### Build per Produzione
-```bash
-# Ottimizzazione assets
-npm run build
-
-# Compressione immagini
-npm run optimize:images
-
-# Minificazione CSS/JS
-npm run minify
-
-# Build completa
-npm run build:prod
-```
-
-### Deploy su Netlify
-```bash
-# Installazione CLI
-npm install -g netlify-cli
-
-# Deploy
-netlify deploy --prod --dir=dist
-```
-
-### Deploy su Vercel
-```bash
-# Installazione CLI
-npm install -g vercel
-
-# Deploy
-vercel --prod
-```
-
-### Deploy su AWS S3
-```bash
-# Sync con S3
-aws s3 sync dist/ s3://your-bucket-name --delete
-
-# CloudFront invalidation
-aws cloudfront create-invalidation --distribution-id YOUR_ID --paths "/*"
-```
-
-### Configurazione Nginx
-```nginx
-server {
-    listen 80;
-    server_name yourdomain.com;
-    root /var/www/coworkspace-frontend;
-    index index.html;
-
-    # SPA routing
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-
-    # Cache static assets
-    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg)$ {
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-    }
-}
-```
-
-## 🤝 Contribuire
-
-### Getting Started
-1. Fork il repository
-2. Crea un branch per la tua feature: `git checkout -b feature/amazing-feature`
-3. Commita le modifiche: `git commit -m 'Add amazing feature'`
-4. Push al branch: `git push origin feature/amazing-feature`
-5. Apri una Pull Request
-
-### Coding Standards
-- **ESLint**: Configura ESLint per mantenere consistenza del codice
-- **Prettier**: Formattazione automatica
-- **Naming Conventions**: camelCase per JS, kebab-case per CSS
-- **Comments**: JSDoc per funzioni pubbliche
-
 ### Git Workflow
 ```bash
 # Mantieni il fork aggiornato
@@ -673,25 +492,3 @@ git commit -m "feat: add new space filtering option"
 git commit -m "fix: resolve booking date validation issue"
 git commit -m "docs: update API documentation"
 ```
-
-### Code Review Process
-- Ogni PR deve essere reviewata da almeno 1 maintainer
-- Tests devono passare
-- Coverage non deve diminuire
-- Documentazione deve essere aggiornata se necessario
-
-## 📄 License
-
-Questo progetto è distribuito sotto la licenza MIT. Vedi il file [LICENSE](LICENSE) per i dettagli.
-
----
-
-## 📞 Supporto
-
-- **Documentation**: [docs/](docs/)
-- **Issues**: [GitHub Issues](https://github.com/yourusername/coworkspace-frontend/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/coworkspace-frontend/discussions)
-
----
-
-**Made with ❤️ by the CoWorkSpace Team**
