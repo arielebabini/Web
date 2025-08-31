@@ -15,10 +15,6 @@ Frontend moderno per la piattaforma di prenotazione spazi di coworking. Un'appli
 - [Autenticazione](#-autenticazione)
 - [Gestione dello Stato](#-gestione-dello-stato)
 - [UI/UX Features](#-uiux-features)
-- [Testing](#-testing)
-- [Deploy](#-deploy)
-- [Contribuire](#-contribuire)
-- [License](#-license)
 
 ## ✨ Caratteristiche
 
