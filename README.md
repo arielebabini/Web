@@ -176,7 +176,6 @@ Le tabelle sono collegate tramite chiavi esterne (`FOREIGN KEY`) per mantenere l
 * Un `user` (con ruolo 'manager') può gestire più `spaces`. (`spaces.manager_id` -> `users.id`)
 * Un `user` può effettuare più `bookings`. (`bookings.user_id` -> `users.id`)
 * Uno `space` può essere oggetto di più `bookings`. (`bookings.space_id` -> `spaces.id`)
-* Una `booking` ha una sola `review`. (`reviews.booking_id` -> `bookings.id`)
 * Una `booking` ha uno o più `payments`. (`payments.booking_id` -> `bookings.id`)
 * Uno `space` può avere più voci di `space_availability`. (`space_availability.space_id` -> `spaces.id`)
 * Un `user` può ricevere più `notifications`. (`notifications.user_id` -> `users.id`)
