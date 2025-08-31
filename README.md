@@ -57,7 +57,8 @@ Strumenti:
 │   │   ├── models/              # Data access layer
 │   │   ├── routes/              # API routes
 │   │   ├── services/            # Business logic (Stripe, Email)
-│   │   └── utils/               # Utilities & logging
+│   │   ├── utils/               # Utilities & logging
+│   │   └── app.js/              # File principale per server
 │   └── Dockerfile
 ├── database/
 │   └── init/                    # SQL migration files
