@@ -1,6 +1,6 @@
-/* ===== VARIABILI CSS COWORKSPACE ===== */
+/* ===== VARIABILI CSS MODERNE ===== */
 :root {
-    /* Palette Colori Principale - Identica alla prima immagine */
+    /* Palette Colori Moderna */
     --primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     --primary-solid: #667eea;
     --primary-dark: #5a67d8;
@@ -52,114 +52,15 @@
     --transition-fast: 0.15s ease-out;
     --transition-base: 0.3s ease-out;
     --transition-slow: 0.5s ease-out;
-
-    /* Z-index Scale */
-    --z-dropdown: 1000;
-    --z-sticky: 1020;
-    --z-fixed: 1030;
-    --z-modal-backdrop: 1040;
-    --z-modal: 1050;
-    --z-popover: 1060;
-    --z-tooltip: 1070;
-    --z-toast: 1080;
-
-    /* Spacing Scale */
-    --space-xs: 0.25rem;
-    --space-sm: 0.5rem;
-    --space-md: 1rem;
-    --space-lg: 1.5rem;
-    --space-xl: 2rem;
-    --space-2xl: 2.5rem;
-    --space-3xl: 3rem;
-    --space-4xl: 4rem;
-    --space-5xl: 5rem;
-    --space-6xl: 6rem;
 }
 
-/* ===== RESET CSS MODERNO ===== */
-*,
-*::before,
-*::after {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-}
-
-html {
-    scroll-behavior: smooth;
-    font-size: 16px;
-    height: 100%;
-}
-
-body {
-    font-family: var(--font-sans);
-    font-size: 16px;
-    line-height: 1.6;
-    color: var(--gray-800);
-    background: var(--gray-50);
-    min-height: 100vh;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    margin: 0;
-    padding: 0;
-}
-
-/* ===== UTILITY CLASSES GLOBALI ===== */
-.text-gradient {
-    background: var(--primary);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-
-.bg-glass {
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.border-gradient {
-    border: 2px solid transparent;
-    background: linear-gradient(white, white) padding-box, var(--primary) border-box;
-}
-
-/* ===== ACCESSIBILITY ===== */
-@media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
+/* ===== DARK MODE SUPPORT ===== */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --gray-50: #1f2937;
+        --gray-100: #374151;
+        --gray-200: #4b5563;
+        --gray-800: #f9fafb;
+        --gray-900: #ffffff;
     }
-}
-
-button:focus-visible,
-input:focus-visible,
-select:focus-visible,
-textarea:focus-visible,
-a:focus-visible {
-    outline: 2px solid var(--primary-solid);
-    outline-offset: 2px;
-    border-radius: var(--radius-sm);
-}
-
-/* ===== SCROLLBAR PERSONALIZZATA ===== */
-::-webkit-scrollbar {
-    width: 12px;
-}
-
-::-webkit-scrollbar-track {
-    background: var(--gray-100);
-    border-radius: var(--radius-md);
-}
-
-::-webkit-scrollbar-thumb {
-    background: var(--primary);
-    border-radius: var(--radius-md);
-    border: 2px solid var(--gray-100);
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: var(--primary-dark);
 }

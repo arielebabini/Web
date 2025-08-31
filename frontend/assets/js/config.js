@@ -1,230 +1,241 @@
 /**
- * CoWorkSpace - Configuration
- * Configurazione generale dell'applicazione
+ * CoWorkSpace - Configuration Module
  */
 
-window.Config = {
-    // Informazioni applicazione
-    app: {
-        name: 'CoWorkSpace',
-        version: '1.0.0',
-        description: 'Piattaforma per la gestione di spazi coworking',
-        environment: window.location.hostname === 'localhost' ? 'development' : 'production'
+// ===== CONFIGURAZIONE GLOBALE =====
+const AppConfig = {
+    // Info Applicazione
+    appName: 'CoWorkSpace',
+    appVersion: '1.0.0',
+    appDescription: 'Piattaforma per la prenotazione di spazi di coworking in Italia',
+
+    // URL e Percorsi
+    baseUrl: window.location.origin,
+    apiUrl: window.location.origin + '/api',
+    assetsPath: '/assets',
+    imagesPath: '/assets/images',
+
+    // Percorsi pagine
+    pages: {
+        home: 'index.html',
+        spaces: 'spaces.html',
+        about: 'about.html',
+        support: 'support.html',
+        profile: 'profile.html',
+        bookings: 'bookings.html',
+        dashboard: 'dashboard.html'
     },
 
-    // API Configuration (per futuro backend)
+    // Configurazione Storage
+    storage: {
+        prefix: 'coworkspace_',
+        userKey: 'coworkspace_user',
+        settingsKey: 'coworkspace_settings',
+        searchKey: 'coworkspace_search',
+        bookingsKey: 'coworkspace_bookings'
+    },
+
+    // Configurazione Cookies
+    cookies: {
+        acceptedKey: 'cookiesAccepted',
+        sessionKey: 'sessionId',
+        expireDays: 30
+    },
+
+    // Configurazione Notifiche
+    notifications: {
+        duration: 4000,
+        position: 'top-right',
+        autoHide: true
+    },
+
+    // Configurazione Mappa
+    map: {
+        defaultZoom: 1,
+        minZoom: 0.8,
+        maxZoom: 2,
+        animationDuration: 300
+    },
+
+    // Configurazione Prezzi
+    pricing: {
+        currency: 'EUR',
+        locale: 'it-IT',
+        vatRate: 0.22,
+        serviceFee: 0.10
+    },
+
+    // Configurazione Date
+    dates: {
+        locale: 'it-IT',
+        timezone: 'Europe/Rome',
+        format: 'DD/MM/YYYY',
+        timeFormat: 'HH:mm'
+    },
+
+    // Validazione Form
+    validation: {
+        passwordMinLength: 8,
+        passwordRequireUppercase: true,
+        passwordRequireLowercase: true,
+        passwordRequireNumber: true,
+        phonePattern: /^(\+39)?\s?3\d{2}\s?\d{6,7}$/,
+        emailPattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    },
+
+    // Limiti
+    limits: {
+        maxFileSize: 5 * 1024 * 1024, // 5MB
+        maxImages: 10,
+        maxBookingDays: 365,
+        minBookingHours: 1,
+        maxCapacity: 100
+    },
+
+    // Città disponibili
+    cities: [
+        'Milano',
+        'Roma',
+        'Torino',
+        'Napoli',
+        'Bologna',
+        'Firenze',
+        'Venezia',
+        'Genova',
+        'Palermo',
+        'Bari',
+        'Catania',
+        'Verona'
+    ],
+
+    // Tipi di spazio
+    spaceTypes: {
+        'hot-desk': 'Hot Desk',
+        'private-office': 'Ufficio Privato',
+        'meeting-room': 'Sala Riunioni',
+        'event-space': 'Spazio Eventi',
+        'conference-room': 'Sala Conferenze',
+        'coworking': 'Spazio Coworking'
+    },
+
+    // Servizi disponibili
+    amenities: {
+        'wifi': { label: 'WiFi', icon: 'fas fa-wifi' },
+        'parking': { label: 'Parcheggio', icon: 'fas fa-car' },
+        'coffee': { label: 'Caffè', icon: 'fas fa-coffee' },
+        'printer': { label: 'Stampante', icon: 'fas fa-print' },
+        'projector': { label: 'Proiettore', icon: 'fas fa-video' },
+        'kitchen': { label: 'Cucina', icon: 'fas fa-utensils' },
+        'reception': { label: 'Reception', icon: 'fas fa-concierge-bell' },
+        'locker': { label: 'Armadietti', icon: 'fas fa-lock' },
+        'phone-booth': { label: 'Phone Booth', icon: 'fas fa-phone' },
+        'meeting-room': { label: 'Sale Riunioni', icon: 'fas fa-users' },
+        'event-space': { label: 'Spazio Eventi', icon: 'fas fa-calendar' },
+        'accessible': { label: 'Accessibile', icon: 'fas fa-wheelchair' }
+    },
+
+    // Orari disponibili
+    workingHours: {
+        start: '08:00',
+        end: '20:00',
+        slots: [
+            '08:00', '09:00', '10:00', '11:00', '12:00',
+            '13:00', '14:00', '15:00', '16:00', '17:00',
+            '18:00', '19:00', '20:00'
+        ]
+    },
+
+    // Messaggi di sistema
+    messages: {
+        loginSuccess: 'Login effettuato con successo',
+        loginError: 'Email o password non corretti',
+        registerSuccess: 'Registrazione completata con successo',
+        registerError: 'Errore durante la registrazione',
+        bookingSuccess: 'Prenotazione effettuata con successo',
+        bookingError: 'Errore durante la prenotazione',
+        updateSuccess: 'Aggiornamento completato',
+        updateError: 'Errore durante l\'aggiornamento',
+        deleteSuccess: 'Eliminazione completata',
+        deleteError: 'Errore durante l\'eliminazione',
+        networkError: 'Errore di connessione',
+        genericError: 'Si è verificato un errore',
+        loading: 'Caricamento in corso...',
+        noResults: 'Nessun risultato trovato',
+        confirmDelete: 'Sei sicuro di voler eliminare?',
+        confirmLogout: 'Sei sicuro di voler uscire?'
+    },
+
+    // Configurazione API (mock per ora)
     api: {
-        baseUrl: window.location.hostname === 'localhost'
-            ? 'http://localhost:3000/api'
-            : 'https://api.coworkspace.it',
-        timeout: 10000,
+        timeout: 30000,
         retryAttempts: 3,
         endpoints: {
-            auth: {
-                login: '/auth/login',
-                register: '/auth/register',
-                logout: '/auth/logout',
-                refresh: '/auth/refresh'
-            },
-            spaces: {
-                list: '/spaces',
-                search: '/spaces/search',
-                detail: '/spaces/:id',
-                book: '/spaces/:id/book'
-            },
-            bookings: {
-                list: '/bookings',
-                create: '/bookings',
-                update: '/bookings/:id',
-                cancel: '/bookings/:id/cancel'
-            },
-            users: {
-                profile: '/users/profile',
-                update: '/users/profile'
-            }
-        }
-    },
-
-    // UI Configuration
-    ui: {
-        theme: 'light',
-        language: 'it-IT',
-        currency: 'EUR',
-        dateFormat: 'DD/MM/YYYY',
-        timeFormat: '24h',
-        notifications: {
-            position: 'top-right',
-            duration: 4000,
-            maxVisible: 5
-        },
-        animations: {
-            enabled: true,
-            duration: 300,
-            easing: 'ease-out'
+            login: '/api/auth/login',
+            register: '/api/auth/register',
+            logout: '/api/auth/logout',
+            profile: '/api/user/profile',
+            spaces: '/api/spaces',
+            bookings: '/api/bookings',
+            reviews: '/api/reviews'
         }
     },
 
     // Feature Flags
     features: {
-        authentication: true,
-        booking: true,
-        payments: false, // Disabilitato per demo
-        reviews: false,  // Disabilitato per demo
-        chat: false,     // Disabilitato per demo
-        notifications: true,
-        darkMode: false, // Per futuro sviluppo
-        pwa: false,      // Per futuro sviluppo
-        maps: true,
-        analytics: window.location.hostname !== 'localhost'
+        enableChat: false,
+        enablePayments: true,
+        enableReviews: true,
+        enableSocialLogin: false,
+        enableNotifications: true,
+        enableAnalytics: false,
+        enableMaps: true,
+        enableDarkMode: false
     },
 
-    // Storage Configuration
-    storage: {
-        prefix: 'coworkspace_',
-        keys: {
-            user: 'user',
-            auth_token: 'auth_token',
-            preferences: 'preferences',
-            search_history: 'search_history',
-            cookies_accepted: 'cookies_accepted'
-        },
-        expiry: {
-            auth_token: 7 * 24 * 60 * 60 * 1000, // 7 giorni
-            search_history: 30 * 24 * 60 * 60 * 1000, // 30 giorni
-            preferences: 365 * 24 * 60 * 60 * 1000 // 1 anno
-        }
-    },
-
-    // Validation Rules
-    validation: {
-        email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-        password: {
-            minLength: 8,
-            requireUppercase: true,
-            requireLowercase: true,
-            requireNumbers: true,
-            requireSpecialChars: false
-        },
-        phone: /^[\+]?[1-9][\d]{0,15}$/,
-        name: {
-            minLength: 2,
-            maxLength: 50,
-            pattern: /^[a-zA-ZÀ-ÿ\s''-]*$/
-        }
-    },
-
-    // Maps Configuration
-    maps: {
-        italy: {
-            center: { lat: 41.8719, lng: 12.5674 }, // Roma
-            zoom: 6,
-            cities: [
-                { name: 'Milano', lat: 45.4642, lng: 9.1900, spaces: 2 },
-                { name: 'Roma', lat: 41.9028, lng: 12.4964, spaces: 1 },
-                { name: 'Torino', lat: 45.0703, lng: 7.6869, spaces: 1 },
-                { name: 'Bologna', lat: 44.4949, lng: 11.3426, spaces: 1 },
-                { name: 'Firenze', lat: 43.7696, lng: 11.2558, spaces: 0 },
-                { name: 'Napoli', lat: 40.8518, lng: 14.2681, spaces: 0 },
-                { name: 'Venezia', lat: 45.4408, lng: 12.3155, spaces: 0 },
-                { name: 'Genova', lat: 44.4056, lng: 8.9463, spaces: 0 }
-            ]
-        }
-    },
-
-    // Error Messages
-    messages: {
-        errors: {
-            generic: 'Si è verificato un errore. Riprova più tardi.',
-            network: 'Errore di connessione. Controlla la tua connessione internet.',
-            validation: 'Controlla i dati inseriti e riprova.',
-            authentication: 'Credenziali non valide.',
-            authorization: 'Non hai i permessi per questa operazione.',
-            notFound: 'Risorsa non trovata.',
-            timeout: 'Richiesta scaduta. Riprova più tardi.'
-        },
-        success: {
-            login: 'Login effettuato con successo!',
-            register: 'Registrazione completata con successo!',
-            logout: 'Logout effettuato con successo.',
-            booking: 'Prenotazione effettuata con successo!',
-            update: 'Aggiornamento completato con successo.',
-            delete: 'Eliminazione completata con successo.'
-        },
-        info: {
-            loading: 'Caricamento in corso...',
-            noResults: 'Nessun risultato trovato.',
-            demo: 'Questa è una versione demo dell\'applicazione.'
-        }
-    },
-
-    // Performance Configuration
-    performance: {
-        lazyLoading: true,
-        imageOptimization: true,
-        caching: {
-            enabled: true,
-            duration: 5 * 60 * 1000 // 5 minuti
-        },
-        debounceDelay: 300,
-        throttleDelay: 100
-    },
-
-    // Security Configuration
-    security: {
-        sessionTimeout: 30 * 60 * 1000, // 30 minuti
-        maxLoginAttempts: 5,
-        lockoutDuration: 15 * 60 * 1000, // 15 minuti
-        csrfProtection: true,
-        xssProtection: true
-    },
-
-    // Analytics Configuration (per futuro)
-    analytics: {
-        enabled: false,
-        provider: 'google',
-        trackingId: 'GA_TRACKING_ID',
-        events: {
-            pageView: true,
-            userInteraction: true,
-            errors: true,
-            performance: true
-        }
-    },
-
-    // Social Media Links
-    social: {
-        facebook: 'https://facebook.com/coworkspace',
-        twitter: 'https://twitter.com/coworkspace',
-        linkedin: 'https://linkedin.com/company/coworkspace',
-        instagram: 'https://instagram.com/coworkspace'
-    },
-
-    // Support Configuration
-    support: {
-        email: 'support@coworkspace.it',
-        phone: '+39 02 1234567',
-        hours: 'Lun-Ven 9:00-18:00',
-        chat: false // Per futuro
-    },
-
-    // Debug Configuration
+    // Debug
     debug: {
-        enabled: window.location.hostname === 'localhost',
-        logLevel: window.location.hostname === 'localhost' ? 'debug' : 'error',
-        showPerformance: window.location.hostname === 'localhost',
-        mockData: true
+        enabled: true,
+        logLevel: 'info', // 'error', 'warn', 'info', 'debug'
+        showNotifications: true
     }
 };
 
-// Freeze configuration per prevenire modifiche accidentali
-Object.freeze(window.Config);
+// Funzione per ottenere configurazione
+function getConfig(path) {
+    const keys = path.split('.');
+    let value = AppConfig;
 
-// Export per Node.js se necessario
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = window.Config;
+    for (const key of keys) {
+        value = value[key];
+        if (value === undefined) return null;
+    }
+
+    return value;
 }
 
-// Log configurazione in development
-if (window.Config.debug.enabled) {
-    console.log('🔧 Configuration loaded:', window.Config);
+// Funzione per aggiornare configurazione
+function updateConfig(path, newValue) {
+    const keys = path.split('.');
+    let obj = AppConfig;
+
+    for (let i = 0; i < keys.length - 1; i++) {
+        if (!obj[keys[i]]) {
+            obj[keys[i]] = {};
+        }
+        obj = obj[keys[i]];
+    }
+
+    obj[keys[keys.length - 1]] = newValue;
+}
+
+// Congela la configurazione per evitare modifiche accidentali
+Object.freeze(AppConfig);
+
+// Export
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        AppConfig,
+        getConfig,
+        updateConfig
+    };
 }

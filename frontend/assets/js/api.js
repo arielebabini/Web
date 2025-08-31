@@ -1,250 +1,192 @@
 /**
- * CoWorkSpace - API Manager
- * Gestione delle chiamate API e comunicazione con il backend
+ * CoWorkSpace API Client
+ * Handles all communication with the backend API
+ * Includes authentication, error handling, and retry logic
  */
 
-window.API = {
-    /**
-     * Stato del modulo
-     */
-    state: {
-        initialized: false,
-        baseURL: '',
-        defaultHeaders: {},
-        interceptors: {
-            request: [],
-            response: []
+// ==================== CONFIGURATION ====================
+const API_CONFIG = {
+    baseUrl: (() => {
+        // Auto-detect backend URL based on environment
+        const hostname = window.location.hostname;
+
+        if (hostname === 'localhost' || hostname === '127.0.0.1') {
+            return 'http://localhost:3000';
+        }
+
+        // For Docker or production
+        return `http://${hostname}:3000`;
+    })(),
+
+    endpoints: {
+        // System
+        health: '/api/health',
+
+        // Authentication
+        auth: {
+            test: '/api/auth/test',
+            login: '/api/auth/login',
+            register: '/api/auth/register',
+            refresh: '/api/auth/refresh',
+            logout: '/api/auth/logout',
+            forgotPassword: '/api/auth/forgot-password',
+            resetPassword: '/api/auth/reset-password'
         },
-        cache: new Map(),
-        retryAttempts: 3,
-        retryDelay: 1000
-    },
 
-    /**
-     * Configurazione
-     */
-    config: {
-        timeout: 30000,
-        retryAttempts: 3,
-        retryDelay: 1000,
-        cacheTimeout: 300000, // 5 minuti
-        endpoints: {
-            auth: {
-                login: '/api/auth/login',
-                register: '/api/auth/register',
-                logout: '/api/auth/logout',
-                refresh: '/api/auth/refresh',
-                verify: '/api/auth/verify'
-            },
-            users: {
-                profile: '/api/users/profile',
-                settings: '/api/users/settings',
-                bookings: '/api/users/bookings',
-                favorites: '/api/users/favorites'
-            },
-            spaces: {
-                list: '/api/spaces',
-                search: '/api/spaces/search',
-                details: '/api/spaces/:id',
-                reviews: '/api/spaces/:id/reviews',
-                availability: '/api/spaces/:id/availability'
-            },
-            bookings: {
-                create: '/api/bookings',
-                list: '/api/bookings',
-                details: '/api/bookings/:id',
-                cancel: '/api/bookings/:id/cancel',
-                update: '/api/bookings/:id'
-            }
+        // Users
+        users: {
+            profile: '/api/users/profile',
+            update: '/api/users/profile',
+            list: '/api/users',
+            get: '/api/users/:id',
+            delete: '/api/users/:id',
+            updateRole: '/api/users/:id/role'
+        },
+
+        // Spaces
+        spaces: {
+            list: '/api/spaces',
+            get: '/api/spaces/:id',
+            create: '/api/spaces',
+            update: '/api/spaces/:id',
+            delete: '/api/spaces/:id',
+            search: '/api/spaces/search',
+            availability: '/api/spaces/:id/availability',
+            images: '/api/spaces/:id/images'
+        },
+
+        // Bookings
+        bookings: {
+            list: '/api/bookings',
+            get: '/api/bookings/:id',
+            create: '/api/bookings',
+            update: '/api/bookings/:id',
+            cancel: '/api/bookings/:id/cancel',
+            confirm: '/api/bookings/:id/confirm',
+            my: '/api/bookings/my',
+            upcoming: '/api/bookings/upcoming',
+            history: '/api/bookings/history'
+        },
+
+        // Payments
+        payments: {
+            createIntent: '/api/payments/create-intent',
+            confirm: '/api/payments/confirm',
+            refund: '/api/payments/refund',
+            history: '/api/payments/history',
+            methods: '/api/payments/methods',
+            webhook: '/api/payments/webhook'
+        },
+
+        // Analytics
+        analytics: {
+            dashboard: '/api/analytics/dashboard',
+            spaces: '/api/analytics/spaces',
+            bookings: '/api/analytics/bookings',
+            revenue: '/api/analytics/revenue',
+            users: '/api/analytics/users'
         }
     },
 
-    /**
-     * Inizializza il modulo API
-     */
-    async init() {
+    timeout: 15000,
+    retries: 3,
+    retryDelay: 1000
+};
+
+// ==================== API CLIENT CLASS ====================
+class ApiClient {
+    constructor() {
+        this.config = API_CONFIG;
+        this.token = this.getStoredToken();
+        this.refreshPromise = null;
+        this.requestQueue = [];
+        this.isRefreshing = false;
+
+        // Initialize event listeners
+        this.setupEventListeners();
+
+        console.log('🔌 ApiClient initialized:', {
+            baseUrl: this.config.baseUrl,
+            hasToken: !!this.token
+        });
+    }
+
+    // ==================== EVENT LISTENERS ====================
+
+    setupEventListeners() {
+        // Listen for auth events
+        window.addEventListener('auth:login', (event) => {
+            this.token = event.detail.token;
+        });
+
+        window.addEventListener('auth:logout', () => {
+            this.token = null;
+        });
+
+        // Network status monitoring
+        window.addEventListener('online', () => {
+            console.log('📶 Network reconnected');
+            this.retryQueuedRequests();
+        });
+
+        window.addEventListener('offline', () => {
+            console.log('📵 Network disconnected');
+        });
+    }
+
+    // ==================== TOKEN MANAGEMENT ====================
+
+    getStoredToken() {
         try {
-            console.log('🌐 Initializing API Manager...');
-
-            // Imposta URL base
-            this.setBaseURL(window.CoWorkSpaceConfig?.api?.baseURL || '/api');
-
-            // Imposta headers di default
-            this.setDefaultHeaders({
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            });
-
-            // Setup interceptors di base
-            this.setupDefaultInterceptors();
-
-            // Test connessione
-            await this.testConnection();
-
-            this.state.initialized = true;
-            console.log('✅ API Manager initialized');
-
-            return true;
-
+            return localStorage.getItem('auth_token');
         } catch (error) {
-            console.error('❌ Failed to initialize API Manager:', error);
-            return false;
+            console.warn('Could not access localStorage:', error);
+            return null;
         }
-    },
+    }
 
-    /**
-     * Imposta URL base per le API
-     */
-    setBaseURL(url) {
-        this.state.baseURL = url.endsWith('/') ? url.slice(0, -1) : url;
-    },
-
-    /**
-     * Imposta headers di default
-     */
-    setDefaultHeaders(headers) {
-        this.state.defaultHeaders = { ...this.state.defaultHeaders, ...headers };
-    },
-
-    /**
-     * Aggiunge header di autenticazione
-     */
-    setAuthHeader(token) {
-        if (token) {
-            this.state.defaultHeaders['Authorization'] = `Bearer ${token}`;
-        } else {
-            delete this.state.defaultHeaders['Authorization'];
-        }
-    },
-
-    /**
-     * Setup interceptors di default
-     */
-    setupDefaultInterceptors() {
-        // Request interceptor per aggiungere token
-        this.addRequestInterceptor((config) => {
-            const token = window.Utils?.storage?.get('auth_token');
+    setToken(token) {
+        this.token = token;
+        try {
             if (token) {
-                config.headers = config.headers || {};
-                config.headers['Authorization'] = `Bearer ${token}`;
+                localStorage.setItem('auth_token', token);
+            } else {
+                localStorage.removeItem('auth_token');
+                localStorage.removeItem('refresh_token');
+                localStorage.removeItem('user_data');
             }
-            return config;
-        });
+        } catch (error) {
+            console.warn('Could not access localStorage:', error);
+        }
+    }
 
-        // Response interceptor per gestire errori comuni
-        this.addResponseInterceptor(
-            (response) => response,
-            (error) => this.handleResponseError(error)
-        );
-    },
+    // ==================== REQUEST CORE ====================
 
-    /**
-     * Aggiunge interceptor per le richieste
-     */
-    addRequestInterceptor(interceptor) {
-        this.state.interceptors.request.push(interceptor);
-    },
-
-    /**
-     * Aggiunge interceptor per le risposte
-     */
-    addResponseInterceptor(onSuccess, onError) {
-        this.state.interceptors.response.push({ onSuccess, onError });
-    },
-
-    /**
-     * Costruisce URL completo
-     */
-    buildURL(endpoint, params = {}) {
-        let url = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-
-        // Sostituisce parametri nel path (es. /api/spaces/:id)
-        Object.keys(params).forEach(key => {
-            url = url.replace(`:${key}`, params[key]);
-        });
-
-        return `${this.state.baseURL}${url}`;
-    },
-
-    /**
-     * Costruisce query string
-     */
-    buildQueryString(params) {
-        if (!params || Object.keys(params).length === 0) return '';
-
-        const queryParams = new URLSearchParams();
-        Object.keys(params).forEach(key => {
-            const value = params[key];
-            if (value !== null && value !== undefined && value !== '') {
-                queryParams.append(key, value);
-            }
-        });
-
-        return queryParams.toString() ? `?${queryParams.toString()}` : '';
-    },
-
-    /**
-     * Applica interceptors alle richieste
-     */
-    applyRequestInterceptors(config) {
-        return this.state.interceptors.request.reduce((acc, interceptor) => {
-            return interceptor(acc) || acc;
-        }, config);
-    },
-
-    /**
-     * Applica interceptors alle risposte
-     */
-    applyResponseInterceptors(response, error = null) {
-        return this.state.interceptors.response.reduce((acc, interceptor) => {
-            if (error && interceptor.onError) {
-                return interceptor.onError(error);
-            } else if (!error && interceptor.onSuccess) {
-                return interceptor.onSuccess(acc);
-            }
-            return acc;
-        }, response);
-    },
-
-    /**
-     * Metodo generico per fare richieste HTTP
-     */
     async request(method, endpoint, data = null, options = {}) {
-        const {
-            params = {},
-            headers = {},
-            timeout = this.config.timeout,
-            cache = false,
-            retry = true
-        } = options;
+        const url = `${this.config.baseUrl}${endpoint}`;
+        const requestId = Math.random().toString(36).substr(2, 9);
 
-        // Costruisci configurazione richiesta
-        let config = {
-            method: method.toUpperCase(),
-            headers: { ...this.state.defaultHeaders, ...headers },
-            signal: AbortSignal.timeout(timeout)
+        const config = {
+            method,
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-Request-ID': requestId,
+                ...options.headers
+            },
+            signal: options.signal,
+            ...options
         };
 
-        // Applica interceptors
-        config = this.applyRequestInterceptors(config);
-
-        // Costruisci URL
-        const url = this.buildURL(endpoint, params);
-        const queryString = this.buildQueryString(data && method === 'GET' ? data : {});
-        const fullURL = `${url}${queryString}`;
-
-        // Controlla cache per GET requests
-        if (method === 'GET' && cache) {
-            const cachedResponse = this.getFromCache(fullURL);
-            if (cachedResponse) {
-                return cachedResponse;
-            }
+        // Add authentication
+        if (this.token && !options.skipAuth) {
+            config.headers.Authorization = `Bearer ${this.token}`;
         }
 
-        // Aggiungi body per richieste non-GET
+        // Add body for non-GET requests
         if (data && method !== 'GET') {
             if (data instanceof FormData) {
-                // Per FormData non impostare Content-Type (lascia che il browser lo faccia)
+                // Remove content-type for FormData (browser sets it)
                 delete config.headers['Content-Type'];
                 config.body = data;
             } else {
@@ -252,467 +194,570 @@ window.API = {
             }
         }
 
-        // Esegui richiesta con retry
-        return this.executeRequestWithRetry(fullURL, config, retry ? this.config.retryAttempts : 0, cache);
-    },
+        // Add query parameters for GET requests
+        if (data && method === 'GET') {
+            const params = new URLSearchParams(data);
+            const separator = url.includes('?') ? '&' : '?';
+            endpoint = `${endpoint}${separator}${params.toString()}`;
+        }
 
-    /**
-     * Esegue richiesta con logic di retry
-     */
-    async executeRequestWithRetry(url, config, attemptsLeft, cache = false) {
         try {
-            const response = await fetch(url, config);
-
-            // Processa risposta
-            const result = await this.processResponse(response);
-
-            // Salva in cache se richiesto
-            if (cache && config.method === 'GET') {
-                this.saveToCache(url, result);
-            }
-
-            return this.applyResponseInterceptors(result);
-
-        } catch (error) {
-            console.error(`API request failed: ${error.message}`);
-
-            // Retry se ci sono tentativi rimasti e l'errore è recuperabile
-            if (attemptsLeft > 0 && this.isRetryableError(error)) {
-                console.log(`Retrying request... ${attemptsLeft} attempts left`);
-                await this.delay(this.config.retryDelay);
-                return this.executeRequestWithRetry(url, config, attemptsLeft - 1, cache);
-            }
-
-            // Applica interceptor di errore
-            throw this.applyResponseInterceptors(null, error);
-        }
-    },
-
-    /**
-     * Processa risposta HTTP
-     */
-    async processResponse(response) {
-        let data = null;
-
-        // Tenta di parsare JSON
-        const contentType = response.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-            try {
-                data = await response.json();
-            } catch (parseError) {
-                console.warn('Failed to parse JSON response:', parseError);
-                data = await response.text();
-            }
-        } else {
-            data = await response.text();
-        }
-
-        // Costruisci oggetto risposta
-        const result = {
-            success: response.ok,
-            status: response.status,
-            statusText: response.statusText,
-            data: data,
-            headers: Object.fromEntries(response.headers.entries())
-        };
-
-        // Aggiungi messaggio di errore se non successful
-        if (!response.ok) {
-            result.message = data?.message || data?.error || response.statusText;
-        }
-
-        return result;
-    },
-
-    /**
-     * Controlla se l'errore è retry-abile
-     */
-    isRetryableError(error) {
-        // Retry per errori di rete, timeout, e alcuni status HTTP
-        if (error.name === 'AbortError' || error.name === 'TimeoutError') {
-            return true;
-        }
-
-        if (error.status) {
-            // Retry per errori server (5xx) e alcuni 4xx
-            return error.status >= 500 || error.status === 408 || error.status === 429;
-        }
-
-        return false;
-    },
-
-    /**
-     * Gestisce errori di risposta
-     */
-    handleResponseError(error) {
-        console.error('API Response Error:', error);
-
-        let userMessage = 'Si è verificato un errore. Riprova più tardi.';
-
-        if (error.name === 'TypeError' && error.message.includes('fetch')) {
-            userMessage = 'Errore di connessione. Verifica la tua connessione internet.';
-        } else if (error.status === 404) {
-            userMessage = 'Risorsa non trovata.';
-        } else if (error.status === 401 || error.status === 403) {
-            userMessage = 'Accesso non autorizzato. Effettua nuovamente il login.';
-            this.handleAuthError();
-        } else if (error.status === 500) {
-            userMessage = 'Errore del server. Riprova più tardi.';
-        } else if (error.name === 'AbortError') {
-            userMessage = 'Richiesta interrotta per timeout.';
-        }
-
-        // Mostra notifica all'utente se Utils disponibile
-        if (window.Utils?.notifications?.show) {
-            window.Utils.notifications.show(userMessage, 'error');
-        }
-
-        // Log per debugging
-        if (window.Utils?.error?.handle) {
-            window.Utils.error.handle(error, 'API');
-        }
-
-        return { error: userMessage, originalError: error };
-    },
-
-    /**
-     * Gestisce errori di autenticazione
-     */
-    handleAuthError() {
-        // Rimuovi token non valido
-        if (window.Utils?.storage?.remove) {
-            window.Utils.storage.remove('auth_token');
-            window.Utils.storage.remove('user_data');
-        }
-
-        // Aggiorna header
-        delete this.state.defaultHeaders['Authorization'];
-
-        // Trigger evento logout
-        document.dispatchEvent(new CustomEvent('auth:tokenExpired'));
-
-        // Reindirizza al login se necessario
-        if (window.Navigation?.showSection) {
-            setTimeout(() => {
-                window.Navigation.showSection('home');
-            }, 1000);
-        }
-    },
-
-    /**
-     * Utility per delay
-     */
-    delay(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
-    },
-
-    /**
-     * Salva risposta in cache
-     */
-    saveToCache(url, data) {
-        this.state.cache.set(url, {
-            data: data,
-            timestamp: Date.now()
-        });
-    },
-
-    /**
-     * Recupera risposta dalla cache
-     */
-    getFromCache(url) {
-        const cached = this.state.cache.get(url);
-        if (cached && (Date.now() - cached.timestamp) < this.config.cacheTimeout) {
-            return cached.data;
-        }
-        return null;
-    },
-
-    /**
-     * Pulisci cache
-     */
-    clearCache() {
-        this.state.cache.clear();
-    },
-
-    /**
-     * Test connessione API
-     */
-    async testConnection() {
-        try {
-            // Tenta una chiamata di test (se endpoint disponibile)
-            const response = await fetch(`${this.state.baseURL}/health`, {
-                method: 'GET',
-                signal: AbortSignal.timeout(5000)
+            console.log(`📡 API Request [${requestId}]: ${method} ${endpoint}`, {
+                hasData: !!data,
+                hasAuth: !!this.token
             });
 
-            if (response.ok) {
-                console.log('✅ API connection test successful');
-                return true;
-            }
+            const response = await this.executeRequest(url, config);
+            const result = await this.handleResponse(response, method, endpoint, requestId);
+
+            console.log(`✅ API Success [${requestId}]: ${method} ${endpoint}`);
+            return result;
+
         } catch (error) {
-            console.warn('⚠️ API connection test failed (endpoint might not exist):', error.message);
-            // Non è un errore critico se l'endpoint di health non esiste
+            return this.handleError(error, method, endpoint, requestId, config, data);
+        }
+    }
+
+    async executeRequest(url, config) {
+        // Create timeout promise
+        const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('Request timeout')), this.config.timeout);
+        });
+
+        // Execute request with timeout
+        const response = await Promise.race([
+            fetch(url, config),
+            timeoutPromise
+        ]);
+
+        return response;
+    }
+
+    async handleResponse(response, method, endpoint, requestId) {
+        // Handle different content types
+        const contentType = response.headers.get('content-type');
+        let result;
+
+        if (contentType && contentType.includes('application/json')) {
+            result = await response.json();
+        } else {
+            result = {
+                success: response.ok,
+                data: await response.text(),
+                status: response.status
+            };
         }
 
-        return true; // Assume connessione OK
-    },
+        // Handle HTTP errors
+        if (!response.ok) {
+            if (response.status === 401 && !endpoint.includes('/auth/') && this.token) {
+                // Try to refresh token
+                const refreshed = await this.handleTokenRefresh();
+                if (refreshed) {
+                    throw new Error('TOKEN_REFRESHED'); // Will trigger retry
+                }
+            }
 
-    // ==================== METODI HTTP SHORTHAND ====================
-
-    /**
-     * GET request
-     */
-    async get(endpoint, params = {}, options = {}) {
-        return this.request('GET', endpoint, params, { ...options, cache: options.cache !== false });
-    },
-
-    /**
-     * POST request
-     */
-    async post(endpoint, data = {}, options = {}) {
-        return this.request('POST', endpoint, data, options);
-    },
-
-    /**
-     * PUT request
-     */
-    async put(endpoint, data = {}, options = {}) {
-        return this.request('PUT', endpoint, data, options);
-    },
-
-    /**
-     * PATCH request
-     */
-    async patch(endpoint, data = {}, options = {}) {
-        return this.request('PATCH', endpoint, data, options);
-    },
-
-    /**
-     * DELETE request
-     */
-    async delete(endpoint, options = {}) {
-        return this.request('DELETE', endpoint, null, options);
-    },
-
-    // ==================== METODI SPECIFICI API ====================
-
-    /**
-     * Autenticazione - Login
-     */
-    async login(credentials) {
-        return this.post(this.config.endpoints.auth.login, credentials);
-    },
-
-    /**
-     * Autenticazione - Registrazione
-     */
-    async register(userData) {
-        return this.post(this.config.endpoints.auth.register, userData);
-    },
-
-    /**
-     * Autenticazione - Logout
-     */
-    async logout() {
-        const result = await this.post(this.config.endpoints.auth.logout);
-
-        // Pulisci token locale
-        this.setAuthHeader(null);
-        if (window.Utils?.storage?.remove) {
-            window.Utils.storage.remove('auth_token');
-            window.Utils.storage.remove('user_data');
+            const error = new Error(result.message || `HTTP ${response.status}: ${response.statusText}`);
+            error.status = response.status;
+            error.response = result;
+            throw error;
         }
 
         return result;
-    },
+    }
 
-    /**
-     * Autenticazione - Refresh token
-     */
-    async refreshToken() {
-        return this.post(this.config.endpoints.auth.refresh);
-    },
-
-    /**
-     * Profilo utente
-     */
-    async getUserProfile() {
-        return this.get(this.config.endpoints.users.profile);
-    },
-
-    /**
-     * Aggiorna profilo utente
-     */
-    async updateUserProfile(profileData) {
-        return this.put(this.config.endpoints.users.profile, profileData);
-    },
-
-    /**
-     * Ottieni impostazioni utente
-     */
-    async getUserSettings() {
-        return this.get(this.config.endpoints.users.settings);
-    },
-
-    /**
-     * Aggiorna impostazioni utente
-     */
-    async updateUserSettings(settings) {
-        return this.put(this.config.endpoints.users.settings, settings);
-    },
-
-    /**
-     * Lista spazi
-     */
-    async getSpaces(filters = {}) {
-        return this.get(this.config.endpoints.spaces.list, filters);
-    },
-
-    /**
-     * Cerca spazi
-     */
-    async searchSpaces(query, filters = {}) {
-        return this.get(this.config.endpoints.spaces.search, { q: query, ...filters });
-    },
-
-    /**
-     * Dettagli spazio
-     */
-    async getSpaceDetails(spaceId) {
-        return this.get(this.config.endpoints.spaces.details, { id: spaceId });
-    },
-
-    /**
-     * Recensioni spazio
-     */
-    async getSpaceReviews(spaceId) {
-        return this.get(this.config.endpoints.spaces.reviews, { id: spaceId });
-    },
-
-    /**
-     * Disponibilità spazio
-     */
-    async getSpaceAvailability(spaceId, date, startTime, endTime) {
-        return this.get(this.config.endpoints.spaces.availability, {
-            id: spaceId,
-            date,
-            startTime,
-            endTime
+    async handleError(error, method, endpoint, requestId, config, data) {
+        console.error(`❌ API Error [${requestId}]: ${method} ${endpoint}`, {
+            error: error.message,
+            status: error.status
         });
-    },
 
-    /**
-     * Crea prenotazione
-     */
+        // Handle token refresh retry
+        if (error.message === 'TOKEN_REFRESHED') {
+            console.log(`🔄 Retrying request [${requestId}] with new token`);
+            config.headers.Authorization = `Bearer ${this.token}`;
+            return this.request(method, endpoint, data, { ...config, skipAuth: false });
+        }
+
+        // Handle network errors with retry
+        if (this.shouldRetry(error) && !config._retryCount) {
+            return this.retryRequest(method, endpoint, data, config);
+        }
+
+        // Handle specific error types
+        if (error.status === 401) {
+            this.handleAuthFailure();
+            throw new Error('Sessione scaduta. Effettua nuovamente il login.');
+        }
+
+        if (error.name === 'TypeError' && error.message.includes('fetch')) {
+            throw new Error('Impossibile contattare il server. Verifica la connessione.');
+        }
+
+        throw error;
+    }
+
+    shouldRetry(error) {
+        // Retry on network errors, timeouts, or 5xx server errors
+        return (
+            error.name === 'TypeError' ||
+            error.message.includes('timeout') ||
+            error.message.includes('fetch') ||
+            (error.status >= 500 && error.status < 600)
+        );
+    }
+
+    async retryRequest(method, endpoint, data, config, attempt = 1) {
+        if (attempt > this.config.retries) {
+            throw new Error(`Request failed after ${this.config.retries} retries`);
+        }
+
+        const delay = this.config.retryDelay * Math.pow(2, attempt - 1); // Exponential backoff
+        console.log(`🔄 Retrying request in ${delay}ms (attempt ${attempt}/${this.config.retries})`);
+
+        await new Promise(resolve => setTimeout(resolve, delay));
+
+        try {
+            config._retryCount = attempt;
+            return await this.request(method, endpoint, data, config);
+        } catch (error) {
+            if (this.shouldRetry(error)) {
+                return this.retryRequest(method, endpoint, data, config, attempt + 1);
+            }
+            throw error;
+        }
+    }
+
+    // ==================== TOKEN REFRESH ====================
+
+    async handleTokenRefresh() {
+        if (this.isRefreshing) {
+            // Wait for existing refresh to complete
+            return new Promise((resolve) => {
+                this.requestQueue.push(resolve);
+            });
+        }
+
+        this.isRefreshing = true;
+
+        try {
+            const refreshed = await this.performTokenRefresh();
+
+            // Resolve queued requests
+            this.requestQueue.forEach(resolve => resolve(refreshed));
+            this.requestQueue = [];
+
+            return refreshed;
+        } finally {
+            this.isRefreshing = false;
+        }
+    }
+
+    async performTokenRefresh() {
+        try {
+            const refreshToken = localStorage.getItem('refresh_token');
+            if (!refreshToken) {
+                return false;
+            }
+
+            const response = await fetch(`${this.config.baseUrl}/api/auth/refresh`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ refreshToken })
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.success && result.data.token) {
+                this.setToken(result.data.token);
+
+                if (result.data.refreshToken) {
+                    localStorage.setItem('refresh_token', result.data.refreshToken);
+                }
+
+                console.log('✅ Token refreshed successfully');
+                return true;
+            }
+
+            return false;
+        } catch (error) {
+            console.error('❌ Token refresh failed:', error);
+            return false;
+        }
+    }
+
+    handleAuthFailure() {
+        this.setToken(null);
+
+        // Trigger global auth failure event
+        window.dispatchEvent(new CustomEvent('auth:failure', {
+            detail: { reason: 'token_expired' }
+        }));
+    }
+
+    async retryQueuedRequests() {
+        // Retry failed requests when network comes back online
+        // Implementation depends on your needs
+        console.log('🔄 Network restored, ready for new requests');
+    }
+
+    // ==================== HTTP METHODS ====================
+
+    async get(endpoint, params = {}, options = {}) {
+        return this.request('GET', endpoint, params, options);
+    }
+
+    async post(endpoint, data = {}, options = {}) {
+        return this.request('POST', endpoint, data, options);
+    }
+
+    async put(endpoint, data = {}, options = {}) {
+        return this.request('PUT', endpoint, data, options);
+    }
+
+    async patch(endpoint, data = {}, options = {}) {
+        return this.request('PATCH', endpoint, data, options);
+    }
+
+    async delete(endpoint, options = {}) {
+        return this.request('DELETE', endpoint, null, options);
+    }
+
+    // ==================== UTILITY METHODS ====================
+
+    replaceUrlParams(endpoint, params) {
+        let url = endpoint;
+        Object.entries(params).forEach(([key, value]) => {
+            url = url.replace(`:${key}`, encodeURIComponent(value));
+        });
+        return url;
+    }
+
+    buildQueryString(params) {
+        const filtered = Object.entries(params)
+            .filter(([_, value]) => value !== null && value !== undefined && value !== '')
+            .map(([key, value]) => {
+                if (Array.isArray(value)) {
+                    return value.map(v => `${encodeURIComponent(key)}[]=${encodeURIComponent(v)}`).join('&');
+                }
+                return `${encodeURIComponent(key)}=${encodeURIComponent(value)}`;
+            });
+
+        return filtered.length > 0 ? `?${filtered.join('&')}` : '';
+    }
+
+    // ==================== CONNECTION TESTING ====================
+
+    async testConnection() {
+        try {
+            const result = await this.get(this.config.endpoints.health, {}, { skipAuth: true });
+            console.log('🔗 API Connection test:', result.success ? 'SUCCESS' : 'FAILED');
+            return result.success;
+        } catch (error) {
+            console.error('🔗 API Connection test failed:', error);
+            return false;
+        }
+    }
+
+    async checkHealth() {
+        try {
+            const result = await this.get(this.config.endpoints.health, {}, { skipAuth: true });
+            return {
+                healthy: result.success,
+                services: result.services || {},
+                uptime: result.uptime || 0
+            };
+        } catch (error) {
+            console.error('🏥 Health check failed:', error);
+            return { healthy: false, error: error.message };
+        }
+    }
+
+    // ==================== AUTHENTICATION METHODS ====================
+
+    async login(credentials) {
+        const result = await this.post(this.config.endpoints.auth.login, credentials, { skipAuth: true });
+
+        if (result.success && result.data) {
+            this.setToken(result.data.token);
+
+            // Store refresh token
+            if (result.data.refreshToken) {
+                localStorage.setItem('refresh_token', result.data.refreshToken);
+            }
+
+            // Store user data
+            if (result.data.user) {
+                localStorage.setItem('user_data', JSON.stringify(result.data.user));
+            }
+
+            console.log('✅ Login successful for user:', result.data.user?.email);
+
+            // Trigger login event
+            window.dispatchEvent(new CustomEvent('auth:login', {
+                detail: {
+                    user: result.data.user,
+                    token: result.data.token
+                }
+            }));
+        }
+
+        return result;
+    }
+
+    async register(userData) {
+        const result = await this.post(this.config.endpoints.auth.register, userData, { skipAuth: true });
+        console.log('📝 Registration result:', result.success ? 'SUCCESS' : 'FAILED');
+        return result;
+    }
+
+    async logout() {
+        try {
+            if (this.token) {
+                await this.post(this.config.endpoints.auth.logout);
+            }
+        } catch (error) {
+            console.warn('⚠️ Logout API call failed:', error.message);
+        } finally {
+            this.setToken(null);
+            console.log('👋 Logout completed');
+
+            window.dispatchEvent(new CustomEvent('auth:logout'));
+        }
+    }
+
+    async forgotPassword(email) {
+        return this.post(this.config.endpoints.auth.forgotPassword, { email }, { skipAuth: true });
+    }
+
+    async resetPassword(token, newPassword) {
+        return this.post(this.config.endpoints.auth.resetPassword, {
+            token,
+            newPassword
+        }, { skipAuth: true });
+    }
+
+    // ==================== USER METHODS ====================
+
+    async getProfile() {
+        return this.get(this.config.endpoints.users.profile);
+    }
+
+    async updateProfile(userData) {
+        const result = await this.put(this.config.endpoints.users.update, userData);
+
+        if (result.success && result.data) {
+            // Update stored user data
+            localStorage.setItem('user_data', JSON.stringify(result.data));
+        }
+
+        return result;
+    }
+
+    async getUsers(filters = {}) {
+        const queryString = this.buildQueryString(filters);
+        return this.get(`${this.config.endpoints.users.list}${queryString}`);
+    }
+
+    async getUser(id) {
+        const endpoint = this.replaceUrlParams(this.config.endpoints.users.get, { id });
+        return this.get(endpoint);
+    }
+
+    async deleteUser(id) {
+        const endpoint = this.replaceUrlParams(this.config.endpoints.users.delete, { id });
+        return this.delete(endpoint);
+    }
+
+    async updateUserRole(id, role) {
+        const endpoint = this.replaceUrlParams(this.config.endpoints.users.updateRole, { id });
+        return this.patch(endpoint, { role });
+    }
+
+    // ==================== SPACE METHODS ====================
+
+    async getSpaces(filters = {}) {
+        const queryString = this.buildQueryString(filters);
+        return this.get(`${this.config.endpoints.spaces.list}${queryString}`);
+    }
+
+    async getSpace(id) {
+        const endpoint = this.replaceUrlParams(this.config.endpoints.spaces.get, { id });
+        return this.get(endpoint);
+    }
+
+    async createSpace(spaceData) {
+        return this.post(this.config.endpoints.spaces.create, spaceData);
+    }
+
+    async updateSpace(id, spaceData) {
+        const endpoint = this.replaceUrlParams(this.config.endpoints.spaces.update, { id });
+        return this.put(endpoint, spaceData);
+    }
+
+    async deleteSpace(id) {
+        const endpoint = this.replaceUrlParams(this.config.endpoints.spaces.delete, { id });
+        return this.delete(endpoint);
+    }
+
+    async searchSpaces(query, filters = {}) {
+        const params = { q: query, ...filters };
+        const queryString = this.buildQueryString(params);
+        return this.get(`${this.config.endpoints.spaces.search}${queryString}`);
+    }
+
+    async getSpaceAvailability(id, startDate, endDate) {
+        const endpoint = this.replaceUrlParams(this.config.endpoints.spaces.availability, { id });
+        const params = { startDate, endDate };
+        const queryString = this.buildQueryString(params);
+        return this.get(`${endpoint}${queryString}`);
+    }
+
+    async uploadSpaceImages(id, images) {
+        const endpoint = this.replaceUrlParams(this.config.endpoints.spaces.images, { id });
+        const formData = new FormData();
+
+        if (Array.isArray(images)) {
+            images.forEach(image => formData.append('images', image));
+        } else {
+            formData.append('images', images);
+        }
+
+        return this.post(endpoint, formData);
+    }
+
+    // ==================== BOOKING METHODS ====================
+
+    async getBookings(filters = {}) {
+        const queryString = this.buildQueryString(filters);
+        return this.get(`${this.config.endpoints.bookings.list}${queryString}`);
+    }
+
+    async getMyBookings() {
+        return this.get(this.config.endpoints.bookings.my);
+    }
+
+    async getUpcomingBookings() {
+        return this.get(this.config.endpoints.bookings.upcoming);
+    }
+
+    async getBookingHistory() {
+        return this.get(this.config.endpoints.bookings.history);
+    }
+
+    async getBooking(id) {
+        const endpoint = this.replaceUrlParams(this.config.endpoints.bookings.get, { id });
+        return this.get(endpoint);
+    }
+
     async createBooking(bookingData) {
         return this.post(this.config.endpoints.bookings.create, bookingData);
-    },
-
-    /**
-     * Lista prenotazioni utente
-     */
-    async getUserBookings() {
-        return this.get(this.config.endpoints.bookings.list);
-    },
-
-    /**
-     * Dettagli prenotazione
-     */
-    async getBookingDetails(bookingId) {
-        return this.get(this.config.endpoints.bookings.details, { id: bookingId });
-    },
-
-    /**
-     * Cancella prenotazione
-     */
-    async cancelBooking(bookingId, reason = '') {
-        return this.post(this.config.endpoints.bookings.cancel, { id: bookingId, reason });
-    },
-
-    /**
-     * Aggiorna prenotazione
-     */
-    async updateBooking(bookingId, updateData) {
-        return this.put(this.config.endpoints.bookings.update, { id: bookingId, ...updateData });
-    },
-
-    /**
-     * Upload file
-     */
-    async uploadFile(file, endpoint = '/api/upload') {
-        const formData = new FormData();
-        formData.append('file', file);
-
-        return this.post(endpoint, formData, {
-            headers: {} // Rimuovi Content-Type per FormData
-        });
-    },
-
-    /**
-     * Download file
-     */
-    async downloadFile(url, filename) {
-        try {
-            const response = await fetch(url);
-            const blob = await response.blob();
-
-            // Crea link per download
-            const downloadUrl = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = downloadUrl;
-            link.download = filename || 'download';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(downloadUrl);
-
-            return { success: true };
-
-        } catch (error) {
-            console.error('Download failed:', error);
-            return { success: false, error: error.message };
-        }
-    },
-
-    // ==================== METODI UTILITY ====================
-
-    /**
-     * Controlla se API è inizializzata
-     */
-    isInitialized() {
-        return this.state.initialized;
-    },
-
-    /**
-     * Ottieni stato API
-     */
-    getStatus() {
-        return {
-            initialized: this.state.initialized,
-            baseURL: this.state.baseURL,
-            cacheSize: this.state.cache.size,
-            hasAuthToken: !!this.state.defaultHeaders['Authorization']
-        };
-    },
-
-    /**
-     * Reset configurazione
-     */
-    reset() {
-        this.state.defaultHeaders = {};
-        this.state.cache.clear();
-        this.state.interceptors = { request: [], response: [] };
-        this.state.initialized = false;
     }
-};
 
-// Auto-inizializzazione se DOM pronto e configurazione disponibile
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        if (window.CoWorkSpaceConfig) {
-            window.API.init();
+    async updateBooking(id, bookingData) {
+        const endpoint = this.replaceUrlParams(this.config.endpoints.bookings.update, { id });
+        return this.put(endpoint, bookingData);
+    }
+
+    async cancelBooking(id, reason = '') {
+        const endpoint = this.replaceUrlParams(this.config.endpoints.bookings.cancel, { id });
+        return this.post(endpoint, { reason });
+    }
+
+    async confirmBooking(id) {
+        const endpoint = this.replaceUrlParams(this.config.endpoints.bookings.confirm, { id });
+        return this.post(endpoint);
+    }
+
+    // ==================== PAYMENT METHODS ====================
+
+    async createPaymentIntent(bookingData) {
+        return this.post(this.config.endpoints.payments.createIntent, bookingData);
+    }
+
+    async confirmPayment(paymentIntentId, paymentMethodId = null) {
+        return this.post(this.config.endpoints.payments.confirm, {
+            paymentIntentId,
+            paymentMethodId
+        });
+    }
+
+    async refundPayment(paymentId, amount = null, reason = '') {
+        return this.post(this.config.endpoints.payments.refund, {
+            paymentId,
+            amount,
+            reason
+        });
+    }
+
+    async getPaymentHistory(filters = {}) {
+        const queryString = this.buildQueryString(filters);
+        return this.get(`${this.config.endpoints.payments.history}${queryString}`);
+    }
+
+    async getPaymentMethods() {
+        return this.get(this.config.endpoints.payments.methods);
+    }
+
+    // ==================== ANALYTICS METHODS ====================
+
+    async getDashboardAnalytics(dateRange = {}) {
+        const queryString = this.buildQueryString(dateRange);
+        return this.get(`${this.config.endpoints.analytics.dashboard}${queryString}`);
+    }
+
+    async getSpaceAnalytics(spaceId = null, dateRange = {}) {
+        const params = spaceId ? { spaceId, ...dateRange } : dateRange;
+        const queryString = this.buildQueryString(params);
+        return this.get(`${this.config.endpoints.analytics.spaces}${queryString}`);
+    }
+
+    async getBookingAnalytics(filters = {}) {
+        const queryString = this.buildQueryString(filters);
+        return this.get(`${this.config.endpoints.analytics.bookings}${queryString}`);
+    }
+
+    async getRevenueAnalytics(dateRange = {}) {
+        const queryString = this.buildQueryString(dateRange);
+        return this.get(`${this.config.endpoints.analytics.revenue}${queryString}`);
+    }
+
+    async getUserAnalytics(filters = {}) {
+        const queryString = this.buildQueryString(filters);
+        return this.get(`${this.config.endpoints.analytics.users}${queryString}`);
+    }
+}
+
+// ==================== GLOBAL INITIALIZATION ====================
+
+// Create global instance
+window.api = new ApiClient();
+
+// Auto-test connection on page load
+document.addEventListener('DOMContentLoaded', async () => {
+    console.log('🚀 CoWorkSpace API Client loaded');
+
+    // Test connection
+    const isHealthy = await window.api.checkHealth();
+    if (isHealthy.healthy) {
+        console.log('✅ Backend connection established');
+    } else {
+        console.warn('⚠️ Backend connection failed:', isHealthy.error);
+
+        // Show user notification if available
+        if (window.notifications?.show) {
+            window.notifications.show(
+                'Problema di connessione con il server. Alcune funzionalità potrebbero non essere disponibili.',
+                'warning'
+            );
         }
-    });
-} else if (window.CoWorkSpaceConfig) {
-    window.API.init();
+    }
+});
+
+// Export for ES6 modules if needed
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = ApiClient;
 }

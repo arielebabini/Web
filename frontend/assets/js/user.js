@@ -1,203 +1,490 @@
 /**
- * CoWorkSpace - User Manager
- * Gestione profilo utente e preferenze
+ * CoWorkSpace - Gestione Utenti
+ * Gestisce profilo utente, impostazioni, prenotazioni e favoriti
+ * @version 1.0.0
+ * @author CoWorkSpace Team
  */
 
 window.User = {
-    /**
-     * Stato del modulo
-     */
+    // ==================== STATO INTERNO ====================
     state: {
-        initialized: false,
-        loading: false,
-        profile: null,
-        settings: {
-            theme: 'auto',
-            language: 'it',
-            notifications: {
-                email: true,
-                push: false,
-                sms: false
-            },
-            privacy: {
-                showProfile: true,
-                showBookings: false,
-                allowAnalytics: true
-            }
-        },
-        bookings: [],
+        currentUser: null,
+        userBookings: [],
         favorites: [],
-        reviews: []
-    },
-
-    /**
-     * Configurazione
-     */
-    config: {
-        endpoints: {
-            profile: '/api/users/profile',
-            settings: '/api/users/settings',
-            bookings: '/api/users/bookings',
-            favorites: '/api/users/favorites',
-            reviews: '/api/users/reviews',
-            avatar: '/api/users/avatar'
+        settings: {
+            notifications: true,
+            emailUpdates: true,
+            language: 'it',
+            timezone: 'Europe/Rome'
         },
-        avatarMaxSize: 2 * 1024 * 1024, // 2MB
-        allowedImageTypes: ['image/jpeg', 'image/png', 'image/webp']
+        isLoading: false,
+        editMode: false,
+        avatar: null,
+        activeSession: null
     },
 
-    /**
-     * Templates HTML
-     */
-    templates: {
-        profileForm: `
-            <form id="profile-form" class="profile-form">
-                <div class="row">
-                    <div class="col-md-4 text-center">
-                        <div class="avatar-section">
-                            <div class="avatar-container">
-                                <img src="{avatarUrl}" alt="Avatar" id="user-avatar" class="user-avatar">
-                                <div class="avatar-overlay">
-                                    <button type="button" class="btn btn-sm btn-light" onclick="User.changeAvatar()">
-                                        <i class="fas fa-camera"></i>
-                                    </button>
+    // ==================== INIZIALIZZAZIONE ====================
+    async init() {
+        console.log('👤 User module initializing...');
+
+        this.setupEventListeners();
+        this.loadUserSettings();
+
+        // Carica dati utente se autenticato
+        if (window.Auth && window.Auth.isAuthenticated()) {
+            await this.loadUserProfile();
+        }
+
+        // Listener per cambio autenticazione
+        document.addEventListener('authStateChanged', (e) => {
+            if (e.detail.isAuthenticated) {
+                this.loadUserProfile();
+            } else {
+                this.clearUserData();
+            }
+        });
+
+        // Listener per cambio sezione
+        document.addEventListener('sectionChanged', (e) => {
+            if (e.detail.section === 'profile') {
+                this.handleProfileSection();
+            }
+        });
+
+        console.log('✅ User module initialized');
+    },
+
+    // ==================== CARICAMENTO PROFILO ====================
+    async loadUserProfile() {
+        if (this.state.isLoading) return;
+
+        this.state.isLoading = true;
+
+        try {
+            console.log('📡 Loading user profile...');
+            const response = await window.api.getUserProfile();
+
+            if (response.success) {
+                this.state.currentUser = response.data;
+                this.updateProfileUI();
+                await Promise.all([
+                    this.loadUserBookings(),
+                    this.loadFavorites()
+                ]);
+                console.log('✅ User profile loaded');
+            } else {
+                throw new Error(response.message);
+            }
+        } catch (error) {
+            console.error('❌ Error loading user profile:', error);
+            this.loadMockUserData();
+        } finally {
+            this.state.isLoading = false;
+        }
+    },
+
+    // ==================== GESTIONE SEZIONE PROFILO ====================
+    async handleProfileSection() {
+        const container = document.getElementById('profile-container');
+        if (!container) return;
+
+        if (!window.Auth || !window.Auth.isAuthenticated()) {
+            this.showLoginPrompt(container);
+            return;
+        }
+
+        this.renderProfilePage(container);
+    },
+
+    renderProfilePage(container) {
+        const profileHTML = `
+            <div class="user-profile">
+                ${this.buildProfileHeader()}
+                
+                <div class="profile-content">
+                    <div class="row">
+                        <div class="col-lg-4">
+                            ${this.buildProfileSidebar()}
+                        </div>
+                        <div class="col-lg-8">
+                            <div id="profile-main-content">
+                                ${this.buildProfileOverview()}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        container.innerHTML = profileHTML;
+        this.attachProfileEvents();
+    },
+
+    buildProfileHeader() {
+        const user = this.state.currentUser;
+        if (!user) {
+            return '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Caricamento profilo...</div>';
+        }
+
+        return `
+            <div class="profile-header">
+                <div class="container">
+                    <div class="row align-items-center">
+                        <div class="col-auto">
+                            <div class="profile-avatar">
+                                <img src="${user.avatar || '/assets/images/default-avatar.png'}" 
+                                     alt="${user.firstName} ${user.lastName}" 
+                                     class="avatar-img"
+                                     onerror="this.src='/assets/images/default-avatar.png'">
+                                <div class="avatar-overlay" onclick="User.showAvatarUpload()">
+                                    <i class="fas fa-camera"></i>
                                 </div>
                             </div>
-                            <input type="file" id="avatar-input" accept="image/*" style="display: none;">
                         </div>
-                    </div>
-                    <div class="col-md-8">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <label for="first-name" class="form-label">Nome *</label>
-                                <input type="text" id="first-name" class="form-control" value="{firstName}" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="last-name" class="form-label">Cognome *</label>
-                                <input type="text" id="last-name" class="form-control" value="{lastName}" required>
-                            </div>
-                        </div>
-                        <div class="row mt-3">
-                            <div class="col-md-12">
-                                <label for="email" class="form-label">Email *</label>
-                                <input type="email" id="email" class="form-control" value="{email}" required>
+                        <div class="col">
+                            <div class="profile-info">
+                                <h1 class="profile-name">${this.formatUserName(user)}</h1>
+                                <p class="profile-email">${user.email}</p>
+                                <div class="profile-badges">
+                                    <span class="badge bg-primary">
+                                        <i class="fas fa-star"></i> ${this.getUserLevel(user)}
+                                    </span>
+                                    ${user.verified ? '<span class="badge bg-success"><i class="fas fa-check"></i> Verificato</span>' : ''}
+                                    ${user.role === 'admin' ? '<span class="badge bg-danger"><i class="fas fa-crown"></i> Admin</span>' : ''}
+                                </div>
                             </div>
                         </div>
-                        <div class="row mt-3">
-                            <div class="col-md-6">
-                                <label for="phone" class="form-label">Telefono</label>
-                                <input type="tel" id="phone" class="form-control" value="{phone}">
-                            </div>
-                            <div class="col-md-6">
-                                <label for="company" class="form-label">Azienda</label>
-                                <input type="text" id="company" class="form-control" value="{company}">
-                            </div>
-                        </div>
-                        <div class="row mt-3">
-                            <div class="col-md-12">
-                                <label for="bio" class="form-label">Bio</label>
-                                <textarea id="bio" class="form-control" rows="3" placeholder="Parlaci di te...">{bio}</textarea>
+                        <div class="col-auto">
+                            <div class="profile-actions">
+                                <button class="btn btn-outline-primary" onclick="User.toggleEditMode()">
+                                    <i class="fas ${this.state.editMode ? 'fa-times' : 'fa-edit'}"></i> 
+                                    ${this.state.editMode ? 'Annulla' : 'Modifica Profilo'}
+                                </button>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="form-actions mt-4">
-                    <button type="button" class="btn btn-secondary" onclick="User.resetProfileForm()">
-                        <i class="fas fa-undo"></i> Reset
-                    </button>
-                    <button type="submit" class="btn btn-primary">
+            </div>
+        `;
+    },
+
+    buildProfileSidebar() {
+        const stats = this.calculateUserStats();
+
+        return `
+            <div class="profile-sidebar">
+                <div class="sidebar-navigation">
+                    <div class="nav nav-pills flex-column" role="tablist">
+                        <button class="nav-link active" data-section="overview" onclick="User.showProfileSection('overview')">
+                            <i class="fas fa-user"></i> Panoramica
+                        </button>
+                        <button class="nav-link" data-section="bookings" onclick="User.showProfileSection('bookings')">
+                            <i class="fas fa-calendar-alt"></i> Prenotazioni
+                            <span class="badge bg-primary">${this.state.userBookings.length}</span>
+                        </button>
+                        <button class="nav-link" data-section="favorites" onclick="User.showProfileSection('favorites')">
+                            <i class="fas fa-heart"></i> Preferiti
+                            <span class="badge bg-danger">${this.state.favorites.length}</span>
+                        </button>
+                        <button class="nav-link" data-section="settings" onclick="User.showProfileSection('settings')">
+                            <i class="fas fa-cog"></i> Impostazioni
+                        </button>
+                        <button class="nav-link" data-section="security" onclick="User.showProfileSection('security')">
+                            <i class="fas fa-shield-alt"></i> Sicurezza
+                        </button>
+                        <button class="nav-link" data-section="billing" onclick="User.showProfileSection('billing')">
+                            <i class="fas fa-credit-card"></i> Fatturazione
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="sidebar-stats mt-4">
+                    <h6>Statistiche</h6>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-number">${stats.totalBookings}</div>
+                            <div class="stat-label">Prenotazioni</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number">${stats.totalFavorites}</div>
+                            <div class="stat-label">Preferiti</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number">${stats.totalSpent}</div>
+                            <div class="stat-label">Speso</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number">${stats.memberSince}</div>
+                            <div class="stat-label">Membro da</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="sidebar-quick-actions mt-4">
+                    <h6>Azioni Rapide</h6>
+                    <div class="quick-actions">
+                        <button class="btn btn-sm btn-outline-primary w-100 mb-2" onclick="Navigation.showSection('spaces')">
+                            <i class="fas fa-plus"></i> Nuova Prenotazione
+                        </button>
+                        <button class="btn btn-sm btn-outline-success w-100 mb-2" onclick="User.exportUserData()">
+                            <i class="fas fa-download"></i> Esporta Dati
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    // ==================== SEZIONI PROFILO ====================
+    buildProfileOverview() {
+        return `
+            <div class="profile-overview">
+                <div class="section-header">
+                    <h3>Informazioni Personali</h3>
+                    ${this.state.editMode ? '<p class="text-muted">Modifica le tue informazioni personali</p>' : ''}
+                </div>
+                
+                ${this.state.editMode ? this.buildEditForm() : this.buildInfoDisplay()}
+                
+                <div class="recent-activity mt-5">
+                    <h4>Attività Recente</h4>
+                    ${this.buildRecentActivity()}
+                </div>
+            </div>
+        `;
+    },
+
+    buildInfoDisplay() {
+        const user = this.state.currentUser;
+        if (!user) return '<div class="text-center">Dati utente non disponibili</div>';
+
+        return `
+            <div class="info-display">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="info-group">
+                            <label>Nome</label>
+                            <div class="info-value">${user.firstName || 'Non specificato'}</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="info-group">
+                            <label>Cognome</label>
+                            <div class="info-value">${user.lastName || 'Non specificato'}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="info-group">
+                            <label>Email</label>
+                            <div class="info-value">
+                                ${user.email}
+                                ${user.verified ? '<i class="fas fa-check-circle text-success ms-2" title="Email verificata"></i>' : '<i class="fas fa-exclamation-triangle text-warning ms-2" title="Email non verificata"></i>'}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="info-group">
+                            <label>Telefono</label>
+                            <div class="info-value">${user.phone || 'Non specificato'}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="info-group">
+                            <label>Azienda</label>
+                            <div class="info-value">${user.company || 'Non specificata'}</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="info-group">
+                            <label>Posizione</label>
+                            <div class="info-value">${user.position || 'Non specificata'}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="info-group">
+                            <label>Membro dal</label>
+                            <div class="info-value">${this.formatDate(user.createdAt)}</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="info-group">
+                            <label>Ultimo accesso</label>
+                            <div class="info-value">${this.formatDate(user.lastLogin || new Date())}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                ${user.bio ? `
+                    <div class="info-group">
+                        <label>Bio</label>
+                        <div class="info-value bio-text">${user.bio}</div>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    },
+
+    buildEditForm() {
+        const user = this.state.currentUser;
+        if (!user) return '<div class="text-center">Errore nel caricamento dati utente</div>';
+
+        return `
+            <form id="profile-edit-form" class="edit-form">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="firstName" class="form-label">Nome *</label>
+                            <input type="text" class="form-control" id="firstName" name="firstName" 
+                                   value="${user.firstName || ''}" required maxlength="50">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="lastName" class="form-label">Cognome *</label>
+                            <input type="text" class="form-control" id="lastName" name="lastName" 
+                                   value="${user.lastName || ''}" required maxlength="50">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email *</label>
+                            <input type="email" class="form-control" id="email" name="email" 
+                                   value="${user.email}" required readonly>
+                            <small class="form-text text-muted">
+                                <i class="fas fa-info-circle"></i> Per cambiare email, contatta il supporto
+                            </small>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="phone" class="form-label">Telefono</label>
+                            <input type="tel" class="form-control" id="phone" name="phone" 
+                                   value="${user.phone || ''}" pattern="[+]?[0-9\\s\\-()]{8,20}">
+                            <small class="form-text text-muted">Formato: +39 123 456 7890</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="company" class="form-label">Azienda</label>
+                            <input type="text" class="form-control" id="company" name="company" 
+                                   value="${user.company || ''}" maxlength="100">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="position" class="form-label">Posizione</label>
+                            <input type="text" class="form-control" id="position" name="position" 
+                                   value="${user.position || ''}" maxlength="100">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="bio" class="form-label">Bio</label>
+                    <textarea class="form-control" id="bio" name="bio" rows="4" 
+                              maxlength="500" placeholder="Racconta qualcosa di te...">${user.bio || ''}</textarea>
+                    <small class="form-text text-muted">
+                        <span id="bio-counter">0</span>/500 caratteri
+                    </small>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary" id="save-profile-btn">
                         <i class="fas fa-save"></i> Salva Modifiche
                     </button>
-                </div>
-            </form>
-        `,
-
-        settingsForm: `
-            <form id="settings-form" class="settings-form">
-                <div class="settings-section">
-                    <h5><i class="fas fa-palette"></i> Aspetto</h5>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <label for="theme-select" class="form-label">Tema</label>
-                            <select id="theme-select" class="form-select">
-                                <option value="auto">Automatico</option>
-                                <option value="light">Chiaro</option>
-                                <option value="dark">Scuro</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label for="language-select" class="form-label">Lingua</label>
-                            <select id="language-select" class="form-select">
-                                <option value="it">Italiano</option>
-                                <option value="en">English</option>
-                                <option value="es">Español</option>
-                                <option value="fr">Français</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="settings-section mt-4">
-                    <h5><i class="fas fa-bell"></i> Notifiche</h5>
-                    <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" id="email-notifications">
-                        <label class="form-check-label" for="email-notifications">
-                            Notifiche Email
-                        </label>
-                    </div>
-                    <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" id="push-notifications">
-                        <label class="form-check-label" for="push-notifications">
-                            Notifiche Push
-                        </label>
-                    </div>
-                    <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" id="sms-notifications">
-                        <label class="form-check-label" for="sms-notifications">
-                            Notifiche SMS
-                        </label>
-                    </div>
-                </div>
-
-                <div class="settings-section mt-4">
-                    <h5><i class="fas fa-shield-alt"></i> Privacy</h5>
-                    <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" id="show-profile">
-                        <label class="form-check-label" for="show-profile">
-                            Profilo pubblico
-                        </label>
-                    </div>
-                    <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" id="show-bookings">
-                        <label class="form-check-label" for="show-bookings">
-                            Mostra prenotazioni
-                        </label>
-                    </div>
-                    <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" id="allow-analytics">
-                        <label class="form-check-label" for="allow-analytics">
-                            Consenti analytics
-                        </label>
-                    </div>
-                </div>
-
-                <div class="form-actions mt-4">
-                    <button type="button" class="btn btn-secondary" onclick="User.resetSettingsForm()">
-                        <i class="fas fa-undo"></i> Reset
-                    </button>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save"></i> Salva Impostazioni
+                    <button type="button" class="btn btn-outline-secondary" onclick="User.toggleEditMode()">
+                        <i class="fas fa-times"></i> Annulla
                     </button>
                 </div>
             </form>
-        `,
+        `;
+    },
 
-        bookingsList: `
-            <div class="bookings-list">
-                <div class="bookings-filters mb-3">
+    buildRecentActivity() {
+        const recentBookings = this.state.userBookings
+            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+            .slice(0, 5);
+
+        if (recentBookings.length === 0) {
+            return `
+                <div class="empty-activity">
+                    <div class="empty-state">
+                        <i class="fas fa-history fa-2x text-muted"></i>
+                        <h5 class="mt-3">Nessuna attività recente</h5>
+                        <p class="text-muted">Le tue prenotazioni appariranno qui</p>
+                        <button class="btn btn-primary mt-2" onclick="Navigation.showSection('spaces')">
+                            <i class="fas fa-plus"></i> Prima Prenotazione
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        return `
+            <div class="activity-list">
+                ${recentBookings.map(booking => `
+                    <div class="activity-item">
+                        <div class="activity-icon">
+                            <i class="fas fa-calendar-${this.getActivityIcon(booking.status)} text-${this.getStatusColor(booking.status)}"></i>
+                        </div>
+                        <div class="activity-content">
+                            <div class="activity-title">${booking.spaceName}</div>
+                            <div class="activity-subtitle">
+                                ${this.formatDate(booking.date)} • ${booking.startTime} - ${booking.endTime}
+                            </div>
+                            <div class="activity-meta">
+                                <small class="text-muted">${this.formatDate(booking.createdAt, true)}</small>
+                            </div>
+                        </div>
+                        <div class="activity-status">
+                            <span class="badge bg-${this.getStatusColor(booking.status)}">
+                                ${this.getBookingStatusText(booking.status)}
+                            </span>
+                        </div>
+                    </div>
+                `).join('')}
+                
+                <div class="activity-footer">
+                    <button class="btn btn-outline-primary btn-sm" onclick="User.showProfileSection('bookings')">
+                        <i class="fas fa-eye"></i> Visualizza Tutte
+                    </button>
+                </div>
+            </div>
+        `;
+    },
+
+    // ==================== SEZIONE PRENOTAZIONI ====================
+    buildBookingsSection() {
+        return `
+            <div class="profile-bookings">
+                <div class="section-header">
+                    <h3>Le Mie Prenotazioni</h3>
+                    <div class="header-actions">
+                        <button class="btn btn-primary" onclick="Navigation.showSection('spaces')">
+                            <i class="fas fa-plus"></i> Nuova Prenotazione
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="bookings-filters mb-4">
                     <div class="row">
-                        <div class="col-md-4">
-                            <select id="booking-status-filter" class="form-select">
+                        <div class="col-md-3">
+                            <select class="form-select" id="booking-status-filter" onchange="User.filterBookings()">
                                 <option value="">Tutti gli stati</option>
                                 <option value="confirmed">Confermate</option>
                                 <option value="pending">In attesa</option>
@@ -205,1013 +492,722 @@ window.User = {
                                 <option value="completed">Completate</option>
                             </select>
                         </div>
-                        <div class="col-md-4">
-                            <input type="date" id="booking-date-filter" class="form-control" placeholder="Data">
+                        <div class="col-md-3">
+                            <select class="form-select" id="booking-date-filter" onchange="User.filterBookings()">
+                                <option value="">Tutte le date</option>
+                                <option value="upcoming">Prossime</option>
+                                <option value="past">Passate</option>
+                                <option value="today">Oggi</option>
+                                <option value="this-week">Questa settimana</option>
+                                <option value="this-month">Questo mese</option>
+                            </select>
                         </div>
                         <div class="col-md-4">
-                            <button class="btn btn-outline-secondary" onclick="User.exportBookings()">
+                            <input type="text" class="form-control" id="booking-search" 
+                                   placeholder="Cerca per nome spazio..." 
+                                   onkeyup="User.searchBookings(this.value)">
+                        </div>
+                        <div class="col-md-2">
+                            <button class="btn btn-outline-secondary w-100" onclick="User.exportBookings()">
                                 <i class="fas fa-download"></i> Esporta
                             </button>
                         </div>
                     </div>
                 </div>
-                <div id="user-bookings-container">
-                    {bookingsHTML}
+                
+                <div class="bookings-grid" id="user-bookings-grid">
+                    ${this.buildUserBookingsGrid()}
                 </div>
             </div>
-        `
+        `;
     },
 
-    /**
-     * Inizializza il modulo
-     */
-    async init() {
+    buildUserBookingsGrid() {
+        if (this.state.userBookings.length === 0) {
+            return `
+                <div class="no-bookings">
+                    <div class="empty-state">
+                        <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                        <h4>Nessuna prenotazione</h4>
+                        <p class="text-muted">Non hai ancora effettuato prenotazioni</p>
+                        <button class="btn btn-primary" onclick="Navigation.showSection('spaces')">
+                            <i class="fas fa-search"></i> Esplora Spazi
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        return this.state.userBookings.map(booking => this.buildBookingCard(booking)).join('');
+    },
+
+    buildBookingCard(booking) {
+        const statusClass = this.getStatusColor(booking.status);
+        const statusText = this.getBookingStatusText(booking.status);
+        const canCancel = this.canCancelBooking(booking);
+        const isUpcoming = this.isUpcomingBooking(booking);
+
+        return `
+            <div class="booking-card border-start border-${statusClass} border-3">
+                <div class="booking-card-header">
+                    <div class="booking-space-info">
+                        <h5 class="booking-space-name">${booking.spaceName}</h5>
+                        <p class="booking-space-address text-muted">
+                            <i class="fas fa-map-marker-alt"></i> ${booking.spaceAddress}
+                        </p>
+                    </div>
+                    <div class="booking-status">
+                        <span class="status-badge badge bg-${statusClass}">${statusText}</span>
+                        ${isUpcoming ? '<span class="upcoming-badge badge bg-info">Prossima</span>' : ''}
+                    </div>
+                </div>
+                
+                <div class="booking-card-body">
+                    <div class="booking-details">
+                        <div class="detail-row">
+                            <div class="detail-item">
+                                <i class="fas fa-calendar text-primary"></i>
+                                <span>${this.formatDate(booking.date)}</span>
+                            </div>
+                            <div class="detail-item">
+                                <i class="fas fa-clock text-primary"></i>
+                                <span>${booking.startTime} - ${booking.endTime}</span>
+                            </div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-item">
+                                <i class="fas fa-stopwatch text-primary"></i>
+                                <span>${booking.duration} ${booking.duration === 1 ? 'ora' : 'ore'}</span>
+                            </div>
+                            <div class="detail-item">
+                                <i class="fas fa-euro-sign text-primary"></i>
+                                <span>${this.formatCurrency(booking.totalPrice)}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    ${booking.notes ? `
+                        <div class="booking-notes mt-2">
+                            <small class="text-muted">
+                                <i class="fas fa-comment"></i> ${booking.notes}
+                            </small>
+                        </div>
+                    ` : ''}
+                </div>
+                
+                <div class="booking-card-footer">
+                    <div class="booking-actions">
+                        <button class="btn btn-sm btn-outline-primary" 
+                                onclick="User.showBookingDetail('${booking.id}')">
+                            <i class="fas fa-eye"></i> Dettagli
+                        </button>
+                        
+                        ${booking.status === 'confirmed' ? `
+                            <button class="btn btn-sm btn-outline-info" 
+                                    onclick="User.downloadBookingPDF('${booking.id}')">
+                                <i class="fas fa-download"></i> PDF
+                            </button>
+                        ` : ''}
+                        
+                        ${canCancel ? `
+                            <button class="btn btn-sm btn-outline-danger" 
+                                    onclick="User.cancelBooking('${booking.id}')">
+                                <i class="fas fa-times"></i> Cancella
+                            </button>
+                        ` : ''}
+                        
+                        ${booking.status === 'completed' && !booking.reviewed ? `
+                            <button class="btn btn-sm btn-outline-warning" 
+                                    onclick="User.showReviewModal('${booking.id}')">
+                                <i class="fas fa-star"></i> Recensisci
+                            </button>
+                        ` : ''}
+                    </div>
+                    
+                    <div class="booking-meta">
+                        <small class="text-muted">
+                            <i class="fas fa-calendar-plus"></i> Prenotata il ${this.formatDate(booking.createdAt, true)}
+                        </small>
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    // ==================== UTILITY METHODS ====================
+    formatUserName(user) {
+        if (!user) return 'Nome non disponibile';
+        return `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Nome non specificato';
+    },
+
+    formatDate(dateString, includeTime = false) {
+        if (!dateString) return 'N/A';
+
         try {
-            console.log('👤 Initializing User Manager...');
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return 'Data non valida';
 
-            // Verifica dipendenze
-            if (!window.API || !window.Utils) {
-                throw new Error('Required dependencies not available');
-            }
+            const options = {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                ...(includeTime && { hour: '2-digit', minute: '2-digit' })
+            };
 
-            // Setup event listeners
-            this.setupEventListeners();
-
-            // Carica impostazioni salvate
-            this.loadStoredSettings();
-
-            this.state.initialized = true;
-            console.log('✅ User Manager initialized');
-
-            return true;
-
+            return new Intl.DateTimeFormat('it-IT', options).format(date);
         } catch (error) {
-            console.error('❌ Failed to initialize User Manager:', error);
+            return 'Data non valida';
+        }
+    },
+
+    formatCurrency(amount) {
+        if (typeof amount !== 'number') return '€0,00';
+
+        return new Intl.NumberFormat('it-IT', {
+            style: 'currency',
+            currency: 'EUR'
+        }).format(amount);
+    },
+
+    getUserLevel(user) {
+        const bookingCount = this.state.userBookings.length;
+        const totalSpent = this.calculateTotalSpent(true);
+
+        if (bookingCount >= 50 || totalSpent >= 2000) return 'Premium';
+        if (bookingCount >= 20 || totalSpent >= 1000) return 'Gold';
+        if (bookingCount >= 5 || totalSpent >= 300) return 'Silver';
+        return 'Base';
+    },
+
+    calculateUserStats() {
+        const totalSpent = this.calculateTotalSpent(true);
+        const memberSince = this.state.currentUser?.createdAt ?
+            this.getMembershipDuration(this.state.currentUser.createdAt) : 'N/A';
+
+        return {
+            totalBookings: this.state.userBookings.length,
+            totalFavorites: this.state.favorites.length,
+            totalSpent: this.formatCurrency(totalSpent),
+            memberSince: memberSince
+        };
+    },
+
+    calculateTotalSpent(returnNumber = false) {
+        const total = this.state.userBookings
+            .filter(booking => ['completed', 'confirmed'].includes(booking.status))
+            .reduce((sum, booking) => sum + (booking.totalPrice || 0), 0);
+
+        return returnNumber ? total : this.formatCurrency(total);
+    },
+
+    getBookingStatusText(status) {
+        const statusMap = {
+            'confirmed': 'Confermata',
+            'pending': 'In attesa',
+            'cancelled': 'Cancellata',
+            'completed': 'Completata'
+        };
+        return statusMap[status] || status;
+    },
+
+    getStatusColor(status) {
+        const colorMap = {
+            'confirmed': 'success',
+            'pending': 'warning',
+            'cancelled': 'danger',
+            'completed': 'primary'
+        };
+        return colorMap[status] || 'secondary';
+    },
+
+    getActivityIcon(status) {
+        const iconMap = {
+            'confirmed': 'check',
+            'pending': 'clock',
+            'cancelled': 'times',
+            'completed': 'check-circle'
+        };
+        return iconMap[status] || 'calendar';
+    },
+
+    getMembershipDuration(createdAt) {
+        if (!createdAt) return 'N/A';
+
+        const created = new Date(createdAt);
+        const now = new Date();
+        const diffInMonths = (now.getFullYear() - created.getFullYear()) * 12 + (now.getMonth() - created.getMonth());
+
+        if (diffInMonths < 1) return 'Questo mese';
+        if (diffInMonths < 12) return `${diffInMonths} mesi`;
+
+        const years = Math.floor(diffInMonths / 12);
+        const remainingMonths = diffInMonths % 12;
+
+        if (remainingMonths === 0) return `${years} ${years === 1 ? 'anno' : 'anni'}`;
+        return `${years} ${years === 1 ? 'anno' : 'anni'} e ${remainingMonths} mesi`;
+    },
+
+    canCancelBooking(booking) {
+        if (!booking || booking.status !== 'confirmed') return false;
+
+        try {
+            const bookingDateTime = new Date(`${booking.date}T${booking.startTime}`);
+            const now = new Date();
+            const hoursDiff = (bookingDateTime - now) / (1000 * 60 * 60);
+
+            return hoursDiff > 2; // Cancellabile fino a 2 ore prima
+        } catch (error) {
             return false;
         }
     },
 
-    /**
-     * Setup event listeners
-     */
-    setupEventListeners() {
-        // Listener per login
-        document.addEventListener('auth:login', (e) => {
-            this.handleUserLogin(e.detail.user);
+    isUpcomingBooking(booking) {
+        if (!booking) return false;
+
+        try {
+            const bookingDateTime = new Date(`${booking.date}T${booking.startTime}`);
+            const now = new Date();
+            const daysDiff = (bookingDateTime - now) / (1000 * 60 * 60 * 24);
+
+            return daysDiff >= 0 && daysDiff <= 7; // Prossimi 7 giorni
+        } catch (error) {
+            return false;
+        }
+    },
+
+    // ==================== AZIONI PRINCIPALI ====================
+    showProfileSection(section) {
+        // Aggiorna navigazione sidebar
+        document.querySelectorAll('.sidebar-navigation .nav-link').forEach(link => {
+            link.classList.remove('active');
         });
 
-        // Listener per logout
-        document.addEventListener('auth:logout', () => {
-            this.handleUserLogout();
-        });
-
-        // Listener per sezione profilo
-        document.addEventListener('navigation:sectionChanged', (e) => {
-            if (e.detail.section === 'profile') {
-                this.handleProfileSection(e.detail.subsection);
-            }
-        });
-
-        // Listener per cambio tema
-        document.addEventListener('change', (e) => {
-            if (e.target.id === 'theme-select') {
-                this.applyTheme(e.target.value);
-            }
-        });
-    },
-
-    /**
-     * Gestisce login utente
-     */
-    async handleUserLogin(user) {
-        try {
-            this.state.profile = user;
-            await this.loadUserData();
-            this.triggerEvent('user:dataLoaded');
-        } catch (error) {
-            console.error('Error handling user login:', error);
+        const activeLink = document.querySelector(`[data-section="${section}"]`);
+        if (activeLink) {
+            activeLink.classList.add('active');
         }
-    },
 
-    /**
-     * Gestisce logout utente
-     */
-    handleUserLogout() {
-        this.state.profile = null;
-        this.state.bookings = [];
-        this.state.favorites = [];
-        this.state.reviews = [];
-        this.triggerEvent('user:dataCleared');
-    },
-
-    /**
-     * Carica dati utente
-     */
-    async loadUserData() {
-        if (!window.Auth?.isAuthenticated()) return;
-
-        try {
-            this.state.loading = true;
-
-            // Carica profilo completo
-            await this.loadProfile();
-
-            // Carica impostazioni
-            await this.loadSettings();
-
-            // Carica prenotazioni
-            await this.loadUserBookings();
-
-            // Carica preferiti
-            await this.loadUserFavorites();
-
-            // Carica recensioni
-            await this.loadUserReviews();
-
-        } catch (error) {
-            console.error('Error loading user data:', error);
-        } finally {
-            this.state.loading = false;
-        }
-    },
-
-    /**
-     * Carica profilo utente
-     */
-    async loadProfile() {
-        try {
-            const response = await window.API.get(this.config.endpoints.profile);
-
-            if (response.success) {
-                this.state.profile = { ...this.state.profile, ...response.data };
-                this.triggerEvent('profile:loaded');
-            }
-
-        } catch (error) {
-            console.error('Error loading profile:', error);
-        }
-    },
-
-    /**
-     * Carica impostazioni utente
-     */
-    async loadSettings() {
-        try {
-            const response = await window.API.get(this.config.endpoints.settings);
-
-            if (response.success) {
-                this.state.settings = { ...this.state.settings, ...response.data };
-                this.applySettings();
-                this.triggerEvent('settings:loaded');
-            }
-
-        } catch (error) {
-            console.error('Error loading settings:', error);
-        }
-    },
-
-    /**
-     * Carica prenotazioni utente
-     */
-    async loadUserBookings() {
-        try {
-            const response = await window.API.get(this.config.endpoints.bookings);
-
-            if (response.success) {
-                this.state.bookings = response.data || [];
-                this.triggerEvent('bookings:loaded');
-            }
-
-        } catch (error) {
-            console.error('Error loading user bookings:', error);
-        }
-    },
-
-    /**
-     * Carica preferiti utente
-     */
-    async loadUserFavorites() {
-        try {
-            const response = await window.API.get(this.config.endpoints.favorites);
-
-            if (response.success) {
-                this.state.favorites = response.data || [];
-                this.triggerEvent('favorites:loaded');
-            }
-
-        } catch (error) {
-            console.error('Error loading user favorites:', error);
-        }
-    },
-
-    /**
-     * Carica recensioni utente
-     */
-    async loadUserReviews() {
-        try {
-            const response = await window.API.get(this.config.endpoints.reviews);
-
-            if (response.success) {
-                this.state.reviews = response.data || [];
-                this.triggerEvent('reviews:loaded');
-            }
-
-        } catch (error) {
-            console.error('Error loading user reviews:', error);
-        }
-    },
-
-    /**
-     * Carica impostazioni salvate localmente
-     */
-    loadStoredSettings() {
-        try {
-            const stored = localStorage.getItem('coworkspace_user_settings');
-            if (stored) {
-                const settings = JSON.parse(stored);
-                this.state.settings = { ...this.state.settings, ...settings };
-                this.applySettings();
-            }
-        } catch (error) {
-            console.error('Error loading stored settings:', error);
-        }
-    },
-
-    /**
-     * Applica impostazioni
-     */
-    applySettings() {
-        // Applica tema
-        this.applyTheme(this.state.settings.theme);
-
-        // Applica lingua
-        this.applyLanguage(this.state.settings.language);
-
-        // Trigger evento
-        this.triggerEvent('settings:applied');
-    },
-
-    /**
-     * Applica tema
-     */
-    applyTheme(theme) {
-        document.documentElement.setAttribute('data-theme', theme);
-        this.state.settings.theme = theme;
-        this.saveSettingsLocally();
-    },
-
-    /**
-     * Applica lingua
-     */
-    applyLanguage(language) {
-        document.documentElement.setAttribute('lang', language);
-        this.state.settings.language = language;
-        this.saveSettingsLocally();
-    },
-
-    /**
-     * Salva impostazioni localmente
-     */
-    saveSettingsLocally() {
-        try {
-            localStorage.setItem('coworkspace_user_settings', JSON.stringify(this.state.settings));
-        } catch (error) {
-            console.error('Error saving settings locally:', error);
-        }
-    },
-
-    /**
-     * Gestisce sezione profilo
-     */
-    handleProfileSection(subsection = 'profile') {
-        const container = document.getElementById('content-container');
+        // Mostra contenuto sezione
+        const container = document.getElementById('profile-main-content');
         if (!container) return;
 
-        switch (subsection) {
-            case 'profile':
-                this.renderProfileForm(container);
-                break;
-            case 'settings':
-                this.renderSettingsForm(container);
+        let content = '';
+        switch (section) {
+            case 'overview':
+                content = this.buildProfileOverview();
                 break;
             case 'bookings':
-                this.renderBookingsList(container);
+                content = this.buildBookingsSection();
                 break;
             case 'favorites':
-                this.renderFavoritesList(container);
+                content = this.buildFavoritesSection();
+                break;
+            case 'settings':
+                content = this.buildSettingsSection();
+                break;
+            case 'security':
+                content = this.buildSecuritySection();
+                break;
+            case 'billing':
+                content = this.buildBillingSection();
                 break;
             default:
-                this.renderProfileDashboard(container);
+                content = this.buildProfileOverview();
+        }
+
+        container.innerHTML = content;
+        this.attachSectionEvents(section);
+    },
+
+    toggleEditMode() {
+        this.state.editMode = !this.state.editMode;
+        this.showProfileSection('overview');
+    },
+
+    // ==================== UTILITY UI ====================
+    showNotification(message, type = 'info') {
+        if (window.Components && window.Components.showNotification) {
+            window.Components.showNotification({ message, type });
+        } else {
+            // Fallback per notifica semplice
+            alert(message);
         }
     },
 
-    /**
-     * Renderizza dashboard profilo
-     */
-    renderProfileDashboard(container) {
-        if (!this.state.profile) {
-            container.innerHTML = `
-                <div class="text-center">
-                    <h3>Accedi al tuo Profilo</h3>
-                    <p>Effettua il login per accedere al tuo profilo</p>
-                    <button class="btn btn-primary" onclick="Auth.showLoginModal()">
+    updateProfileUI() {
+        // Aggiorna elementi UI che mostrano info utente
+        const userNameElements = document.querySelectorAll('.user-name');
+        const userEmailElements = document.querySelectorAll('.user-email');
+
+        if (this.state.currentUser) {
+            userNameElements.forEach(el => {
+                el.textContent = this.formatUserName(this.state.currentUser);
+            });
+
+            userEmailElements.forEach(el => {
+                el.textContent = this.state.currentUser.email;
+            });
+        }
+    },
+
+    showLoginPrompt(container) {
+        container.innerHTML = `
+            <div class="login-prompt">
+                <div class="text-center py-5">
+                    <i class="fas fa-user-circle fa-4x text-muted mb-4"></i>
+                    <h3>Accesso Richiesto</h3>
+                    <p class="text-muted">Effettua l'accesso per visualizzare il tuo profilo</p>
+                    <button class="btn btn-primary" onclick="window.Auth.showLoginModal()">
                         <i class="fas fa-sign-in-alt"></i> Accedi
                     </button>
                 </div>
-            `;
-            return;
-        }
-
-        const dashboardHTML = `
-            <div class="profile-dashboard">
-                <div class="profile-header">
-                    <div class="profile-avatar">
-                        <img src="${this.state.profile.avatar || '/assets/images/default-avatar.jpg'}" 
-                             alt="Avatar" class="user-avatar">
-                    </div>
-                    <div class="profile-info">
-                        <h2>${this.state.profile.firstName} ${this.state.profile.lastName}</h2>
-                        <p class="text-muted">${this.state.profile.email}</p>
-                        ${this.state.profile.company ? `<p><i class="fas fa-building"></i> ${this.state.profile.company}</p>` : ''}
-                    </div>
-                    <div class="profile-actions">
-                        <button class="btn btn-outline-primary" onclick="Navigation.showSection('profile', 'profile')">
-                            <i class="fas fa-edit"></i> Modifica Profilo
-                        </button>
-                    </div>
-                </div>
-
-                <div class="profile-stats">
-                    <div class="row">
-                        <div class="col-md-3">
-                            <div class="stat-card">
-                                <div class="stat-number">${this.state.bookings.length}</div>
-                                <div class="stat-label">Prenotazioni</div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="stat-card">
-                                <div class="stat-number">${this.state.favorites.length}</div>
-                                <div class="stat-label">Preferiti</div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="stat-card">
-                                <div class="stat-number">${this.state.reviews.length}</div>
-                                <div class="stat-label">Recensioni</div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="stat-card">
-                                <div class="stat-number">${this.getUpcomingBookings().length}</div>
-                                <div class="stat-label">Prossime</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="profile-sections">
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="section-card" onclick="Navigation.showSection('profile', 'bookings')">
-                                <i class="fas fa-calendar-alt"></i>
-                                <h5>Le mie Prenotazioni</h5>
-                                <p>Gestisci le tue prenotazioni</p>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="section-card" onclick="Navigation.showSection('profile', 'favorites')">
-                                <i class="fas fa-heart"></i>
-                                <h5>Spazi Preferiti</h5>
-                                <p>I tuoi spazi salvati</p>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="section-card" onclick="Navigation.showSection('profile', 'settings')">
-                                <i class="fas fa-cog"></i>
-                                <h5>Impostazioni</h5>
-                                <p>Personalizza l'esperienza</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
         `;
-
-        container.innerHTML = dashboardHTML;
     },
 
-    /**
-     * Renderizza form profilo
-     */
-    renderProfileForm(container) {
-        if (!this.state.profile) {
-            this.renderProfileDashboard(container);
-            return;
-        }
-
-        let form = this.templates.profileForm;
-
-        // Sostituzioni
-        form = form.replace(/{avatarUrl}/g, this.state.profile.avatar || '/assets/images/default-avatar.jpg');
-        form = form.replace(/{firstName}/g, this.state.profile.firstName || '');
-        form = form.replace(/{lastName}/g, this.state.profile.lastName || '');
-        form = form.replace(/{email}/g, this.state.profile.email || '');
-        form = form.replace(/{phone}/g, this.state.profile.phone || '');
-        form = form.replace(/{company}/g, this.state.profile.company || '');
-        form = form.replace(/{bio}/g, this.state.profile.bio || '');
-
-        const profileHTML = `
-            <div class="profile-form-container">
+    // ==================== SEZIONI AGGIUNTIVE (PLACEHOLDER) ====================
+    buildFavoritesSection() {
+        return `
+            <div class="profile-favorites">
                 <div class="section-header">
-                    <h3><i class="fas fa-user"></i> Modifica Profilo</h3>
-                    <p>Aggiorna le tue informazioni personali</p>
+                    <h3>Spazi Preferiti</h3>
+                    <p class="text-muted">I tuoi spazi salvati per prenotazioni future</p>
                 </div>
-                ${form}
-            </div>
-        `;
-
-        container.innerHTML = profileHTML;
-        this.setupProfileFormListeners();
-    },
-
-    /**
-     * Setup listeners form profilo
-     */
-    setupProfileFormListeners() {
-        const form = document.getElementById('profile-form');
-        if (!form) return;
-
-        // Submit form
-        form.addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.handleProfileSubmit();
-        });
-
-        // Avatar input
-        const avatarInput = document.getElementById('avatar-input');
-        if (avatarInput) {
-            avatarInput.addEventListener('change', (e) => {
-                this.handleAvatarChange(e);
-            });
-        }
-    },
-
-    /**
-     * Gestisce submit profilo
-     */
-    async handleProfileSubmit() {
-        try {
-            const formData = this.gatherProfileFormData();
-
-            // Validazione
-            if (!formData.firstName || !formData.lastName || !formData.email) {
-                window.Utils?.notifications?.show('Compila tutti i campi obbligatori', 'error');
-                return;
-            }
-
-            this.state.loading = true;
-
-            const response = await window.API.put(this.config.endpoints.profile, formData);
-
-            if (response.success) {
-                this.state.profile = { ...this.state.profile, ...response.data };
-                window.Utils?.notifications?.show('Profilo aggiornato con successo', 'success');
-                this.triggerEvent('profile:updated');
-            } else {
-                throw new Error(response.message || 'Errore nell\'aggiornamento del profilo');
-            }
-
-        } catch (error) {
-            console.error('Error updating profile:', error);
-            window.Utils?.notifications?.show(error.message, 'error');
-        } finally {
-            this.state.loading = false;
-        }
-    },
-
-    /**
-     * Raccoglie dati form profilo
-     */
-    gatherProfileFormData() {
-        return {
-            firstName: document.getElementById('first-name')?.value || '',
-            lastName: document.getElementById('last-name')?.value || '',
-            email: document.getElementById('email')?.value || '',
-            phone: document.getElementById('phone')?.value || '',
-            company: document.getElementById('company')?.value || '',
-            bio: document.getElementById('bio')?.value || ''
-        };
-    },
-
-    /**
-     * Reset form profilo
-     */
-    resetProfileForm() {
-        const form = document.getElementById('profile-form');
-        if (form && this.state.profile) {
-            // Ripristina valori originali
-            document.getElementById('first-name').value = this.state.profile.firstName || '';
-            document.getElementById('last-name').value = this.state.profile.lastName || '';
-            document.getElementById('email').value = this.state.profile.email || '';
-            document.getElementById('phone').value = this.state.profile.phone || '';
-            document.getElementById('company').value = this.state.profile.company || '';
-            document.getElementById('bio').value = this.state.profile.bio || '';
-        }
-    },
-
-    /**
-     * Cambia avatar
-     */
-    changeAvatar() {
-        const avatarInput = document.getElementById('avatar-input');
-        if (avatarInput) {
-            avatarInput.click();
-        }
-    },
-
-    /**
-     * Gestisce cambio avatar
-     */
-    async handleAvatarChange(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-
-        // Validazione file
-        if (!this.config.allowedImageTypes.includes(file.type)) {
-            window.Utils?.notifications?.show('Formato immagine non supportato', 'error');
-            return;
-        }
-
-        if (file.size > this.config.avatarMaxSize) {
-            window.Utils?.notifications?.show('Immagine troppo grande (max 2MB)', 'error');
-            return;
-        }
-
-        try {
-            // Preview immediato
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const avatar = document.getElementById('user-avatar');
-                if (avatar) {
-                    avatar.src = e.target.result;
-                }
-            };
-            reader.readAsDataURL(file);
-
-            // Upload al server
-            const formData = new FormData();
-            formData.append('avatar', file);
-
-            const response = await window.API.post(this.config.endpoints.avatar, formData);
-
-            if (response.success) {
-                this.state.profile.avatar = response.data.avatarUrl;
-                window.Utils?.notifications?.show('Avatar aggiornato', 'success');
-                this.triggerEvent('avatar:updated');
-            } else {
-                throw new Error(response.message || 'Errore nell\'upload dell\'avatar');
-            }
-
-        } catch (error) {
-            console.error('Error uploading avatar:', error);
-            window.Utils?.notifications?.show(error.message, 'error');
-
-            // Ripristina avatar precedente
-            const avatar = document.getElementById('user-avatar');
-            if (avatar) {
-                avatar.src = this.state.profile.avatar || '/assets/images/default-avatar.jpg';
-            }
-        }
-    },
-
-    /**
-     * Renderizza form impostazioni
-     */
-    renderSettingsForm(container) {
-        const settingsHTML = `
-            <div class="settings-form-container">
-                <div class="section-header">
-                    <h3><i class="fas fa-cog"></i> Impostazioni</h3>
-                    <p>Personalizza la tua esperienza</p>
-                </div>
-                ${this.templates.settingsForm}
-            </div>
-        `;
-
-        container.innerHTML = settingsHTML;
-        this.populateSettingsForm();
-        this.setupSettingsFormListeners();
-    },
-
-    /**
-     * Popola form impostazioni
-     */
-    populateSettingsForm() {
-        // Tema
-        const themeSelect = document.getElementById('theme-select');
-        if (themeSelect) {
-            themeSelect.value = this.state.settings.theme;
-        }
-
-        // Lingua
-        const languageSelect = document.getElementById('language-select');
-        if (languageSelect) {
-            languageSelect.value = this.state.settings.language;
-        }
-
-        // Notifiche
-        document.getElementById('email-notifications').checked = this.state.settings.notifications.email;
-        document.getElementById('push-notifications').checked = this.state.settings.notifications.push;
-        document.getElementById('sms-notifications').checked = this.state.settings.notifications.sms;
-
-        // Privacy
-        document.getElementById('show-profile').checked = this.state.settings.privacy.showProfile;
-        document.getElementById('show-bookings').checked = this.state.settings.privacy.showBookings;
-        document.getElementById('allow-analytics').checked = this.state.settings.privacy.allowAnalytics;
-    },
-
-    /**
-     * Setup listeners form impostazioni
-     */
-    setupSettingsFormListeners() {
-        const form = document.getElementById('settings-form');
-        if (!form) return;
-
-        form.addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.handleSettingsSubmit();
-        });
-
-        // Listener per tema
-        const themeSelect = document.getElementById('theme-select');
-        if (themeSelect) {
-            themeSelect.addEventListener('change', (e) => {
-                this.applyTheme(e.target.value);
-            });
-        }
-    },
-
-    /**
-     * Gestisce submit impostazioni
-     */
-    async handleSettingsSubmit() {
-        try {
-            const settingsData = this.gatherSettingsFormData();
-
-            this.state.loading = true;
-
-            // Aggiorna stato locale
-            this.state.settings = { ...this.state.settings, ...settingsData };
-
-            // Applica impostazioni
-            this.applySettings();
-
-            // Salva sul server se autenticato
-            if (window.Auth?.isAuthenticated()) {
-                const response = await window.API.put(this.config.endpoints.settings, settingsData);
-
-                if (!response.success) {
-                    throw new Error(response.message || 'Errore nel salvataggio impostazioni');
-                }
-            }
-
-            window.Utils?.notifications?.show('Impostazioni salvate', 'success');
-            this.triggerEvent('settings:updated');
-
-        } catch (error) {
-            console.error('Error saving settings:', error);
-            window.Utils?.notifications?.show(error.message, 'error');
-        } finally {
-            this.state.loading = false;
-        }
-    },
-
-    /**
-     * Raccoglie dati form impostazioni
-     */
-    gatherSettingsFormData() {
-        return {
-            theme: document.getElementById('theme-select')?.value || 'auto',
-            language: document.getElementById('language-select')?.value || 'it',
-            notifications: {
-                email: document.getElementById('email-notifications')?.checked || false,
-                push: document.getElementById('push-notifications')?.checked || false,
-                sms: document.getElementById('sms-notifications')?.checked || false
-            },
-            privacy: {
-                showProfile: document.getElementById('show-profile')?.checked || false,
-                showBookings: document.getElementById('show-bookings')?.checked || false,
-                allowAnalytics: document.getElementById('allow-analytics')?.checked || false
-            }
-        };
-    },
-
-    /**
-     * Reset form impostazioni
-     */
-    resetSettingsForm() {
-        this.populateSettingsForm();
-    },
-
-    /**
-     * Renderizza lista prenotazioni
-     */
-    renderBookingsList(container) {
-        const bookingsHTML = this.buildBookingsHTML();
-
-        let list = this.templates.bookingsList;
-        list = list.replace(/{bookingsHTML}/g, bookingsHTML);
-
-        const bookingsContainer = `
-            <div class="bookings-container">
-                <div class="section-header">
-                    <h3><i class="fas fa-calendar-alt"></i> Le mie Prenotazioni</h3>
-                    <p>Gestisci e monitora le tue prenotazioni</p>
-                </div>
-                ${list}
-            </div>
-        `;
-
-        container.innerHTML = bookingsContainer;
-        this.setupBookingsListeners();
-    },
-
-    /**
-     * Costruisce HTML prenotazioni
-     */
-    buildBookingsHTML() {
-        if (this.state.bookings.length === 0) {
-            return `
-                <div class="no-bookings">
-                    <i class="fas fa-calendar-times fa-3x text-muted"></i>
-                    <h4>Nessuna prenotazione</h4>
-                    <p>Non hai ancora effettuato prenotazioni</p>
-                    <button class="btn btn-primary" onclick="Navigation.showSection('spaces')">
-                        <i class="fas fa-search"></i> Cerca Spazi
-                    </button>
-                </div>
-            `;
-        }
-
-        return this.state.bookings.map(booking => `
-            <div class="booking-item" data-booking-id="${booking.id}">
-                <div class="booking-status status-${booking.status}">
-                    ${this.getStatusLabel(booking.status)}
-                </div>
-                <div class="booking-content">
-                    <h5>${booking.spaceName}</h5>
-                    <div class="booking-details">
-                        <span><i class="fas fa-calendar"></i> ${Utils.formatDate(booking.date)}</span>
-                        <span><i class="fas fa-clock"></i> ${booking.startTime} - ${booking.endTime}</span>
-                        <span><i class="fas fa-users"></i> ${booking.guests} persone</span>
-                        <span><i class="fas fa-euro-sign"></i> €${booking.totalPrice}</span>
+                
+                <div class="favorites-grid" id="user-favorites-grid">
+                    <div class="no-favorites">
+                        <div class="empty-state">
+                            <i class="fas fa-heart-broken fa-3x text-muted mb-3"></i>
+                            <h4>Nessun preferito</h4>
+                            <p class="text-muted">Non hai ancora salvato spazi preferiti</p>
+                            <button class="btn btn-primary" onclick="Navigation.showSection('spaces')">
+                                <i class="fas fa-search"></i> Esplora Spazi
+                            </button>
+                        </div>
                     </div>
                 </div>
-                <div class="booking-actions">
-                    ${this.buildBookingActions(booking)}
+            </div>
+        `;
+    },
+
+    buildSettingsSection() {
+        return `
+            <div class="profile-settings">
+                <div class="section-header">
+                    <h3>Impostazioni Account</h3>
+                    <p class="text-muted">Personalizza la tua esperienza CoWorkSpace</p>
+                </div>
+                
+                <div class="settings-content">
+                    <p class="text-muted">Sezione impostazioni in sviluppo...</p>
                 </div>
             </div>
-        `).join('');
-    },
-
-    /**
-     * Costruisce azioni prenotazione
-     */
-    buildBookingActions(booking) {
-        let actions = '';
-
-        if (booking.status === 'confirmed' && this.canCancelBooking(booking)) {
-            actions += `
-                <button class="btn btn-sm btn-outline-danger" onclick="User.cancelBooking('${booking.id}')">
-                    <i class="fas fa-times"></i> Cancella
-                </button>
-            `;
-        }
-
-        if (booking.status === 'completed' && !booking.hasReview) {
-            actions += `
-                <button class="btn btn-sm btn-outline-primary" onclick="User.reviewBooking('${booking.id}')">
-                    <i class="fas fa-star"></i> Recensisci
-                </button>
-            `;
-        }
-
-        actions += `
-            <button class="btn btn-sm btn-outline-secondary" onclick="User.viewBookingDetails('${booking.id}')">
-                <i class="fas fa-eye"></i> Dettagli
-            </button>
         `;
-
-        return actions;
     },
 
-    /**
-     * Setup listeners lista prenotazioni
-     */
-    setupBookingsListeners() {
-        // Filtro status
-        const statusFilter = document.getElementById('booking-status-filter');
-        if (statusFilter) {
-            statusFilter.addEventListener('change', () => {
-                this.filterBookings();
-            });
-        }
-
-        // Filtro data
-        const dateFilter = document.getElementById('booking-date-filter');
-        if (dateFilter) {
-            dateFilter.addEventListener('change', () => {
-                this.filterBookings();
-            });
-        }
+    buildSecuritySection() {
+        return `
+            <div class="profile-security">
+                <div class="section-header">
+                    <h3>Sicurezza Account</h3>
+                    <p class="text-muted">Gestisci password e sicurezza del tuo account</p>
+                </div>
+                
+                <div class="security-content">
+                    <p class="text-muted">Sezione sicurezza in sviluppo...</p>
+                </div>
+            </div>
+        `;
     },
 
-    /**
-     * Filtra prenotazioni
-     */
+    buildBillingSection() {
+        return `
+            <div class="profile-billing">
+                <div class="section-header">
+                    <h3>Fatturazione e Pagamenti</h3>
+                    <p class="text-muted">Gestisci i tuoi metodi di pagamento e visualizza la cronologia</p>
+                </div>
+
+                <div class="billing-content">
+                    <p class="text-muted">Sezione fatturazione in sviluppo...</p>
+                </div>
+            </div>
+        `;
+    },
+
+    // ==================== FILTRI E RICERCA ====================
     filterBookings() {
         const statusFilter = document.getElementById('booking-status-filter')?.value || '';
         const dateFilter = document.getElementById('booking-date-filter')?.value || '';
+        const searchTerm = document.getElementById('booking-search')?.value.toLowerCase() || '';
 
-        let filtered = [...this.state.bookings];
+        let filteredBookings = [...this.state.userBookings];
 
+        // Filtro per stato
         if (statusFilter) {
-            filtered = filtered.filter(booking => booking.status === statusFilter);
+            filteredBookings = filteredBookings.filter(booking => booking.status === statusFilter);
         }
 
+        // Filtro per data
         if (dateFilter) {
-            filtered = filtered.filter(booking => booking.date === dateFilter);
+            const now = new Date();
+            filteredBookings = filteredBookings.filter(booking => {
+                const bookingDate = new Date(booking.date);
+
+                switch (dateFilter) {
+                    case 'upcoming':
+                        return bookingDate >= now;
+                    case 'past':
+                        return bookingDate < now;
+                    case 'today':
+                        return bookingDate.toDateString() === now.toDateString();
+                    case 'this-week':
+                        const weekStart = new Date(now.setDate(now.getDate() - now.getDay()));
+                        const weekEnd = new Date(now.setDate(now.getDate() - now.getDay() + 6));
+                        return bookingDate >= weekStart && bookingDate <= weekEnd;
+                    case 'this-month':
+                        return bookingDate.getMonth() === now.getMonth() &&
+                            bookingDate.getFullYear() === now.getFullYear();
+                    default:
+                        return true;
+                }
+            });
         }
 
-        // Aggiorna HTML
-        const container = document.getElementById('user-bookings-container');
-        if (container) {
-            const originalBookings = this.state.bookings;
-            this.state.bookings = filtered;
-            container.innerHTML = this.buildBookingsHTML();
-            this.state.bookings = originalBookings;
+        // Filtro per ricerca
+        if (searchTerm) {
+            filteredBookings = filteredBookings.filter(booking =>
+                booking.spaceName.toLowerCase().includes(searchTerm) ||
+                booking.spaceAddress.toLowerCase().includes(searchTerm)
+            );
         }
+
+        // Aggiorna UI con risultati filtrati
+        this.updateBookingsGrid(filteredBookings);
     },
 
-    /**
-     * Renderizza lista preferiti
-     */
-    renderFavoritesList(container) {
-        // Implementazione simile alle prenotazioni
-        const favoritesHTML = `
-            <div class="favorites-container">
-                <div class="section-header">
-                    <h3><i class="fas fa-heart"></i> Spazi Preferiti</h3>
-                    <p>I tuoi spazi salvati</p>
-                </div>
-                <div id="favorites-grid" class="favorites-grid">
-                    ${this.buildFavoritesHTML()}
-                </div>
-            </div>
-        `;
-
-        container.innerHTML = favoritesHTML;
+    searchBookings(searchTerm) {
+        // Implementa ricerca in tempo reale
+        this.filterBookings();
     },
 
-    /**
-     * Costruisce HTML preferiti
-     */
-    buildFavoritesHTML() {
-        if (this.state.favorites.length === 0) {
-            return `
-                <div class="no-favorites">
-                    <i class="fas fa-heart-broken fa-3x text-muted"></i>
-                    <h4>Nessun preferito</h4>
-                    <p>Non hai ancora salvato spazi preferiti</p>
-                    <button class="btn btn-primary" onclick="Navigation.showSection('spaces')">
-                        <i class="fas fa-search"></i> Esplora Spazi
-                    </button>
+    updateBookingsGrid(bookings) {
+        const container = document.getElementById('user-bookings-grid');
+        if (!container) return;
+
+        if (bookings.length === 0) {
+            container.innerHTML = `
+                <div class="no-results">
+                    <div class="empty-state">
+                        <i class="fas fa-search fa-2x text-muted mb-3"></i>
+                        <h5>Nessun risultato</h5>
+                        <p class="text-muted">Modifica i filtri per vedere più risultati</p>
+                        <button class="btn btn-outline-primary" onclick="User.clearFilters()">
+                            <i class="fas fa-times"></i> Cancella Filtri
+                        </button>
+                    </div>
                 </div>
             `;
+        } else {
+            container.innerHTML = bookings.map(booking => this.buildBookingCard(booking)).join('');
         }
-
-        // Se abbiamo i dati completi degli spazi preferiti
-        if (window.Spaces && this.state.favorites.length > 0) {
-            return this.state.favorites.map(favoriteId => {
-                const space = window.Spaces.state.spaces.find(s => s.id === favoriteId);
-                if (space) {
-                    return window.Spaces.buildSpaceCard(space);
-                }
-                return '';
-            }).join('');
-        }
-
-        return '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Caricamento...</div>';
     },
 
-    /**
-     * Ottieni prenotazioni prossime
-     */
-    getUpcomingBookings() {
-        const now = new Date();
-        return this.state.bookings.filter(booking => {
-            const bookingDate = new Date(`${booking.date}T${booking.startTime}`);
-            return bookingDate > now && booking.status === 'confirmed';
-        });
+    clearFilters() {
+        // Resetta tutti i filtri
+        const statusFilter = document.getElementById('booking-status-filter');
+        const dateFilter = document.getElementById('booking-date-filter');
+        const searchInput = document.getElementById('booking-search');
+
+        if (statusFilter) statusFilter.value = '';
+        if (dateFilter) dateFilter.value = '';
+        if (searchInput) searchInput.value = '';
+
+        // Ricarica tutte le prenotazioni
+        this.updateBookingsGrid(this.state.userBookings);
     },
 
-    /**
-     * Ottieni etichetta status
-     */
-    getStatusLabel(status) {
-        const labels = {
-            pending: 'In Attesa',
-            confirmed: 'Confermata',
-            cancelled: 'Cancellata',
-            completed: 'Completata'
-        };
-        return labels[status] || status;
+    // ==================== AZIONI UTENTE (PLACEHOLDER) ====================
+    async showBookingDetail(bookingId) {
+        console.log('Show booking detail:', bookingId);
+        this.showNotification('Funzione in sviluppo', 'info');
     },
 
-    /**
-     * Controlla se può cancellare prenotazione
-     */
-    canCancelBooking(booking) {
-        const bookingDateTime = new Date(`${booking.date}T${booking.startTime}`);
-        const now = new Date();
-        const hoursUntilBooking = (bookingDateTime - now) / (1000 * 60 * 60);
-        return hoursUntilBooking > 24; // 24 ore di anticipo
+    async downloadBookingPDF(bookingId) {
+        console.log('Download PDF for booking:', bookingId);
+        this.showNotification('Download PDF iniziato...', 'info');
     },
 
-    /**
-     * Cancella prenotazione
-     */
+    async showReviewModal(bookingId) {
+        console.log('Show review modal for booking:', bookingId);
+        this.showNotification('Funzione recensioni in sviluppo', 'info');
+    },
+
     async cancelBooking(bookingId) {
-        if (window.Bookings?.cancelBooking) {
-            await window.Bookings.cancelBooking(bookingId);
-            await this.loadUserBookings(); // Ricarica lista
-            this.refreshBookingsList();
+        if (!confirm('Sei sicuro di voler cancellare questa prenotazione?')) {
+            return;
+        }
+        console.log('Cancel booking:', bookingId);
+        this.showNotification('Cancellazione in corso...', 'info');
+    },
+
+    async exportBookings() {
+        console.log('Export bookings');
+        this.showNotification('Export in sviluppo...', 'info');
+    },
+
+    async exportUserData() {
+        console.log('Export user data');
+        this.showNotification('Export dati in sviluppo...', 'info');
+    },
+
+    async showAvatarUpload() {
+        console.log('Show avatar upload');
+        this.showNotification('Upload avatar in sviluppo...', 'info');
+    },
+
+    // ==================== GESTIONE DATI LOCALI ====================
+    saveUserSettings() {
+        try {
+            localStorage.setItem('coworkspace_user_settings', JSON.stringify(this.state.settings));
+        } catch (error) {
+            console.error('Error saving user settings:', error);
         }
     },
 
-    /**
-     * Esporta prenotazioni
-     */
-    exportBookings() {
-        if (window.Bookings?.exportBookings) {
-            window.Bookings.exportBookings('csv');
-        }
-    },
-
-    /**
-     * Refresh lista prenotazioni
-     */
-    refreshBookingsList() {
-        const container = document.getElementById('user-bookings-container');
-        if (container) {
-            container.innerHTML = this.buildBookingsHTML();
-        }
-    },
-
-    /**
-     * Refresh dati utente
-     */
-    async refreshUserData() {
-        if (window.Auth?.isAuthenticated() && this.state.initialized) {
-            await this.loadUserData();
-        }
-    },
-
-    /**
-     * Trigger evento custom
-     */
-    triggerEvent(eventName, data = {}) {
-        const event = new CustomEvent(eventName, {
-            detail: { ...data, user: this }
-        });
-        document.dispatchEvent(event);
-    },
-
-    /**
-     * Ottieni informazioni utente
-     */
-    getUserInfo() {
-        return {
-            profile: this.state.profile,
-            settings: this.state.settings,
-            stats: {
-                bookings: this.state.bookings.length,
-                favorites: this.state.favorites.length,
-                reviews: this.state.reviews.length,
-                upcoming: this.getUpcomingBookings().length
+    loadUserSettings() {
+        try {
+            const saved = localStorage.getItem('coworkspace_user_settings');
+            if (saved) {
+                this.state.settings = { ...this.state.settings, ...JSON.parse(saved) };
             }
+        } catch (error) {
+            console.error('Error loading user settings:', error);
+        }
+    },
+
+    clearUserData() {
+        this.state.currentUser = null;
+        this.state.userBookings = [];
+        this.state.favorites = [];
+        this.state.editMode = false;
+        this.state.isLoading = false;
+    },
+
+    // ==================== EVENTI ====================
+    setupEventListeners() {
+        // Form submission per profilo
+        document.addEventListener('submit', async (e) => {
+            if (e.target.id === 'profile-edit-form') {
+                e.preventDefault();
+                console.log('Profile form submitted');
+                this.showNotification('Salvataggio in sviluppo...', 'info');
+            }
+        });
+    },
+
+    attachProfileEvents() {
+        console.log('📎 Attaching profile events...');
+    },
+
+    attachSectionEvents(section) {
+        console.log(`📎 Attaching events for section: ${section}`);
+    },
+
+    // ==================== MOCK DATA ====================
+    loadMockUserData() {
+        console.log('📊 Loading mock user data...');
+
+        this.state.currentUser = {
+            id: 'user_' + Date.now(),
+            firstName: 'Mario',
+            lastName: 'Rossi',
+            email: 'mario.rossi@example.com',
+            phone: '+39 123 456 7890',
+            company: 'Tech Solutions SRL',
+            position: 'Full Stack Developer',
+            bio: 'Sviluppatore web appassionato di tecnologie moderne e metodologie agili.',
+            avatar: null,
+            verified: true,
+            twoFactorEnabled: false,
+            role: 'user',
+            lastLogin: new Date(Date.now() - 3600000).toISOString(),
+            createdAt: new Date(Date.now() - 86400000 * 180).toISOString()
         };
+
+        this.state.userBookings = [
+            {
+                id: 'BK001',
+                spaceId: 'space_1',
+                spaceName: 'Spazio Creativo Milano Centro',
+                spaceAddress: 'Via Torino 40, Milano',
+                date: '2025-08-20',
+                startTime: '09:00',
+                endTime: '17:00',
+                duration: 8,
+                totalPrice: 120.00,
+                status: 'confirmed',
+                notes: 'Prenotazione per sessione di lavoro intensiva',
+                reviewed: false,
+                createdAt: new Date(Date.now() - 86400000 * 2).toISOString()
+            },
+            {
+                id: 'BK002',
+                spaceId: 'space_2',
+                spaceName: 'Open Space Tech Hub',
+                spaceAddress: 'Corso Buenos Aires 15, Milano',
+                date: '2025-08-15',
+                startTime: '14:00',
+                endTime: '18:00',
+                duration: 4,
+                totalPrice: 60.00,
+                status: 'completed',
+                notes: 'Meeting con cliente importante',
+                reviewed: true,
+                createdAt: new Date(Date.now() - 86400000 * 7).toISOString()
+            }
+        ];
+
+        this.state.favorites = [];
+    },
+
+    async loadUserBookings() {
+        try {
+            console.log('📅 Loading user bookings...');
+            console.log(`✅ Loaded ${this.state.userBookings.length} bookings`);
+        } catch (error) {
+            console.error('❌ Error loading user bookings:', error);
+            this.showNotification('Errore nel caricamento delle prenotazioni', 'warning');
+        }
+    },
+
+    async loadFavorites() {
+        try {
+            console.log('❤️ Loading user favorites...');
+            console.log(`✅ Loaded ${this.state.favorites.length} favorites`);
+        } catch (error) {
+            console.error('❌ Error loading favorites:', error);
+        }
     }
 };
 
-// Auto-inizializzazione se DOM pronto e dipendenze disponibili
+// ==================== AUTO-INIZIALIZZAZIONE ====================
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
-        if (window.API && window.Utils) {
+        if (window.api && window.Auth && window.Components) {
             window.User.init();
+        } else {
+            console.warn('⚠️ User module: Missing dependencies (api, Auth, Components)');
+            // Retry dopo un breve delay
+            setTimeout(() => {
+                if (window.api && window.Auth && window.Components) {
+                    window.User.init();
+                }
+            }, 1000);
         }
     });
-} else if (window.API && window.Utils) {
+} else if (window.api && window.Auth && window.Components) {
     window.User.init();
+} else {
+    console.warn('⚠️ User module: Missing dependencies, will retry...');
 }

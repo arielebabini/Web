@@ -14,12 +14,14 @@
     <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 
-    <!-- Custom CSS Files -->
-    <link rel="stylesheet" href="./assets/css/variables.css">
-    <link rel="stylesheet" href="./assets/css/layout.css">
-    <link rel="stylesheet" href="./assets/css/components.css">
-    <link rel="stylesheet" href="./assets/css/animations.css">
-    <link rel="stylesheet" href="./assets/css/responsive.css">
+    <!-- Custom CSS Files - PERCORSI CORRETTI -->
+    <link rel="stylesheet" href="assets/css/variables.css">
+    <link rel="stylesheet" href="assets/css/components.css">
+    <link rel="stylesheet" href="assets/css/layout.css">
+    <link rel="stylesheet" href="assets/css/animations.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+    <!-- Se hai anche style.css, aggiungilo -->
+    <link rel="stylesheet" href="assets/css/style.css">
 </head>
 
 <body>
@@ -35,16 +37,17 @@
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav me-auto">
                 <li class="nav-item">
-                    <a class="nav-link" href="#" onclick="showSection('home')">Home</a>
+                    <a class="nav-link" href="index.html" onclick="showSection('home')">Home</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="#" onclick="showSection('spaces')">Spazi</a>
+                    <!-- CORRETTO: rimuovi href, usa solo onclick -->
+                    <a class="nav-link" href="template/spaces.html" onclick="showSection('spaces')">Spazi</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="#" onclick="showSection('about')">Chi Siamo</a>
+                    <a class="nav-link" href="template/about.html" onclick="showSection('about')">Chi Siamo</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="#" onclick="showSection('support')">Supporto</a>
+                    <a class="nav-link" href="template/support.html" onclick="showSection('support')">Supporto</a>
                 </li>
             </ul>
             <div class="navbar-nav">
@@ -221,49 +224,119 @@
         <div class="row">
             <div class="col-lg-3 col-md-6 mb-4">
                 <h5><i class="fas fa-building text-primary"></i> CoWorkSpace</h5>
-                <p class="text-muted">La piattaforma leader in Italia per la prenotazione di spazi di coworking professionali.</p>
+                <p class="text-muted">La piattaforma leader in Italia per la prenotazione di spazi di coworking professionali. Trova il workspace perfetto per la tua produttività.</p>
                 <div class="social-links mt-4">
-                    <a href="#" class="text-white me-3"><i class="fab fa-facebook-f"></i></a>
-                    <a href="#" class="text-white me-3"><i class="fab fa-twitter"></i></a>
-                    <a href="#" class="text-white me-3"><i class="fab fa-linkedin-in"></i></a>
-                    <a href="#" class="text-white"><i class="fab fa-instagram"></i></a>
+                    <a href="#" class="text-white me-3" aria-label="Facebook">
+                        <i class="fab fa-facebook-f"></i>
+                    </a>
+                    <a href="#" class="text-white me-3" aria-label="Twitter">
+                        <i class="fab fa-twitter"></i>
+                    </a>
+                    <a href="#" class="text-white me-3" aria-label="LinkedIn">
+                        <i class="fab fa-linkedin-in"></i>
+                    </a>
+                    <a href="#" class="text-white" aria-label="Instagram">
+                        <i class="fab fa-instagram"></i>
+                    </a>
                 </div>
             </div>
             <div class="col-lg-3 col-md-6 mb-4">
                 <h6>Servizi</h6>
                 <ul class="list-unstyled">
-                    <li class="mb-3"><a href="#" class="text-muted">Hot Desk</a></li>
-                    <li class="mb-3"><a href="#" class="text-muted">Uffici Privati</a></li>
-                    <li class="mb-3"><a href="#" class="text-muted">Sale Riunioni</a></li>
-                    <li class="mb-3"><a href="#" class="text-muted">Spazi Eventi</a></li>
+                    <li class="mb-3"><a href="#" class="text-muted">
+                        <i class="fas fa-laptop me-2"></i>Hot Desk
+                    </a></li>
+                    <li class="mb-3"><a href="#" class="text-muted">
+                        <i class="fas fa-door-open me-2"></i>Uffici Privati
+                    </a></li>
+                    <li class="mb-3"><a href="#" class="text-muted">
+                        <i class="fas fa-users me-2"></i>Sale Riunioni
+                    </a></li>
+                    <li class="mb-3"><a href="#" class="text-muted">
+                        <i class="fas fa-calendar-alt me-2"></i>Spazi Eventi
+                    </a></li>
                 </ul>
             </div>
             <div class="col-lg-3 col-md-6 mb-4">
                 <h6>Azienda</h6>
                 <ul class="list-unstyled">
-                    <li class="mb-3"><a href="#" class="text-muted">Chi Siamo</a></li>
-                    <li class="mb-3"><a href="#" class="text-muted">Lavora con Noi</a></li>
-                    <li class="mb-3"><a href="#" class="text-muted">Partnership</a></li>
-                    <li class="mb-3"><a href="#" class="text-muted">Press Kit</a></li>
+                    <li class="mb-3"><a href="#" class="text-muted" onclick="showSection('about')">
+                        <i class="fas fa-info-circle me-2"></i>Chi Siamo
+                    </a></li>
+                    <li class="mb-3"><a href="#" class="text-muted">
+                        <i class="fas fa-briefcase me-2"></i>Lavora con Noi
+                    </a></li>
+                    <li class="mb-3"><a href="#" class="text-muted">
+                        <i class="fas fa-handshake me-2"></i>Partnership
+                    </a></li>
+                    <li class="mb-3"><a href="#" class="text-muted">
+                        <i class="fas fa-newspaper me-2"></i>Press Kit
+                    </a></li>
                 </ul>
             </div>
             <div class="col-lg-3 col-md-6 mb-4">
                 <h6>Supporto</h6>
                 <ul class="list-unstyled">
-                    <li class="mb-3"><a href="#" class="text-muted">Centro Assistenza</a></li>
-                    <li class="mb-3"><a href="#" class="text-muted">FAQ</a></li>
-                    <li class="mb-3"><a href="#" class="text-muted">Termini di Servizio</a></li>
-                    <li class="mb-3"><a href="#" class="text-muted">Privacy Policy</a></li>
+                    <li class="mb-3"><a href="#" class="text-muted" onclick="showSection('support')">
+                        <i class="fas fa-headset me-2"></i>Centro Assistenza
+                    </a></li>
+                    <li class="mb-3"><a href="#" class="text-muted">
+                        <i class="fas fa-question-circle me-2"></i>FAQ
+                    </a></li>
+                    <li class="mb-3"><a href="#" class="text-muted">
+                        <i class="fas fa-file-contract me-2"></i>Termini di Servizio
+                    </a></li>
+                    <li class="mb-3"><a href="#" class="text-muted">
+                        <i class="fas fa-shield-alt me-2"></i>Privacy Policy
+                    </a></li>
                 </ul>
             </div>
         </div>
-        <hr class="my-4">
+
+        <!-- Newsletter Subscription -->
+        <div class="row mt-4 pt-4 border-top border-secondary">
+            <div class="col-lg-6 mb-4">
+                <h6>📧 Resta aggiornato</h6>
+                <p class="text-muted mb-3">Ricevi le ultime novità sui nostri spazi e offerte esclusive</p>
+                <div class="input-group">
+                    <input type="email" class="form-control" placeholder="La tua email">
+                    <button class="btn btn-primary" type="button">
+                        <i class="fas fa-paper-plane"></i> Iscriviti
+                    </button>
+                </div>
+            </div>
+            <div class="col-lg-6 mb-4">
+                <h6>📍 Principali Città</h6>
+                <div class="row">
+                    <div class="col-6">
+                        <p class="text-muted mb-2"><i class="fas fa-map-marker-alt me-2"></i>Milano</p>
+                        <p class="text-muted mb-2"><i class="fas fa-map-marker-alt me-2"></i>Roma</p>
+                        <p class="text-muted mb-2"><i class="fas fa-map-marker-alt me-2"></i>Torino</p>
+                    </div>
+                    <div class="col-6">
+                        <p class="text-muted mb-2"><i class="fas fa-map-marker-alt me-2"></i>Bologna</p>
+                        <p class="text-muted mb-2"><i class="fas fa-map-marker-alt me-2"></i>Firenze</p>
+                        <p class="text-muted mb-2"><i class="fas fa-map-marker-alt me-2"></i>Napoli</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <hr class="my-4 border-secondary">
         <div class="row align-items-center">
             <div class="col-md-6">
-                <p class="mb-0 text-muted">&copy; 2024 CoWorkSpace. Tutti i diritti riservati.</p>
+                <p class="mb-0 text-muted">
+                    &copy; 2024 CoWorkSpace. Tutti i diritti riservati.
+                    <span class="mx-2">|</span>
+                    P.IVA: 12345678901
+                </p>
             </div>
             <div class="col-md-6 text-md-end">
-                <p class="mb-0 text-muted">Made with ❤️ in Italy</p>
+                <p class="mb-0 text-muted">
+                    Made with <i class="fas fa-heart text-danger"></i> in Italy
+                    <span class="mx-2">|</span>
+                    <i class="fas fa-shield-check text-success"></i> SSL Secured
+                </p>
             </div>
         </div>
     </div>
@@ -295,18 +368,18 @@
 <!-- Scripts -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
 
-<!-- Custom Scripts -->
-<script src="./assets/js/config.js"></script>
-<script src="./assets/js/utils.js"></script>
-<script src="./assets/js/api.js"></script>
-<script src="./assets/js/auth.js"></script>
-<script src="./assets/js/navigation.js"></script>
-<script src="./assets/js/spaces.js"></script>
-<script src="./assets/js/booking.js"></script>
-<script src="./assets/js/user.js"></script>
-<script src="./assets/js/dashboard.js"></script>
-<script src="./assets/js/components.js"></script>
-<script src="./assets/js/notification.js"></script>
-<script src="./assets/js/app.js"></script>
+<!-- Custom Scripts - PERCORSI CORRETTI -->
+<script src="assets/js/config.js"></script>
+<script src="assets/js/utils.js"></script>
+<script src="assets/js/api.js"></script>
+<script src="assets/js/auth.js"></script>
+<script src="assets/js/navigation.js"></script>
+<script src="assets/js/spaces.js"></script>
+<script src="assets/js/booking.js"></script>
+<script src="assets/js/user.js"></script>
+<script src="assets/js/dashboard.js"></script>
+<script src="assets/js/components.js"></script>
+<script src="assets/js/notification.js"></script>
+<script src="assets/js/app.js"></script>
 </body>
 </html>

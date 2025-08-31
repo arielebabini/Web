@@ -1,80 +1,161 @@
-<!-- About Section Template -->
-<section id="aboutSection" class="section-padding">
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chi Siamo - CoWorkSpace</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="../assets/css/variables.css">
+    <link rel="stylesheet" href="../assets/css/components.css">
+    <link rel="stylesheet" href="../assets/css/layout.css">
+    <link rel="stylesheet" href="../assets/css/animations.css">
+    <link rel="stylesheet" href="../assets/css/responsive.css">
+    <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+
+<body>
+<!-- Navigation -->
+<div id="navbar-container"></div>
+
+<!-- About Section -->
+<section class="section-padding" style="margin-top: 80px;">
     <div class="container">
+        <!-- Hero Section -->
         <div class="row">
-            <div class="col-lg-8 mx-auto text-center">
-                <h2 class="section-title">Chi Siamo</h2>
+            <div class="col-lg-10 mx-auto text-center">
+                <h2 class="section-title">
+                    <i class="fas fa-users text-primary me-3"></i>Chi Siamo
+                </h2>
                 <p class="section-subtitle">
                     CoWorkSpace è la piattaforma leader in Italia per la prenotazione
-                    di spazi di coworking professionali.
+                    di spazi di coworking professionali e moderni.
                 </p>
-                <p class="lead">
+                <p class="lead fs-5 text-muted">
                     Fondata nel 2024, la nostra missione è rendere accessibile e flessibile
                     il lavoro moderno, offrendo una rete di spazi di alta qualità in tutte
-                    le principali città italiane.
+                    le principali città italiane. Crediamo nel futuro del lavoro ibrido.
                 </p>
             </div>
         </div>
 
-        <!-- Mission & Vision -->
+        <!-- Mission & Vision Cards -->
         <div class="row mt-5">
             <div class="col-lg-6 mb-4">
-                <div class="about-card h-100">
+                <div class="about-card h-100 shadow-sm">
                     <div class="about-icon">
                         <i class="fas fa-bullseye"></i>
                     </div>
-                    <h4>La Nostra Missione</h4>
-                    <p>Rendere il lavoro flessibile accessibile a tutti, creando una rete di spazi professionali che favoriscano produttività, creatività e networking tra professionisti e aziende.</p>
+                    <h4 class="text-primary">La Nostra Missione</h4>
+                    <p class="text-muted">
+                        Rendere il lavoro flessibile accessibile a tutti, creando una rete di spazi
+                        professionali che favoriscano produttività, creatività e networking tra
+                        professionisti e aziende di ogni dimensione.
+                    </p>
+                    <div class="mission-points mt-3">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            <small>Spazi professionali di qualità</small>
+                        </div>
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            <small>Flessibilità oraria e contrattuale</small>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            <small>Community di professionisti</small>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="col-lg-6 mb-4">
-                <div class="about-card h-100">
+                <div class="about-card h-100 shadow-sm">
                     <div class="about-icon">
                         <i class="fas fa-eye"></i>
                     </div>
-                    <h4>La Nostra Visione</h4>
-                    <p>Diventare il punto di riferimento europeo per i workspace condivisi, promuovendo un nuovo modo di lavorare che unisca flessibilità, sostenibilità e innovazione.</p>
+                    <h4 class="text-primary">La Nostra Visione</h4>
+                    <p class="text-muted">
+                        Diventare il punto di riferimento europeo per i workspace condivisi,
+                        promuovendo un nuovo modo di lavorare che unisca flessibilità,
+                        sostenibilità e innovazione tecnologica.
+                    </p>
+                    <div class="vision-goals mt-3">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fas fa-globe-europe text-info me-2"></i>
+                            <small>Espansione in Europa entro il 2026</small>
+                        </div>
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fas fa-leaf text-success me-2"></i>
+                            <small>100% spazi eco-sostenibili</small>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-robot text-warning me-2"></i>
+                            <small>Tecnologie AI per l'ottimizzazione</small>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Stats Section -->
+        <!-- Statistics Section -->
         <div class="stats-section mt-5">
             <div class="row">
-                <div class="col-md-3 mb-4">
-                    <div class="stats-card">
-                        <div class="stats-icon bg-primary-gradient">
-                            <i class="fas fa-building"></i>
+                <div class="col-12 text-center mb-4">
+                    <h3 class="section-title">I Nostri Numeri</h3>
+                    <p class="text-muted">Cresciamo ogni giorno grazie alla fiducia dei nostri utenti</p>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="stats-card h-100 text-center">
+                        <div class="stats-icon bg-primary-gradient mx-auto mb-3">
+                            <i class="fas fa-building text-white"></i>
                         </div>
-                        <h3 class="stats-number">500+</h3>
-                        <p class="stats-label">Spazi Disponibili</p>
+                        <h3 class="stats-number text-primary" data-target="500">0</h3>
+                        <p class="stats-label text-muted mb-2">Spazi Disponibili</p>
+                        <small class="text-success">
+                            <i class="fas fa-arrow-up me-1"></i>+15% questo mese
+                        </small>
                     </div>
                 </div>
-                <div class="col-md-3 mb-4">
-                    <div class="stats-card">
-                        <div class="stats-icon bg-success-gradient">
-                            <i class="fas fa-map-marker-alt"></i>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="stats-card h-100 text-center">
+                        <div class="stats-icon bg-success-gradient mx-auto mb-3">
+                            <i class="fas fa-map-marker-alt text-white"></i>
                         </div>
-                        <h3 class="stats-number">50+</h3>
-                        <p class="stats-label">Città Coperte</p>
+                        <h3 class="stats-number text-success" data-target="50">0</h3>
+                        <p class="stats-label text-muted mb-2">Città Coperte</p>
+                        <small class="text-info">
+                            <i class="fas fa-plus me-1"></i>5 nuove città
+                        </small>
                     </div>
                 </div>
-                <div class="col-md-3 mb-4">
-                    <div class="stats-card">
-                        <div class="stats-icon bg-warning-gradient">
-                            <i class="fas fa-users"></i>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="stats-card h-100 text-center">
+                        <div class="stats-icon bg-warning-gradient mx-auto mb-3">
+                            <i class="fas fa-users text-white"></i>
                         </div>
-                        <h3 class="stats-number">10,000+</h3>
-                        <p class="stats-label">Utenti Attivi</p>
+                        <h3 class="stats-number text-warning" data-target="10000">0</h3>
+                        <p class="stats-label text-muted mb-2">Utenti Attivi</p>
+                        <small class="text-success">
+                            <i class="fas fa-heart me-1"></i>98% soddisfatti
+                        </small>
                     </div>
                 </div>
-                <div class="col-md-3 mb-4">
-                    <div class="stats-card">
-                        <div class="stats-icon bg-info-gradient">
-                            <i class="fas fa-calendar-check"></i>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="stats-card h-100 text-center">
+                        <div class="stats-icon bg-info-gradient mx-auto mb-3">
+                            <i class="fas fa-calendar-check text-white"></i>
                         </div>
-                        <h3 class="stats-number">50,000+</h3>
-                        <p class="stats-label">Prenotazioni</p>
+                        <h3 class="stats-number text-info" data-target="50000">0</h3>
+                        <p class="stats-label text-muted mb-2">Prenotazioni</p>
+                        <small class="text-primary">
+                            <i class="fas fa-clock me-1"></i>24/7 disponibili
+                        </small>
                     </div>
                 </div>
             </div>
@@ -84,51 +165,138 @@
         <div class="team-section mt-5">
             <div class="row">
                 <div class="col-12 text-center mb-5">
-                    <h3 class="section-title">Il Nostro Team</h3>
+                    <h3 class="section-title">
+                        <i class="fas fa-user-friends text-primary me-2"></i>Il Nostro Team
+                    </h3>
                     <p class="section-subtitle">Le persone che rendono possibile CoWorkSpace</p>
                 </div>
             </div>
-            <div class="row">
+            <div class="row justify-content-center">
                 <div class="col-lg-4 col-md-6 mb-4">
-                    <div class="team-card">
-                        <div class="team-avatar">
-                            <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=300&h=300&fit=crop&crop=face" alt="Marco Rossi" class="img-fluid rounded-circle">
+                    <div class="team-card h-100 text-center">
+                        <div class="team-avatar mb-3">
+                            <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=300&h=300&fit=crop&crop=face"
+                                 alt="Marco Rossi" class="img-fluid rounded-circle shadow-sm">
+                            <div class="team-badge">
+                                <i class="fas fa-crown text-warning"></i>
+                            </div>
                         </div>
-                        <h5>Marco Rossi</h5>
-                        <p class="team-role">CEO & Founder</p>
-                        <p class="team-bio">Esperto in tecnologia e workspace innovation con oltre 10 anni di esperienza nel settore.</p>
+                        <h5 class="text-dark">Marco Rossi</h5>
+                        <p class="team-role text-primary fw-bold">CEO & Founder</p>
+                        <p class="team-bio text-muted small">
+                            Esperto in tecnologia e workspace innovation con oltre 10 anni
+                            di esperienza nel settore. Visionario e appassionato di innovazione.
+                        </p>
+                        <div class="team-stats mb-3">
+                            <div class="row text-center">
+                                <div class="col-4">
+                                    <small class="text-muted d-block">Esperienza</small>
+                                    <strong class="text-primary">10+ anni</strong>
+                                </div>
+                                <div class="col-4">
+                                    <small class="text-muted d-block">Startup</small>
+                                    <strong class="text-success">3 fondate</strong>
+                                </div>
+                                <div class="col-4">
+                                    <small class="text-muted d-block">Awards</small>
+                                    <strong class="text-warning">5 vinti</strong>
+                                </div>
+                            </div>
+                        </div>
                         <div class="team-social">
-                            <a href="#"><i class="fab fa-linkedin"></i></a>
-                            <a href="#"><i class="fab fa-twitter"></i></a>
+                            <a href="#" class="social-link"><i class="fab fa-linkedin"></i></a>
+                            <a href="#" class="social-link"><i class="fab fa-twitter"></i></a>
+                            <a href="#" class="social-link"><i class="fas fa-envelope"></i></a>
                         </div>
                     </div>
                 </div>
                 <div class="col-lg-4 col-md-6 mb-4">
-                    <div class="team-card">
-                        <div class="team-avatar">
-                            <img src="https://images.unsplash.com/photo-1494790108755-2616b612b647?w=300&h=300&fit=crop&crop=face" alt="Sara Bianchi" class="img-fluid rounded-circle">
+                    <div class="team-card h-100 text-center">
+                        <div class="team-avatar mb-3">
+                            <img src="https://images.unsplash.com/photo-1494790108755-2616b612b647?w=300&h=300&fit=crop&crop=face"
+                                 alt="Sara Bianchi" class="img-fluid rounded-circle shadow-sm">
+                            <div class="team-badge">
+                                <i class="fas fa-code text-info"></i>
+                            </div>
                         </div>
-                        <h5>Sara Bianchi</h5>
-                        <p class="team-role">CTO</p>
-                        <p class="team-bio">Lead developer con passione per l'innovazione tecnologica e l'user experience.</p>
+                        <h5 class="text-dark">Sara Bianchi</h5>
+                        <p class="team-role text-info fw-bold">CTO</p>
+                        <p class="team-bio text-muted small">
+                            Lead developer con passione per l'innovazione tecnologica e l'user experience.
+                            Esperta in architetture scalabili e AI.
+                        </p>
+                        <div class="team-stats mb-3">
+                            <div class="row text-center">
+                                <div class="col-4">
+                                    <small class="text-muted d-block">Linguaggi</small>
+                                    <strong class="text-info">15+</strong>
+                                </div>
+                                <div class="col-4">
+                                    <small class="text-muted d-block">Progetti</small>
+                                    <strong class="text-success">50+</strong>
+                                </div>
+                                <div class="col-4">
+                                    <small class="text-muted d-block">Team</small>
+                                    <strong class="text-warning">20 dev</strong>
+                                </div>
+                            </div>
+                        </div>
                         <div class="team-social">
-                            <a href="#"><i class="fab fa-linkedin"></i></a>
-                            <a href="#"><i class="fab fa-github"></i></a>
+                            <a href="#" class="social-link"><i class="fab fa-linkedin"></i></a>
+                            <a href="#" class="social-link"><i class="fab fa-github"></i></a>
+                            <a href="#" class="social-link"><i class="fas fa-envelope"></i></a>
                         </div>
                     </div>
                 </div>
                 <div class="col-lg-4 col-md-6 mb-4">
-                    <div class="team-card">
-                        <div class="team-avatar">
-                            <img src="https://images.unsplash.com/photo-1519244703995-f4e0f30006d5?w=300&h=300&fit=crop&crop=face" alt="Luca Verde" class="img-fluid rounded-circle">
+                    <div class="team-card h-100 text-center">
+                        <div class="team-avatar mb-3">
+                            <img src="https://images.unsplash.com/photo-1519244703995-f4e0f30006d5?w=300&h=300&fit=crop&crop=face"
+                                 alt="Luca Verde" class="img-fluid rounded-circle shadow-sm">
+                            <div class="team-badge">
+                                <i class="fas fa-cogs text-success"></i>
+                            </div>
                         </div>
-                        <h5>Luca Verde</h5>
-                        <p class="team-role">Head of Operations</p>
-                        <p class="team-bio">Specialista in operations e customer success, garantisce la migliore esperienza utente.</p>
+                        <h5 class="text-dark">Luca Verde</h5>
+                        <p class="team-role text-success fw-bold">Head of Operations</p>
+                        <p class="team-bio text-muted small">
+                            Specialista in operations e customer success, garantisce la migliore
+                            esperienza utente. Esperto in lean management e process optimization.
+                        </p>
+                        <div class="team-stats mb-3">
+                            <div class="row text-center">
+                                <div class="col-4">
+                                    <small class="text-muted d-block">Efficienza</small>
+                                    <strong class="text-success">+40%</strong>
+                                </div>
+                                <div class="col-4">
+                                    <small class="text-muted d-block">Soddisfazione</small>
+                                    <strong class="text-warning">98%</strong>
+                                </div>
+                                <div class="col-4">
+                                    <small class="text-muted d-block">Processi</small>
+                                    <strong class="text-info">25 creati</strong>
+                                </div>
+                            </div>
+                        </div>
                         <div class="team-social">
-                            <a href="#"><i class="fab fa-linkedin"></i></a>
-                            <a href="#"><i class="fab fa-twitter"></i></a>
+                            <a href="#" class="social-link"><i class="fab fa-linkedin"></i></a>
+                            <a href="#" class="social-link"><i class="fab fa-twitter"></i></a>
+                            <a href="#" class="social-link"><i class="fas fa-envelope"></i></a>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Join Team Section -->
+            <div class="row mt-4">
+                <div class="col-12 text-center">
+                    <div class="join-team-card">
+                        <h5><i class="fas fa-plus-circle text-primary me-2"></i>Unisciti al Team</h5>
+                        <p class="text-muted mb-3">Stiamo sempre cercando talenti appassionati</p>
+                        <a href="#careers" class="btn btn-outline-primary">
+                            <i class="fas fa-briefcase me-1"></i> Vedi Posizioni Aperte
+                        </a>
                     </div>
                 </div>
             </div>
@@ -138,35 +306,62 @@
         <div class="features-section mt-5">
             <div class="row">
                 <div class="col-12 text-center mb-5">
-                    <h3 class="section-title">Perché Scegliere CoWorkSpace</h3>
+                    <h3 class="section-title">
+                        <i class="fas fa-star text-warning me-2"></i>Perché Scegliere CoWorkSpace
+                    </h3>
+                    <p class="section-subtitle">Quello che ci rende unici nel panorama italiano</p>
                 </div>
             </div>
             <div class="row">
-                <div class="col-md-4 mb-4">
-                    <div class="feature-card">
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="feature-card h-100">
                         <div class="feature-icon">
-                            <i class="fas fa-clock"></i>
+                            <i class="fas fa-clock text-primary"></i>
                         </div>
                         <h4>Prenotazione Istantanea</h4>
-                        <p>Prenota il tuo spazio in pochi click, con conferma immediata e pagamento sicuro attraverso la nostra piattaforma intuitiva.</p>
+                        <p class="text-muted">
+                            Prenota il tuo spazio in pochi click, con conferma immediata e
+                            pagamento sicuro attraverso la nostra piattaforma intuitiva e moderna.
+                        </p>
+                        <div class="feature-benefits">
+                            <span class="badge bg-light text-primary me-1">Conferma istantanea</span>
+                            <span class="badge bg-light text-primary me-1">Zero attese</span>
+                            <span class="badge bg-light text-primary">24/7 disponibile</span>
+                        </div>
                     </div>
                 </div>
-                <div class="col-md-4 mb-4">
-                    <div class="feature-card">
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="feature-card h-100">
                         <div class="feature-icon">
-                            <i class="fas fa-shield-alt"></i>
+                            <i class="fas fa-shield-alt text-success"></i>
                         </div>
                         <h4>Pagamenti Sicuri</h4>
-                        <p>Tutti i pagamenti sono protetti con crittografia SSL e sistemi di sicurezza avanzati per garantire la massima protezione.</p>
+                        <p class="text-muted">
+                            Tutti i pagamenti sono protetti con crittografia SSL e sistemi di
+                            sicurezza avanzati per garantire la massima protezione dei tuoi dati.
+                        </p>
+                        <div class="feature-benefits">
+                            <span class="badge bg-light text-success me-1">SSL 256-bit</span>
+                            <span class="badge bg-light text-success me-1">PCI Compliant</span>
+                            <span class="badge bg-light text-success">Rimborsi garantiti</span>
+                        </div>
                     </div>
                 </div>
-                <div class="col-md-4 mb-4">
-                    <div class="feature-card">
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="feature-card h-100">
                         <div class="feature-icon">
-                            <i class="fas fa-headset"></i>
+                            <i class="fas fa-headset text-info"></i>
                         </div>
                         <h4>Supporto 24/7</h4>
-                        <p>Il nostro team di supporto è sempre disponibile per aiutarti con qualsiasi necessità o domanda sui nostri servizi.</p>
+                        <p class="text-muted">
+                            Il nostro team di supporto è sempre disponibile per aiutarti con
+                            qualsiasi necessità o domanda sui nostri servizi e spazi.
+                        </p>
+                        <div class="feature-benefits">
+                            <span class="badge bg-light text-info me-1">Chat dal vivo</span>
+                            <span class="badge bg-light text-info me-1">Telefono</span>
+                            <span class="badge bg-light text-info">Email</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -176,39 +371,481 @@
         <div class="values-section mt-5">
             <div class="row">
                 <div class="col-12 text-center mb-5">
-                    <h3 class="section-title">I Nostri Valori</h3>
+                    <h3 class="section-title">
+                        <i class="fas fa-heart text-danger me-2"></i>I Nostri Valori
+                    </h3>
+                    <p class="section-subtitle">I principi che guidano ogni nostra decisione</p>
                 </div>
             </div>
             <div class="row">
                 <div class="col-lg-3 col-md-6 mb-4">
-                    <div class="value-card">
-                        <i class="fas fa-handshake value-icon"></i>
-                        <h5>Fiducia</h5>
-                        <p>Costruiamo relazioni basate sulla trasparenza e l'affidabilità</p>
+                    <div class="value-card h-100 text-center">
+                        <i class="fas fa-handshake value-icon text-primary"></i>
+                        <h5 class="mt-3">Fiducia</h5>
+                        <p class="text-muted">
+                            Costruiamo relazioni basate sulla trasparenza, onestà e
+                            affidabilità con tutti i nostri partner e clienti.
+                        </p>
+                        <div class="value-metrics">
+                            <small class="text-success">
+                                <i class="fas fa-check-circle me-1"></i>98% feedback positivi
+                            </small>
+                        </div>
                     </div>
                 </div>
                 <div class="col-lg-3 col-md-6 mb-4">
-                    <div class="value-card">
-                        <i class="fas fa-lightbulb value-icon"></i>
-                        <h5>Innovazione</h5>
-                        <p>Cerchiamo sempre nuove soluzioni per migliorare l'esperienza</p>
+                    <div class="value-card h-100 text-center">
+                        <i class="fas fa-lightbulb value-icon text-warning"></i>
+                        <h5 class="mt-3">Innovazione</h5>
+                        <p class="text-muted">
+                            Cerchiamo sempre nuove soluzioni per migliorare l'esperienza
+                            e anticipare le esigenze del mercato.
+                        </p>
+                        <div class="value-metrics">
+                            <small class="text-info">
+                                <i class="fas fa-rocket me-1"></i>5 brevetti in sviluppo
+                            </small>
+                        </div>
                     </div>
                 </div>
                 <div class="col-lg-3 col-md-6 mb-4">
-                    <div class="value-card">
-                        <i class="fas fa-heart value-icon"></i>
-                        <h5>Passione</h5>
-                        <p>Mettiamo il cuore in tutto quello che facciamo</p>
+                    <div class="value-card h-100 text-center">
+                        <i class="fas fa-heart value-icon text-danger"></i>
+                        <h5 class="mt-3">Passione</h5>
+                        <p class="text-muted">
+                            Mettiamo il cuore in tutto quello che facciamo, con entusiasmo
+                            e dedizione verso l'eccellenza.
+                        </p>
+                        <div class="value-metrics">
+                            <small class="text-warning">
+                                <i class="fas fa-star me-1"></i>Team satisfaction 95%
+                            </small>
+                        </div>
                     </div>
                 </div>
                 <div class="col-lg-3 col-md-6 mb-4">
-                    <div class="value-card">
-                        <i class="fas fa-leaf value-icon"></i>
-                        <h5>Sostenibilità</h5>
-                        <p>Promuoviamo spazi eco-friendly e pratiche sostenibili</p>
+                    <div class="value-card h-100 text-center">
+                        <i class="fas fa-leaf value-icon text-success"></i>
+                        <h5 class="mt-3">Sostenibilità</h5>
+                        <p class="text-muted">
+                            Promuoviamo spazi eco-friendly e pratiche sostenibili per
+                            un futuro migliore per tutti.
+                        </p>
+                        <div class="value-metrics">
+                            <small class="text-success">
+                                <i class="fas fa-tree me-1"></i>Carbon neutral 2025
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Company Timeline -->
+        <div class="timeline-section mt-5">
+            <div class="row">
+                <div class="col-12 text-center mb-5">
+                    <h3 class="section-title">
+                        <i class="fas fa-history text-info me-2"></i>La Nostra Storia
+                    </h3>
+                    <p class="section-subtitle">Il percorso che ci ha portato fin qui</p>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-lg-8 mx-auto">
+                    <div class="timeline">
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-primary">
+                                <i class="fas fa-lightbulb text-white"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <h6 class="text-primary">Gennaio 2024</h6>
+                                <h5>L'Idea</h5>
+                                <p class="text-muted">Nasce l'idea di creare una piattaforma innovativa per il coworking in Italia.</p>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-success">
+                                <i class="fas fa-rocket text-white"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <h6 class="text-success">Marzo 2024</h6>
+                                <h5>Primo Lancio</h5>
+                                <p class="text-muted">Lancio della piattaforma con i primi 10 spazi a Milano e Roma.</p>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-warning">
+                                <i class="fas fa-users text-white"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <h6 class="text-warning">Giugno 2024</h6>
+                                <h5>Crescita Rapida</h5>
+                                <p class="text-muted">Raggiungiamo 1.000 utenti attivi e espandiamo in 5 nuove città.</p>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-info">
+                                <i class="fas fa-trophy text-white"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <h6 class="text-info">Oggi</h6>
+                                <h5>Leader di Mercato</h5>
+                                <p class="text-muted">Oltre 10.000 utenti attivi e 500+ spazi in 50 città italiane.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Call to Action -->
+        <div class="cta-section mt-5">
+            <div class="row">
+                <div class="col-lg-8 mx-auto text-center">
+                    <div class="cta-card">
+                        <h3 class="text-white mb-3">
+                            <i class="fas fa-handshake me-2"></i>Pronto a Unirti alla Community?
+                        </h3>
+                        <p class="text-light mb-4">
+                            Scopri tutti i nostri spazi e trova quello perfetto per te.
+                            La produttività ti aspetta!
+                        </p>
+                        <div class="cta-buttons">
+                            <a href="#" class="btn btn-light btn-lg me-3" onclick="App.navigation?.navigate?.('spaces')">
+                                <i class="fas fa-search me-2"></i>Esplora Spazi
+                            </a>
+                            <a href="#" class="btn btn-outline-light btn-lg" onclick="App.auth?.showRegister?.()">
+                                <i class="fas fa-user-plus me-2"></i>Registrati Gratis
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </section>
+
+<!-- Footer -->
+<div id="footer-container"></div>
+
+<!-- Modals -->
+<div id="modals-container"></div>
+
+<!-- Notification Container -->
+<div id="notificationContainer" class="notification-container"></div>
+
+<!-- Back to Top Button -->
+<button id="backToTop" class="back-to-top" style="display: none;" onclick="scrollToTop()">
+    <i class="fas fa-chevron-up"></i>
+</button>
+
+<!-- Scripts -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.min.js"></script>
+
+<!-- App Scripts -->
+<script src="../assets/js/config.js"></script>
+<script src="../assets/js/utils.js"></script>
+<script src="../assets/js/components.js"></script>
+<script src="../assets/js/auth.js"></script>
+<script src="../assets/js/notification.js"></script>
+<script src="../assets/js/navigation.js"></script>
+<script src="../assets/js/spaces.js"></script>
+<script src="../assets/js/app.js"></script>
+
+<script>
+    // About page specific functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        // Load common components
+        loadComponent('navbar-container', 'components/navbar.html');
+        loadComponent('footer-container', 'components/footer.html');
+        loadComponent('modals-container', 'components/modals.html');
+
+        // Initialize about page features
+        initStatsAnimation();
+        initTeamFeatures();
+        initTimelineAnimation();
+        initScrollEffects();
+
+        // Add interactive elements
+        addHoverEffects();
+        addClickTracking();
+    });
+
+    // Animate statistics counters
+    function initStatsAnimation() {
+        const statsNumbers = document.querySelectorAll('.stats-number');
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const target = parseInt(entry.target.dataset.target);
+                    animateCounter(entry.target, target);
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.5 });
+
+        statsNumbers.forEach(stat => {
+            observer.observe(stat);
+        });
+    }
+
+    // Counter animation function
+    function animateCounter(element, target) {
+        let current = 0;
+        const increment = target / 100;
+        const timer = setInterval(() => {
+            current += increment;
+            if (current >= target) {
+                current = target;
+                clearInterval(timer);
+            }
+
+            // Format number based on value
+            let displayValue;
+            if (target >= 10000) {
+                displayValue = Math.floor(current / 1000) + 'K+';
+            } else if (target >= 1000) {
+                displayValue = Math.floor(current).toLocaleString() + '+';
+            } else {
+                displayValue = Math.floor(current) + '+';
+            }
+
+            element.textContent = displayValue;
+        }, 20);
+    }
+
+    // Initialize team features
+    function initTeamFeatures() {
+        // Add team member hover effects
+        const teamCards = document.querySelectorAll('.team-card');
+        teamCards.forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-10px) scale(1.02)';
+                this.style.transition = 'all 0.3s ease';
+            });
+
+            card.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0) scale(1)';
+            });
+        });
+
+        // Add social link tracking
+        const socialLinks = document.querySelectorAll('.social-link');
+        socialLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const teamMember = this.closest('.team-card').querySelector('h5').textContent;
+                const platform = this.querySelector('i').className;
+
+                console.log(`Social link clicked: ${teamMember} - ${platform}`);
+
+                // Show notification
+                App.utils?.showNotification?.(
+                    `Link social di ${teamMember} - Funzionalità disponibile nella versione completa`,
+                    'info'
+                );
+            });
+        });
+    }
+
+    // Initialize timeline animation
+    function initTimelineAnimation() {
+        const timelineItems = document.querySelectorAll('.timeline-item');
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach((entry, index) => {
+                if (entry.isIntersecting) {
+                    setTimeout(() => {
+                        entry.target.style.opacity = '1';
+                        entry.target.style.transform = 'translateX(0)';
+                    }, index * 200);
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.3 });
+
+        timelineItems.forEach(item => {
+            item.style.opacity = '0';
+            item.style.transform = 'translateX(-50px)';
+            item.style.transition = 'all 0.6s ease';
+            observer.observe(item);
+        });
+    }
+
+    // Initialize scroll effects
+    function initScrollEffects() {
+        const cards = document.querySelectorAll('.about-card, .feature-card, .value-card, .stats-card');
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, { threshold: 0.1 });
+
+        cards.forEach((card, index) => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(30px)';
+            card.style.transition = `all 0.6s ease ${index * 0.1}s`;
+            observer.observe(card);
+        });
+    }
+
+    // Add hover effects
+    function addHoverEffects() {
+        // Value cards hover effect
+        const valueCards = document.querySelectorAll('.value-card');
+        valueCards.forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                const icon = this.querySelector('.value-icon');
+                icon.style.transform = 'scale(1.2) rotate(10deg)';
+                icon.style.transition = 'all 0.3s ease';
+            });
+
+            card.addEventListener('mouseleave', function() {
+                const icon = this.querySelector('.value-icon');
+                icon.style.transform = 'scale(1) rotate(0deg)';
+            });
+        });
+
+        // Feature cards pulse effect
+        const featureCards = document.querySelectorAll('.feature-card');
+        featureCards.forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                const icon = this.querySelector('.feature-icon i');
+                icon.style.animation = 'pulse 1s infinite';
+            });
+
+            card.addEventListener('mouseleave', function() {
+                const icon = this.querySelector('.feature-icon i');
+                icon.style.animation = 'none';
+            });
+        });
+    }
+
+    // Add click tracking for analytics
+    function addClickTracking() {
+        // Track CTA button clicks
+        const ctaButtons = document.querySelectorAll('.cta-buttons .btn');
+        ctaButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const buttonText = this.textContent.trim();
+                console.log(`CTA clicked: ${buttonText}`);
+
+                // Track with analytics if available
+                if (window.gtag) {
+                    gtag('event', 'cta_click', {
+                        'event_category': 'about_page',
+                        'event_label': buttonText
+                    });
+                }
+            });
+        });
+
+        // Track join team button
+        const joinTeamBtn = document.querySelector('[href="#careers"]');
+        if (joinTeamBtn) {
+            joinTeamBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                App.utils?.showNotification?.(
+                    'Sezione carriere in arrivo! Tieni d\'occhio i nostri canali social.',
+                    'info'
+                );
+            });
+        }
+    }
+
+    // Dynamic content updates
+    function updateDynamicContent() {
+        // Update current year
+        const currentYear = new Date().getFullYear();
+        document.querySelectorAll('.current-year').forEach(el => {
+            el.textContent = currentYear;
+        });
+
+        // Update stats based on real-time data (simulated)
+        setTimeout(() => {
+            updateRealtimeStats();
+        }, 3000);
+    }
+
+    // Simulate real-time stats updates
+    function updateRealtimeStats() {
+        const stats = {
+            spaces: Math.floor(Math.random() * 50) + 500,
+            cities: Math.floor(Math.random() * 10) + 50,
+            users: Math.floor(Math.random() * 1000) + 10000,
+            bookings: Math.floor(Math.random() * 5000) + 50000
+        };
+
+        // Update with subtle animation
+        Object.keys(stats).forEach(key => {
+            const element = document.querySelector(`[data-target]`);
+            if (element) {
+                element.style.opacity = '0.7';
+                setTimeout(() => {
+                    element.style.opacity = '1';
+                }, 200);
+            }
+        });
+    }
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+        // Press 'T' to scroll to team section
+        if (e.key.toLowerCase() === 't' && !e.ctrlKey && !e.altKey) {
+            const teamSection = document.querySelector('.team-section');
+            if (teamSection) {
+                teamSection.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        // Press 'V' to scroll to values section
+        if (e.key.toLowerCase() === 'v' && !e.ctrlKey && !e.altKey) {
+            const valuesSection = document.querySelector('.values-section');
+            if (valuesSection) {
+                valuesSection.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+    });
+
+    // Initialize dynamic content
+    updateDynamicContent();
+
+    // Add parallax effect to hero section
+    window.addEventListener('scroll', function() {
+        const scrolled = window.pageYOffset;
+        const heroElements = document.querySelectorAll('.section-title, .section-subtitle');
+
+        heroElements.forEach(element => {
+            const speed = 0.3;
+            element.style.transform = `translateY(${scrolled * speed}px)`;
+        });
+    });
+
+    // Add smooth reveal animations for mobile
+    if (window.innerWidth <= 768) {
+        const mobileCards = document.querySelectorAll('.team-card, .feature-card, .value-card');
+        mobileCards.forEach((card, index) => {
+            card.style.animation = `slideInUp 0.6s ease ${index * 0.1}s both`;
+        });
+    }
+
+    // Error handling for images
+    document.querySelectorAll('img').forEach(img => {
+        img.addEventListener('error', function() {
+            this.src = 'https://via.placeholder.com/300x300/667eea/ffffff?text=Team+Member';
+            this.alt = 'Team Member Placeholder';
+        });
+    });
+
+    // Initialize tooltips for team stats
+    const teamStats = document.querySelectorAll('.team-stats [data-bs-toggle="tooltip"]');
+    teamStats.forEach(stat => {
+        new bootstrap.Tooltip(stat);
+    });
+</script>
+</body>
+</html>

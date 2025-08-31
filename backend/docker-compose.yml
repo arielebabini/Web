@@ -1,0 +1,93 @@
+services:
+  # ==================== DATABASE ====================
+  postgres:
+    image: postgres:15
+    container_name: coworkspace_postgres
+    environment:
+      POSTGRES_DB: coworkspace
+      POSTGRES_USER: coworkspace_user
+      POSTGRES_PASSWORD: coworkspace_pass
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d
+    networks:
+      - coworkspace_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U coworkspace_user -d coworkspace"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # ==================== CACHE ====================
+  redis:
+    image: redis:7-alpine
+    container_name: coworkspace_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - coworkspace_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # ==================== BACKEND API ====================
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: coworkspace_api
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=coworkspace
+      - DB_USER=coworkspace_user
+      - DB_PASSWORD=coworkspace_pass
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_SECRET=your-super-secret-jwt-key-change-in-production
+      - JWT_REFRESH_SECRET=your-super-secret-refresh-key-change-in-production
+      - EMAIL_HOST=smtp.gmail.com
+      - EMAIL_PORT=587
+      - EMAIL_USER=noreply@coworkspace.com
+      - EMAIL_PASS=your-email-password
+      - STRIPE_SECRET_KEY=sk_test_your_stripe_secret_key
+      - STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./api:/app
+      - /app/node_modules
+    networks:
+      - coworkspace_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+# ==================== NETWORKS ====================
+networks:
+  coworkspace_network:
+    driver: bridge
+
+# ==================== VOLUMES ====================
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
