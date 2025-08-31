@@ -1,0 +1,1306 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chi Siamo - CoWorkSpace</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="../assets/css/variables.css">
+    <link rel="stylesheet" href="../assets/css/components.css">
+    <link rel="stylesheet" href="../assets/css/layout.css">
+    <link rel="stylesheet" href="../assets/css/animations.css">
+    <link rel="stylesheet" href="../assets/css/responsive.css">
+    <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+
+<body>
+<!-- Navigation -->
+<div id="navbar-container">
+    <nav class="navbar navbar-expand-lg navbar-light fixed-top">
+        <div class="container">
+            <a class="navbar-brand" href="../index.html">
+                <i class="fas fa-building"></i> CoWorkSpace
+            </a>
+
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="../index.html">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="spaces.html">Spazi</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="about.html">Chi Siamo</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="support.html">Supporto</a>
+                    </li>
+                </ul>
+
+                <div class="navbar-nav">
+                    <div id="authButtons">
+                        <button class="btn btn-outline-primary me-2" onclick="showLogin()">
+                            <i class="fas fa-sign-in-alt"></i> Accedi
+                        </button>
+                        <button class="btn btn-primary" onclick="showRegister()">
+                            <i class="fas fa-user-plus"></i> Registrati
+                        </button>
+                    </div>
+                    <div id="userMenu" style="display: none;">
+                        <div class="dropdown">
+                            <button class="btn btn-link dropdown-toggle p-0" type="button" data-bs-toggle="dropdown">
+                                <div class="user-avatar">
+                                    <span id="userInitial"></span>
+                                </div>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><div class="dropdown-header">
+                                    <span id="userFullName"></span><br>
+                                    <small class="text-muted" id="userEmail"></small>
+                                </div></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="#" onclick="showProfile()">
+                                    <i class="fas fa-user-circle"></i> Profilo
+                                </a></li>
+                                <li><a class="dropdown-item" href="#" onclick="showBookings()">
+                                    <i class="fas fa-calendar-check"></i> Le Mie Prenotazioni
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li id="adminMenuItem" style="display: none;">
+                                    <a class="dropdown-item" href="template/admin-dashboard.html">
+                                        <i class="fas fa-cog me-2"></i> Pannello Admin
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="#" onclick="logout()">
+                                    <i class="fas fa-sign-out-alt"></i> Logout
+                                </a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+</div>
+
+<!-- About Section -->
+<section class="section-padding" style="margin-top: 80px;">
+    <div class="container">
+        <!-- Hero Section -->
+        <div class="row">
+            <div class="col-lg-10 mx-auto text-center">
+                <h2 class="section-title">
+                    <i class="fas fa-users text-primary me-3"></i>Chi Siamo
+                </h2>
+                <p class="section-subtitle">
+                    CoWorkSpace è la piattaforma leader in Italia per la prenotazione
+                    di spazi di coworking professionali e moderni.
+                </p>
+                <p class="lead fs-5 text-muted">
+                    Fondata nel 2024, la nostra missione è rendere accessibile e flessibile
+                    il lavoro moderno, offrendo una rete di spazi di alta qualità in tutte
+                    le principali città italiane. Crediamo nel futuro del lavoro ibrido.
+                </p>
+            </div>
+        </div>
+
+        <!-- Mission & Vision Cards -->
+        <div class="row mt-5">
+            <div class="col-lg-6 mb-4">
+                <div class="about-card h-100 shadow-sm">
+                    <div class="about-icon">
+                        <i class="fas fa-bullseye"></i>
+                    </div>
+                    <h4 class="text-primary">La Nostra Missione</h4>
+                    <p class="text-muted">
+                        Rendere il lavoro flessibile accessibile a tutti, creando una rete di spazi
+                        professionali che favoriscano produttività, creatività e networking tra
+                        professionisti e aziende di ogni dimensione.
+                    </p>
+                    <div class="mission-points mt-3">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            <small>Spazi professionali di qualità</small>
+                        </div>
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            <small>Flessibilità oraria e contrattuale</small>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            <small>Community di professionisti</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6 mb-4">
+                <div class="about-card h-100 shadow-sm">
+                    <div class="about-icon">
+                        <i class="fas fa-eye"></i>
+                    </div>
+                    <h4 class="text-primary">La Nostra Visione</h4>
+                    <p class="text-muted">
+                        Diventare il punto di riferimento europeo per i workspace condivisi,
+                        promuovendo un nuovo modo di lavorare che unisca flessibilità,
+                        sostenibilità e innovazione tecnologica.
+                    </p>
+                    <div class="vision-goals mt-3">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fas fa-globe-europe text-info me-2"></i>
+                            <small>Espansione in Europa entro il 2026</small>
+                        </div>
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fas fa-leaf text-success me-2"></i>
+                            <small>100% spazi eco-sostenibili</small>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-robot text-warning me-2"></i>
+                            <small>Tecnologie AI per l'ottimizzazione</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics Section -->
+        <div class="stats-section mt-5">
+            <div class="row">
+                <div class="col-12 text-center mb-4">
+                    <h3 class="section-title">I Nostri Numeri</h3>
+                    <p class="text-muted">Cresciamo ogni giorno grazie alla fiducia dei nostri utenti</p>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="stats-card h-100 text-center">
+                        <div class="stats-icon bg-primary-gradient mx-auto mb-3">
+                            <i class="fas fa-building text-white"></i>
+                        </div>
+                        <h3 class="stats-number text-primary" data-target="500">0</h3>
+                        <p class="stats-label text-muted mb-2">Spazi Disponibili</p>
+                        <small class="text-success">
+                            <i class="fas fa-arrow-up me-1"></i>+15% questo mese
+                        </small>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="stats-card h-100 text-center">
+                        <div class="stats-icon bg-success-gradient mx-auto mb-3">
+                            <i class="fas fa-map-marker-alt text-white"></i>
+                        </div>
+                        <h3 class="stats-number text-success" data-target="50">0</h3>
+                        <p class="stats-label text-muted mb-2">Città Coperte</p>
+                        <small class="text-info">
+                            <i class="fas fa-plus me-1"></i>5 nuove città
+                        </small>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="stats-card h-100 text-center">
+                        <div class="stats-icon bg-warning-gradient mx-auto mb-3">
+                            <i class="fas fa-users text-white"></i>
+                        </div>
+                        <h3 class="stats-number text-warning" data-target="10000">0</h3>
+                        <p class="stats-label text-muted mb-2">Utenti Attivi</p>
+                        <small class="text-success">
+                            <i class="fas fa-heart me-1"></i>98% soddisfatti
+                        </small>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="stats-card h-100 text-center">
+                        <div class="stats-icon bg-info-gradient mx-auto mb-3">
+                            <i class="fas fa-calendar-check text-white"></i>
+                        </div>
+                        <h3 class="stats-number text-info" data-target="50000">0</h3>
+                        <p class="stats-label text-muted mb-2">Prenotazioni</p>
+                        <small class="text-primary">
+                            <i class="fas fa-clock me-1"></i>24/7 disponibili
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Team Section -->
+        <div class="team-section mt-5">
+            <div class="row">
+                <div class="col-12 text-center mb-5">
+                    <h3 class="section-title">
+                        <i class="fas fa-user-friends text-primary me-2"></i>Il Nostro Team
+                    </h3>
+                    <p class="section-subtitle">Le persone che rendono possibile CoWorkSpace</p>
+                </div>
+            </div>
+            <div class="row justify-content-center">
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="team-card h-100 text-center">
+                        <div class="team-avatar mb-3">
+                            <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=300&h=300&fit=crop&crop=face"
+                                 alt="Marco Rossi" class="img-fluid rounded-circle shadow-sm">
+                            <div class="team-badge">
+                                <i class="fas fa-crown text-warning"></i>
+                            </div>
+                        </div>
+                        <h5 class="text-dark">Marco Rossi</h5>
+                        <p class="team-role text-primary fw-bold">CEO & Founder</p>
+                        <p class="team-bio text-muted small">
+                            Esperto in tecnologia e workspace innovation con oltre 10 anni
+                            di esperienza nel settore. Visionario e appassionato di innovazione.
+                        </p>
+                        <div class="team-stats mb-3">
+                            <div class="row text-center">
+                                <div class="col-4">
+                                    <small class="text-muted d-block">Esperienza</small>
+                                    <strong class="text-primary">10+ anni</strong>
+                                </div>
+                                <div class="col-4">
+                                    <small class="text-muted d-block">Startup</small>
+                                    <strong class="text-success">3 fondate</strong>
+                                </div>
+                                <div class="col-4">
+                                    <small class="text-muted d-block">Awards</small>
+                                    <strong class="text-warning">5 vinti</strong>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="team-social">
+                            <a href="#" class="social-link"><i class="fab fa-linkedin"></i></a>
+                            <a href="#" class="social-link"><i class="fab fa-twitter"></i></a>
+                            <a href="#" class="social-link"><i class="fas fa-envelope"></i></a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="team-card h-100 text-center">
+                        <div class="team-avatar mb-3">
+                            <img src="https://images.unsplash.com/photo-1494790108755-2616b612b647?w=300&h=300&fit=crop&crop=face"
+                                 alt="Sara Bianchi" class="img-fluid rounded-circle shadow-sm">
+                            <div class="team-badge">
+                                <i class="fas fa-code text-info"></i>
+                            </div>
+                        </div>
+                        <h5 class="text-dark">Sara Bianchi</h5>
+                        <p class="team-role text-info fw-bold">CTO</p>
+                        <p class="team-bio text-muted small">
+                            Lead developer con passione per l'innovazione tecnologica e l'user experience.
+                            Esperta in architetture scalabili e AI.
+                        </p>
+                        <div class="team-stats mb-3">
+                            <div class="row text-center">
+                                <div class="col-4">
+                                    <small class="text-muted d-block">Linguaggi</small>
+                                    <strong class="text-info">15+</strong>
+                                </div>
+                                <div class="col-4">
+                                    <small class="text-muted d-block">Progetti</small>
+                                    <strong class="text-success">50+</strong>
+                                </div>
+                                <div class="col-4">
+                                    <small class="text-muted d-block">Team</small>
+                                    <strong class="text-warning">20 dev</strong>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="team-social">
+                            <a href="#" class="social-link"><i class="fab fa-linkedin"></i></a>
+                            <a href="#" class="social-link"><i class="fab fa-github"></i></a>
+                            <a href="#" class="social-link"><i class="fas fa-envelope"></i></a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="team-card h-100 text-center">
+                        <div class="team-avatar mb-3">
+                            <img src="https://images.unsplash.com/photo-1519244703995-f4e0f30006d5?w=300&h=300&fit=crop&crop=face"
+                                 alt="Luca Verde" class="img-fluid rounded-circle shadow-sm">
+                            <div class="team-badge">
+                                <i class="fas fa-cogs text-success"></i>
+                            </div>
+                        </div>
+                        <h5 class="text-dark">Luca Verde</h5>
+                        <p class="team-role text-success fw-bold">Head of Operations</p>
+                        <p class="team-bio text-muted small">
+                            Specialista in operations e customer success, garantisce la migliore
+                            esperienza utente. Esperto in lean management e process optimization.
+                        </p>
+                        <div class="team-stats mb-3">
+                            <div class="row text-center">
+                                <div class="col-4">
+                                    <small class="text-muted d-block">Efficienza</small>
+                                    <strong class="text-success">+40%</strong>
+                                </div>
+                                <div class="col-4">
+                                    <small class="text-muted d-block">Soddisfazione</small>
+                                    <strong class="text-warning">98%</strong>
+                                </div>
+                                <div class="col-4">
+                                    <small class="text-muted d-block">Processi</small>
+                                    <strong class="text-info">25 creati</strong>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="team-social">
+                            <a href="#" class="social-link"><i class="fab fa-linkedin"></i></a>
+                            <a href="#" class="social-link"><i class="fab fa-twitter"></i></a>
+                            <a href="#" class="social-link"><i class="fas fa-envelope"></i></a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Join Team Section -->
+            <div class="row mt-4">
+                <div class="col-12 text-center">
+                    <div class="join-team-card">
+                        <h5><i class="fas fa-plus-circle text-primary me-2"></i>Unisciti al Team</h5>
+                        <p class="text-muted mb-3">Stiamo sempre cercando talenti appassionati</p>
+                        <a href="#careers" class="btn btn-outline-primary">
+                            <i class="fas fa-briefcase me-1"></i> Vedi Posizioni Aperte
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Features Section -->
+        <div class="features-section mt-5">
+            <div class="row">
+                <div class="col-12 text-center mb-5">
+                    <h3 class="section-title">
+                        <i class="fas fa-star text-warning me-2"></i>Perché Scegliere CoWorkSpace
+                    </h3>
+                    <p class="section-subtitle">Quello che ci rende unici nel panorama italiano</p>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="feature-card h-100">
+                        <div class="feature-icon">
+                            <i class="fas fa-clock text-primary"></i>
+                        </div>
+                        <h4>Prenotazione Istantanea</h4>
+                        <p class="text-muted">
+                            Prenota il tuo spazio in pochi click, con conferma immediata e
+                            pagamento sicuro attraverso la nostra piattaforma intuitiva e moderna.
+                        </p>
+                        <div class="feature-benefits">
+                            <span class="badge bg-light text-primary me-1">Conferma istantanea</span>
+                            <span class="badge bg-light text-primary me-1">Zero attese</span>
+                            <span class="badge bg-light text-primary">24/7 disponibile</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="feature-card h-100">
+                        <div class="feature-icon">
+                            <i class="fas fa-shield-alt text-success"></i>
+                        </div>
+                        <h4>Pagamenti Sicuri</h4>
+                        <p class="text-muted">
+                            Tutti i pagamenti sono protetti con crittografia SSL e sistemi di
+                            sicurezza avanzati per garantire la massima protezione dei tuoi dati.
+                        </p>
+                        <div class="feature-benefits">
+                            <span class="badge bg-light text-success me-1">SSL 256-bit</span>
+                            <span class="badge bg-light text-success me-1">PCI Compliant</span>
+                            <span class="badge bg-light text-success">Rimborsi garantiti</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="feature-card h-100">
+                        <div class="feature-icon">
+                            <i class="fas fa-headset text-info"></i>
+                        </div>
+                        <h4>Supporto 24/7</h4>
+                        <p class="text-muted">
+                            Il nostro team di supporto è sempre disponibile per aiutarti con
+                            qualsiasi necessità o domanda sui nostri servizi e spazi.
+                        </p>
+                        <div class="feature-benefits">
+                            <span class="badge bg-light text-info me-1">Chat dal vivo</span>
+                            <span class="badge bg-light text-info me-1">Telefono</span>
+                            <span class="badge bg-light text-info">Email</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Values Section -->
+        <div class="values-section mt-5">
+            <div class="row">
+                <div class="col-12 text-center mb-5">
+                    <h3 class="section-title">
+                        <i class="fas fa-heart text-danger me-2"></i>I Nostri Valori
+                    </h3>
+                    <p class="section-subtitle">I principi che guidano ogni nostra decisione</p>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="value-card h-100 text-center">
+                        <i class="fas fa-handshake value-icon text-primary"></i>
+                        <h5 class="mt-3">Fiducia</h5>
+                        <p class="text-muted">
+                            Costruiamo relazioni basate sulla trasparenza, onestà e
+                            affidabilità con tutti i nostri partner e clienti.
+                        </p>
+                        <div class="value-metrics">
+                            <small class="text-success">
+                                <i class="fas fa-check-circle me-1"></i>98% feedback positivi
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="value-card h-100 text-center">
+                        <i class="fas fa-lightbulb value-icon text-warning"></i>
+                        <h5 class="mt-3">Innovazione</h5>
+                        <p class="text-muted">
+                            Cerchiamo sempre nuove soluzioni per migliorare l'esperienza
+                            e anticipare le esigenze del mercato.
+                        </p>
+                        <div class="value-metrics">
+                            <small class="text-info">
+                                <i class="fas fa-rocket me-1"></i>5 brevetti in sviluppo
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="value-card h-100 text-center">
+                        <i class="fas fa-heart value-icon text-danger"></i>
+                        <h5 class="mt-3">Passione</h5>
+                        <p class="text-muted">
+                            Mettiamo il cuore in tutto quello che facciamo, con entusiasmo
+                            e dedizione verso l'eccellenza.
+                        </p>
+                        <div class="value-metrics">
+                            <small class="text-warning">
+                                <i class="fas fa-star me-1"></i>Team satisfaction 95%
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="value-card h-100 text-center">
+                        <i class="fas fa-leaf value-icon text-success"></i>
+                        <h5 class="mt-3">Sostenibilità</h5>
+                        <p class="text-muted">
+                            Promuoviamo spazi eco-friendly e pratiche sostenibili per
+                            un futuro migliore per tutti.
+                        </p>
+                        <div class="value-metrics">
+                            <small class="text-success">
+                                <i class="fas fa-tree me-1"></i>Carbon neutral 2025
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Company Timeline -->
+        <div class="timeline-section mt-5">
+            <div class="row">
+                <div class="col-12 text-center mb-5">
+                    <h3 class="section-title">
+                        <i class="fas fa-history text-info me-2"></i>La Nostra Storia
+                    </h3>
+                    <p class="section-subtitle">Il percorso che ci ha portato fin qui</p>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-lg-8 mx-auto">
+                    <div class="timeline">
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-primary">
+                                <i class="fas fa-lightbulb text-white"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <h6 class="text-primary">Gennaio 2024</h6>
+                                <h5>L'Idea</h5>
+                                <p class="text-muted">Nasce l'idea di creare una piattaforma innovativa per il coworking in Italia.</p>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-success">
+                                <i class="fas fa-rocket text-white"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <h6 class="text-success">Marzo 2024</h6>
+                                <h5>Primo Lancio</h5>
+                                <p class="text-muted">Lancio della piattaforma con i primi 10 spazi a Milano e Roma.</p>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-warning">
+                                <i class="fas fa-users text-white"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <h6 class="text-warning">Giugno 2024</h6>
+                                <h5>Crescita Rapida</h5>
+                                <p class="text-muted">Raggiungiamo 1.000 utenti attivi e espandiamo in 5 nuove città.</p>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-info">
+                                <i class="fas fa-trophy text-white"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <h6 class="text-info">Oggi</h6>
+                                <h5>Leader di Mercato</h5>
+                                <p class="text-muted">Oltre 10.000 utenti attivi e 500+ spazi in 50 città italiane.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Call to Action -->
+        <div class="cta-section mt-5">
+            <div class="row">
+                <div class="col-lg-8 mx-auto text-center">
+                    <div class="cta-card">
+                        <h3 class="text-white mb-3">
+                            <i class="fas fa-handshake me-2"></i>Pronto a Unirti alla Community?
+                        </h3>
+                        <p class="text-light mb-4">
+                            Scopri tutti i nostri spazi e trova quello perfetto per te.
+                            La produttività ti aspetta!
+                        </p>
+                        <div class="cta-buttons">
+                            <button type="button" class="btn btn-light btn-lg me-3" onclick="handleExploreSpaces()">
+                                <i class="fas fa-search me-2"></i>Esplora Spazi
+                            </button>
+                            <button type="button" class="btn btn-outline-light btn-lg" onclick="handleRegisterButton()">
+                                <i class="fas fa-user-plus me-2"></i>Registrati Gratis
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Footer -->
+<div id="footer-container"></div>
+
+<!-- Modals -->
+<div id="modals-container">
+    <!-- Modal Login -->
+    <div class="modal fade" id="loginModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-sign-in-alt me-2"></i>Accedi
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="loginForm">
+                        <div class="mb-3">
+                            <label for="loginEmail" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="loginEmail" name="email" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="loginPassword" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="loginPassword" name="password" required>
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="rememberMe" name="rememberMe">
+                            <label class="form-check-label" for="rememberMe">Ricordami</label>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-sign-in-alt me-2"></i>Accedi
+                            </button>
+                        </div>
+                    </form>
+                    <div class="text-center mt-3">
+                        <p class="mb-0">Non hai un account?
+                            <a href="#" onclick="switchToRegister()">Registrati qui</a>
+                        </p>
+                        <a href="#" class="text-muted small" onclick="alert('Funzione di recupero password in arrivo!')">
+                            Hai dimenticato la password?
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Register -->
+    <div class="modal fade" id="registerModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-user-plus me-2"></i>Registrati
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="registerForm">
+                        <div class="mb-3">
+                            <label for="registerEmail" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="registerEmail" name="registerEmail" required>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="registerName" class="form-label">Nome</label>
+                                <input type="text" class="form-control" id="registerName" name="registerName" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="registerSurname" class="form-label">Cognome</label>
+                                <input type="text" class="form-control" id="registerSurname" name="registerSurname" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="registerPassword" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="registerPassword" name="registerPassword" required>
+                            <div class="form-text">Minimo 8 caratteri con una maiuscola, una minuscola e un numero</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="registerPasswordConfirm" class="form-label">Conferma Password</label>
+                            <input type="password" class="form-control" id="registerPasswordConfirm" name="registerPasswordConfirm" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="registerPhone" class="form-label">Telefono (opzionale)</label>
+                            <input type="tel" class="form-control" id="registerPhone" name="registerPhone">
+                        </div>
+                        <div class="mb-3">
+                            <label for="registerCompany" class="form-label">Azienda (opzionale)</label>
+                            <input type="text" class="form-control" id="registerCompany" name="registerCompany">
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="acceptTerms" name="acceptTerms" required>
+                            <label class="form-check-label" for="acceptTerms">
+                                Accetto i <a href="#" onclick="alert('Termini e condizioni in arrivo!')">Termini e Condizioni</a>
+                                e l'<a href="#" onclick="alert('Informativa Privacy in arrivo!')">Informativa Privacy</a>
+                            </label>
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="acceptMarketing" name="acceptMarketing">
+                            <label class="form-check-label" for="acceptMarketing">
+                                Accetto di ricevere comunicazioni marketing (facoltativo)
+                            </label>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-user-plus me-2"></i>Registrati
+                            </button>
+                        </div>
+                    </form>
+                    <div class="text-center mt-3">
+                        <p class="mb-0">Hai già un account?
+                            <a href="#" onclick="switchToLogin()">Accedi qui</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Notification Container -->
+<div id="notificationContainer" class="notification-container"></div>
+
+<!-- Back to Top Button -->
+<button id="backToTop" class="back-to-top" style="display: none;" onclick="scrollToTop()">
+    <i class="fas fa-chevron-up"></i>
+</button>
+
+<!-- Scripts -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.min.js"></script>
+
+<!-- App Scripts -->
+<script src="../assets/js/config.js"></script>
+<script src="../assets/js/utils.js"></script>
+<script src="../assets/js/components.js"></script>
+<script src="../assets/js/auth.js"></script>
+<script src="../assets/js/notification.js"></script>
+<script src="../assets/js/navigation.js"></script>
+<script src="../assets/js/spaces.js"></script>
+<script src="../assets/js/app.js"></script>
+
+<script>
+    // About page specific functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        // Load common components
+        loadComponent('navbar-container', 'components/navbar.html');
+        loadComponent('footer-container', 'components/footer.html');
+        loadComponent('modals-container', 'components/modals.html');
+
+        // Initialize about page features
+        initStatsAnimation();
+        initTeamFeatures();
+        initTimelineAnimation();
+        initScrollEffects();
+
+        // Add interactive elements
+        addHoverEffects();
+        addClickTracking();
+    });
+
+    // Funzioni per gestire i form dei modali
+    if (typeof switchToRegister === 'undefined') {
+        function switchToRegister() {
+            console.log('🔄 Switching to register modal');
+            const loginModal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
+            if (loginModal) loginModal.hide();
+            setTimeout(() => {
+                const registerModal = new bootstrap.Modal(document.getElementById('registerModal'));
+                registerModal.show();
+            }, 300);
+        }
+    }
+
+    if (typeof switchToLogin === 'undefined') {
+        function switchToLogin() {
+            console.log('🔄 Switching to login modal');
+            const registerModal = bootstrap.Modal.getInstance(document.getElementById('registerModal'));
+            if (registerModal) registerModal.hide();
+            setTimeout(() => {
+                const loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
+                loginModal.show();
+            }, 300);
+        }
+    }
+
+    // Gestione form login
+    document.addEventListener('DOMContentLoaded', function() {
+        const loginForm = document.getElementById('loginForm');
+        const registerForm = document.getElementById('registerForm');
+
+        if (loginForm) {
+            loginForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                console.log('🔑 Login form submitted');
+
+                // Se esiste l'app globale, usa il suo handler
+                if (window.coworkspaceApp && window.coworkspaceApp.handleLogin) {
+                    window.coworkspaceApp.handleLogin(this);
+                } else {
+                    // Fallback semplice per test
+                    const email = this.loginEmail.value;
+                    const password = this.loginPassword.value;
+
+                    console.log('📧 Login attempt:', { email, password: '***' });
+                    alert('Funzionalità di login in fase di implementazione!');
+
+                    // Simula login riuscito per test UI
+                    const loginModal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
+                    if (loginModal) loginModal.hide();
+                }
+            });
+        }
+
+        if (registerForm) {
+            registerForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                console.log('📝 Register form submitted');
+
+                // Validazione password
+                const password = this.registerPassword.value;
+                const confirmPassword = this.registerPasswordConfirm.value;
+
+                if (password !== confirmPassword) {
+                    alert('Le password non coincidono!');
+                    return;
+                }
+
+                if (password.length < 8) {
+                    alert('La password deve essere di almeno 8 caratteri!');
+                    return;
+                }
+
+                if (!this.acceptTerms.checked) {
+                    alert('Devi accettare i Termini e Condizioni per registrarti!');
+                    return;
+                }
+
+                // Se esiste l'app globale, usa il suo handler
+                if (window.coworkspaceApp && window.coworkspaceApp.handleRegister) {
+                    window.coworkspaceApp.handleRegister(this);
+                } else {
+                    // Fallback semplice per test
+                    const formData = new FormData(this);
+                    const userData = Object.fromEntries(formData);
+                    delete userData.registerPasswordConfirm; // Non inviare la conferma password
+
+                    console.log('👤 Register attempt:', userData);
+                    alert('Registrazione completata con successo! (Demo)');
+
+                    // Simula registrazione riuscita
+                    const registerModal = bootstrap.Modal.getInstance(document.getElementById('registerModal'));
+                    if (registerModal) registerModal.hide();
+
+                    // Mostra login modal dopo registrazione
+                    setTimeout(() => {
+                        const loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
+                        loginModal.show();
+
+                        // Pre-compila email nel login
+                        document.getElementById('loginEmail').value = userData.registerEmail;
+                    }, 500);
+                }
+            });
+        }
+    });
+
+    function handleExploreSpaces() {
+        console.log('🔍 Navigating to spaces...');
+
+        // Prova diversi metodi di navigazione
+        if (typeof showSection === 'function') {
+            showSection('spaces');
+        } else if (window.Navigation && window.Navigation.showSection) {
+            window.Navigation.showSection('spaces');
+        } else if (window.App && window.App.navigation && window.App.navigation.showSection) {
+            window.App.navigation.showSection('spaces');
+        } else {
+            // Fallback: navigazione diretta
+            if (window.location.pathname.includes('pages/')) {
+                window.location.href = 'spaces.html';
+            } else {
+                window.location.href = 'pages/spaces.html';
+            }
+        }
+    }
+
+    function handleRegisterButton() {
+        console.log('📝 Handling register button...');
+
+        // Controlla se l'utente è già loggato
+        if (isUserLoggedIn()) {
+            // Se è loggato, mostra messaggio
+            showNotificationMessage('Sei già registrato e collegato!', 'info');
+            return;
+        }
+
+        // Se non è loggato, mostra il modulo di registrazione
+        if (typeof showRegister === 'function') {
+            console.log('✅ Using global showRegister function');
+            showRegister();
+        } else if (window.auth && window.auth.showRegister) {
+            console.log('✅ Using window.Auth.showRegister');
+            window.auth.showRegister();
+        } else if (window.App && window.App.auth && window.App.auth.showRegister) {
+            console.log('✅ Using window.App.auth.showRegister');
+            window.App.auth.showRegister();
+        } else if (typeof showSection === 'function') {
+            console.log('✅ Using showSection(register)');
+            showSection('register');
+        } else {
+            console.log('❌ No register method found, trying manual modal');
+
+            // Prova a trovare e aprire manualmente il modal di registrazione
+            const registerModal = document.getElementById('registerModal');
+            if (registerModal) {
+                const modal = new bootstrap.Modal(registerModal);
+                modal.show();
+                console.log('✅ Manual modal opened');
+            } else {
+                // Ultimo fallback
+                console.log('❌ Register modal not found, showing fallback message');
+                showNotificationMessage('Per registrarti, vai alla pagina principale e clicca su "Registrati".', 'warning');
+
+                setTimeout(() => {
+                    if (window.location.pathname.includes('pages/')) {
+                        window.location.href = '../index.html';
+                    } else {
+                        window.location.href = 'index.html';
+                    }
+                }, 2000);
+            }
+        }
+    }
+
+    // Funzione per controllare se l'utente è loggato
+    function isUserLoggedIn() {
+        // 1. Controlla localStorage
+        const tokens = ['authToken', 'jwt', 'user', 'token'];
+        for (let token of tokens) {
+            const value = localStorage.getItem(token);
+            if (value && value !== 'null' && value !== 'undefined') {
+                console.log(`✅ Found auth token in localStorage: ${token}`);
+                return true;
+            }
+        }
+
+        // 2. Controlla sessionStorage
+        for (let token of tokens) {
+            const value = sessionStorage.getItem(token);
+            if (value && value !== 'null' && value !== 'undefined') {
+                console.log(`✅ Found auth token in sessionStorage: ${token}`);
+                return true;
+            }
+        }
+
+        // 3. Controlla oggetti globali di autenticazione
+        if (window.auth && window.auth.state && window.auth.state.isAuthenticated) {
+            console.log('✅ Found auth in window.Auth');
+            return true;
+        }
+
+        if (window.AppState && window.AppState.auth && window.AppState.auth.isAuthenticated) {
+            console.log('✅ Found auth in window.AppState');
+            return true;
+        }
+
+        // 4. Controlla elementi DOM
+        const userMenu = document.getElementById('userMenu');
+        if (userMenu && userMenu.style.display !== 'none' && !userMenu.classList.contains('d-none')) {
+            console.log('✅ Found visible userMenu in DOM');
+            return true;
+        }
+
+        const authButtons = document.getElementById('authButtons');
+        if (authButtons && (authButtons.style.display === 'none' || authButtons.classList.contains('d-none'))) {
+            console.log('✅ Found hidden authButtons in DOM');
+            return true;
+        }
+
+        console.log('❌ User not authenticated');
+        return false;
+    }
+
+    // Funzione helper per mostrare notifiche
+    function showNotificationMessage(message, type = 'info') {
+        // Prova diversi metodi per mostrare notifiche
+        if (window.App && window.App.utils && window.App.utils.showNotification) {
+            window.App.utils.showNotification(message, type);
+        } else if (window.coworkspaceApp && window.coworkspaceApp.showNotification) {
+            window.coworkspaceApp.showNotification(message, type);
+        } else if (typeof alert !== 'undefined') {
+            // Fallback con alert
+            alert(message);
+        } else {
+            console.log(`Notification: ${message}`);
+        }
+    }
+
+    // Animate statistics counters
+    function initStatsAnimation() {
+        const statsNumbers = document.querySelectorAll('.stats-number');
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const target = parseInt(entry.target.dataset.target);
+                    animateCounter(entry.target, target);
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.5 });
+
+        statsNumbers.forEach(stat => {
+            observer.observe(stat);
+        });
+    }
+
+    // Counter animation function
+    function animateCounter(element, target) {
+        let current = 0;
+        const increment = target / 100;
+        const timer = setInterval(() => {
+            current += increment;
+            if (current >= target) {
+                current = target;
+                clearInterval(timer);
+            }
+
+            // Format number based on value
+            let displayValue;
+            if (target >= 10000) {
+                displayValue = Math.floor(current / 1000) + 'K+';
+            } else if (target >= 1000) {
+                displayValue = Math.floor(current).toLocaleString() + '+';
+            } else {
+                displayValue = Math.floor(current) + '+';
+            }
+
+            element.textContent = displayValue;
+        }, 20);
+    }
+
+    // Initialize team features
+    function initTeamFeatures() {
+        // Add team member hover effects
+        const teamCards = document.querySelectorAll('.team-card');
+        teamCards.forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-10px) scale(1.02)';
+                this.style.transition = 'all 0.3s ease';
+            });
+
+            card.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0) scale(1)';
+            });
+        });
+
+        // Add social link tracking
+        const socialLinks = document.querySelectorAll('.social-link');
+        socialLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const teamMember = this.closest('.team-card').querySelector('h5').textContent;
+                const platform = this.querySelector('i').className;
+
+                console.log(`Social link clicked: ${teamMember} - ${platform}`);
+
+                // Show notification
+                App.utils?.showNotification?.(
+                    `Link social di ${teamMember} - Funzionalità disponibile nella versione completa`,
+                    'info'
+                );
+            });
+        });
+    }
+
+    // Initialize timeline animation
+    function initTimelineAnimation() {
+        const timelineItems = document.querySelectorAll('.timeline-item');
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach((entry, index) => {
+                if (entry.isIntersecting) {
+                    setTimeout(() => {
+                        entry.target.style.opacity = '1';
+                        entry.target.style.transform = 'translateX(0)';
+                    }, index * 200);
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.3 });
+
+        timelineItems.forEach(item => {
+            item.style.opacity = '0';
+            item.style.transform = 'translateX(-50px)';
+            item.style.transition = 'all 0.6s ease';
+            observer.observe(item);
+        });
+    }
+
+    // Initialize scroll effects
+    function initScrollEffects() {
+        const cards = document.querySelectorAll('.about-card, .feature-card, .value-card, .stats-card');
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, { threshold: 0.1 });
+
+        cards.forEach((card, index) => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(30px)';
+            card.style.transition = `all 0.6s ease ${index * 0.1}s`;
+            observer.observe(card);
+        });
+    }
+
+    // Add hover effects
+    function addHoverEffects() {
+        // Value cards hover effect
+        const valueCards = document.querySelectorAll('.value-card');
+        valueCards.forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                const icon = this.querySelector('.value-icon');
+                icon.style.transform = 'scale(1.2) rotate(10deg)';
+                icon.style.transition = 'all 0.3s ease';
+            });
+
+            card.addEventListener('mouseleave', function() {
+                const icon = this.querySelector('.value-icon');
+                icon.style.transform = 'scale(1) rotate(0deg)';
+            });
+        });
+
+        // Feature cards pulse effect
+        const featureCards = document.querySelectorAll('.feature-card');
+        featureCards.forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                const icon = this.querySelector('.feature-icon i');
+                icon.style.animation = 'pulse 1s infinite';
+            });
+
+            card.addEventListener('mouseleave', function() {
+                const icon = this.querySelector('.feature-icon i');
+                icon.style.animation = 'none';
+            });
+        });
+    }
+
+    // Add click tracking for analytics
+    function addClickTracking() {
+        // Track CTA button clicks
+        const ctaButtons = document.querySelectorAll('.cta-buttons .btn');
+        ctaButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const buttonText = this.textContent.trim();
+                console.log(`CTA clicked: ${buttonText}`);
+
+                // Track with analytics if available
+                if (window.gtag) {
+                    gtag('event', 'cta_click', {
+                        'event_category': 'about_page',
+                        'event_label': buttonText
+                    });
+                }
+            });
+        });
+
+        // Track join team button
+        const joinTeamBtn = document.querySelector('[href="#careers"]');
+        if (joinTeamBtn) {
+            joinTeamBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                App.utils?.showNotification?.(
+                    'Sezione carriere in arrivo! Tieni d\'occhio i nostri canali social.',
+                    'info'
+                );
+            });
+        }
+    }
+
+    // Dynamic content updates
+    function updateDynamicContent() {
+        // Update current year
+        const currentYear = new Date().getFullYear();
+        document.querySelectorAll('.current-year').forEach(el => {
+            el.textContent = currentYear;
+        });
+
+        // Update stats based on real-time data (simulated)
+        setTimeout(() => {
+            updateRealtimeStats();
+        }, 3000);
+    }
+
+    // Simulate real-time stats updates
+    function updateRealtimeStats() {
+        const stats = {
+            spaces: Math.floor(Math.random() * 50) + 500,
+            cities: Math.floor(Math.random() * 10) + 50,
+            users: Math.floor(Math.random() * 1000) + 10000,
+            bookings: Math.floor(Math.random() * 5000) + 50000
+        };
+
+        // Update with subtle animation
+        Object.keys(stats).forEach(key => {
+            const element = document.querySelector(`[data-target]`);
+            if (element) {
+                element.style.opacity = '0.7';
+                setTimeout(() => {
+                    element.style.opacity = '1';
+                }, 200);
+            }
+        });
+    }
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+        // Press 'T' to scroll to team section
+        if (e.key.toLowerCase() === 't' && !e.ctrlKey && !e.altKey) {
+            const teamSection = document.querySelector('.team-section');
+            if (teamSection) {
+                teamSection.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        // Press 'V' to scroll to values section
+        if (e.key.toLowerCase() === 'v' && !e.ctrlKey && !e.altKey) {
+            const valuesSection = document.querySelector('.values-section');
+            if (valuesSection) {
+                valuesSection.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+    });
+
+    // Initialize dynamic content
+    updateDynamicContent();
+
+    // Add parallax effect to hero section
+    window.addEventListener('scroll', function() {
+        const scrolled = window.pageYOffset;
+
+        // Applica l'effetto parallasse SOLO ai titoli nell'hero section
+        const heroElements = document.querySelectorAll('.hero-section .section-title, .hero-section .section-subtitle');
+
+        heroElements.forEach(element => {
+            const speed = 0.3;
+            element.style.transform = `translateY(${scrolled * speed}px)`;
+        });
+    });
+
+    // Add smooth reveal animations for mobile
+    if (window.innerWidth <= 768) {
+        const mobileCards = document.querySelectorAll('.team-card, .feature-card, .value-card');
+        mobileCards.forEach((card, index) => {
+            card.style.animation = `slideInUp 0.6s ease ${index * 0.1}s both`;
+        });
+    }
+
+    // Error handling for images
+    // Error handling for images - VERSIONE CORRETTA
+    document.querySelectorAll('img').forEach(img => {
+        img.addEventListener('error', function() {
+            // Previeni loop infiniti
+            if (this.dataset.errorHandled === 'true') {
+                return;
+            }
+            this.dataset.errorHandled = 'true';
+
+            // Nascondi l'immagine e mostra un'icona
+            this.style.display = 'none';
+
+            // Crea un placeholder con icona
+            const placeholder = document.createElement('div');
+            placeholder.style.cssText = `
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 2rem;
+            margin: 0 auto;
+        `;
+            placeholder.innerHTML = '<i class="fas fa-user"></i>';
+
+            // Sostituisci l'immagine con il placeholder
+            this.parentNode.insertBefore(placeholder, this);
+
+            console.log('📷 Image replaced with icon placeholder');
+        });
+    });
+
+    // Initialize tooltips for team stats
+    const teamStats = document.querySelectorAll('.team-stats [data-bs-toggle="tooltip"]');
+    teamStats.forEach(stat => {
+        new bootstrap.Tooltip(stat);
+    });
+</script>
+</body>
+</html>

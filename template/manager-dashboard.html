@@ -1,0 +1,2371 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manager Dashboard - CoWorkSpace</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        :root {
+            --primary: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            --primary-solid: #28a745;
+            --sidebar-width: 280px;
+            --header-height: 70px;
+        }
+
+        body {
+            background: #f8fafc;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        /* Sidebar */
+        .manager-sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: var(--sidebar-width);
+            background: linear-gradient(180deg, #155724 0%, #0f3e14 100%);
+            color: white;
+            z-index: 1000;
+            transition: all 0.3s ease;
+            overflow-y: auto;
+        }
+
+        .manager-sidebar.collapsed {
+            width: 80px;
+        }
+
+        .sidebar-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #1e7e34;
+            text-align: center;
+        }
+
+        .sidebar-brand {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: white;
+            text-decoration: none;
+        }
+
+        .sidebar-menu {
+            padding: 1rem 0;
+        }
+
+        .sidebar-item {
+            margin: 0.25rem 1rem;
+        }
+
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            color: #c6f7d0;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-link:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            transform: translateX(4px);
+        }
+
+        .sidebar-link.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .sidebar-icon {
+            width: 20px;
+            margin-right: 0.75rem;
+            text-align: center;
+        }
+
+        /* Main content */
+        .manager-main {
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+            transition: margin-left 0.3s ease;
+        }
+
+        .manager-main.expanded {
+            margin-left: 80px;
+        }
+
+        .manager-header {
+            background: white;
+            height: var(--header-height);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 2rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            position: sticky;
+            top: 0;
+            z-index: 999;
+        }
+
+        .manager-content {
+            padding: 2rem;
+        }
+
+        /* Cards */
+        .manager-card {
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 25px rgba(0, 0, 0, 0.08);
+            border: 1px solid #e2e8f0;
+            transition: all 0.3s ease;
+        }
+
+        .manager-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.12);
+        }
+
+        .stats-card {
+            background: var(--primary);
+            color: white;
+            border: none;
+        }
+
+        .stats-card .stats-icon {
+            font-size: 2.5rem;
+            opacity: 0.8;
+        }
+
+        /* Tables */
+        .manager-table {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 4px 25px rgba(0, 0, 0, 0.08);
+        }
+
+        .manager-table table {
+            margin: 0;
+        }
+
+        .manager-table th {
+            background: #f8fafc;
+            border: none;
+            padding: 1rem 1.5rem;
+            font-weight: 600;
+            color: #4a5568;
+        }
+
+        .manager-table td {
+            border: none;
+            padding: 1rem 1.5rem;
+            vertical-align: middle;
+        }
+
+        .manager-table tbody tr {
+            border-bottom: 1px solid #e2e8f0;
+            transition: background-color 0.2s ease;
+        }
+
+        .manager-table tbody tr:hover {
+            background: #f7fafc;
+        }
+
+        /* Buttons */
+        .btn-manager {
+            border-radius: 8px;
+            font-weight: 600;
+            padding: 0.5rem 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn-manager-primary {
+            background: var(--primary);
+            border: none;
+            color: white;
+        }
+
+        .btn-manager-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4);
+            color: white;
+        }
+
+        /* Status badges */
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 50px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .status-active {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-inactive {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-suspended {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .manager-sidebar {
+                transform: translateX(-100%);
+            }
+
+            .manager-sidebar.mobile-open {
+                transform: translateX(0);
+            }
+
+            .manager-main {
+                margin-left: 0;
+            }
+        }
+
+        /* Loading states */
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        .spinner-border-sm {
+            width: 1rem;
+            height: 1rem;
+        }
+
+        /* Charts */
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+    </style>
+</head>
+<body>
+<div class="manager-sidebar" id="managerSidebar">
+    <div class="sidebar-header">
+        <a class="sidebar-brand" href="#">
+            <i class="fas fa-user-tie"></i>
+            <span class="brand-text">Manager</span>
+        </a>
+    </div>
+
+    <div class="sidebar-menu">
+        <div class="sidebar-item">
+            <a class="sidebar-link active" href="#dashboard" onclick="showSection('dashboard')">
+                <i class="fas fa-tachometer-alt sidebar-icon"></i>
+                <span>Dashboard</span>
+            </a>
+        </div>
+        <div class="sidebar-item">
+            <a class="sidebar-link" href="#spaces" onclick="showSection('spaces')">
+                <i class="fas fa-building sidebar-icon"></i>
+                <span>Gestione Spazi</span>
+            </a>
+        </div>
+        <div class="sidebar-item">
+            <a class="sidebar-link" href="#bookings" onclick="showSection('bookings')">
+                <i class="fas fa-calendar-check sidebar-icon"></i>
+                <span>Prenotazioni</span>
+            </a>
+        </div>
+        <div class="sidebar-item mt-4">
+            <a class="sidebar-link" href="../index.html">
+                <i class="fas fa-arrow-left sidebar-icon"></i>
+                <span>Torna al Sito</span>
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="manager-main" id="managerMain">
+    <div class="manager-header">
+        <div class="d-flex align-items-center">
+            <h4 class="mb-0" id="pageTitle">Dashboard</h4>
+        </div>
+        <div class="d-flex align-items-center">
+            <div class="dropdown">
+                <button class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown">
+                    <i class="fas fa-user"></i>
+                    <span id="managerUserName">Manager</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item" href="#profile"><i class="fas fa-user me-2"></i>Profilo</a></li>
+                    <li>
+                        <hr class="dropdown-divider">
+                    </li>
+                    <li><a class="dropdown-item" href="#" onclick="logout()"><i class="fas fa-sign-out-alt me-2"></i>Logout</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="manager-content">
+        <div class="manager-section" id="dashboardSection">
+            <div class="position-fixed..." id="dashboard-loading" style="display: none !important;">
+                <div class="text-center">
+                    <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;"></div>
+                    <div class="mt-2">Caricamento statistiche...</div>
+                </div>
+            </div>
+
+            <div id="dashboard-error" style="display: none;"></div>
+
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h4><i class="fas fa-chart-line text-primary"></i> Dashboard Manager</h4>
+                </div>
+            </div>
+
+            <div class="row mb-4">
+                <div class="col-md-3 mb-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="card-title">Spazi Attivi</h6>
+                                    <h3 class="mb-0" id="total-spaces">0</h3>
+                                </div>
+                                <i class="fas fa-building fa-2x opacity-75"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3 mb-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="card-title">Prenotazioni</h6>
+                                    <h3 class="mb-0" id="total-bookings">0</h3>
+                                </div>
+                                <i class="fas fa-calendar-check fa-2x opacity-75"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3 mb-3">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="card-title">Revenue Totale</h6>
+                                    <h3 class="mb-0" id="total-revenue">€0.00</h3>
+                                </div>
+                                <i class="fas fa-euro-sign fa-2x opacity-75"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-8 mb-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-chart-area text-success"></i> Andamento Revenue</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-3">
+                                <div class="col-md-4 text-center">
+                                    <div class="border-end">
+                                        <h6 class="text-muted">Periodo Corrente</h6>
+                                        <h4 class="text-success" id="current-revenue">€0.00</h4>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 text-center">
+                                    <div class="border-end">
+                                        <h6 class="text-muted">Periodo Precedente</h6>
+                                        <h4 class="text-muted" id="previous-revenue">€0.00</h4>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 text-center">
+                                    <h6 class="text-muted">Crescita</h6>
+                                    <h4 id="revenue-growth">+0.0%</h4>
+                                </div>
+                            </div>
+
+                            <div id="revenue-chart" class="mt-3">
+                                <canvas id="revenueChartCanvas" width="400" height="200"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4 mb-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-trophy text-warning"></i> Top Spazi</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="top-spaces-list">
+                                <div class="text-center text-muted py-4">
+                                    <i class="fas fa-building fa-2x mb-2"></i>
+                                    <p>Caricamento top spazi...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <i class="fas fa-credit-card fa-2x text-primary mb-2"></i>
+                            <h6 class="text-muted">Pagamenti Medi</h6>
+                            <h4 id="average-transaction">€0.00</h4>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <i class="fas fa-clock fa-2x text-info mb-2"></i>
+                            <h6 class="text-muted">Ultimo Aggiornamento</h6>
+                            <small id="last-update">Ora</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="manager-section" id="spacesSection" style="display: none;">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h4>
+                    <i class="fas fa-building text-primary me-2"></i>
+                    Gestione Spazi
+                </h4>
+                <button class="btn btn-manager-primary" onclick="showAddSpaceModal()">
+                    <i class="fas fa-plus me-2"></i>Nuovo Spazio
+                </button>
+            </div>
+
+            <div class="manager-card mb-4">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Cerca Spazio</label>
+                        <input class="form-control" id="spaceSearch" placeholder="Nome, città, indirizzo..."
+                               type="text">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Città</label>
+                        <select class="form-select" id="cityFilter">
+                            <option value="">Tutte le città</option>
+                            <option value="Milano">Milano</option>
+                            <option value="Roma">Roma</option>
+                            <option value="Torino">Torino</option>
+                            <option value="Bologna">Bologna</option>
+                            <option value="Napoli">Napoli</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Tipo</label>
+                        <select class="form-select" id="spaceTypeFilter">
+                            <option value="">Tutti i tipi</option>
+                            <option value="hot-desk">Scrivania Condivisa</option>
+                            <option value="private-office">Ufficio Privato</option>
+                            <option value="meeting-room">Sala Meeting</option>
+                            <option value="event-space">Spazio Eventi</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">&nbsp;</label>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-outline-primary" onclick="applyFilters()">
+                                <i class="fas fa-search"></i> Filtra
+                            </button>
+                            <button class="btn btn-outline-secondary" onclick="resetSpaceFilters()">
+                                <i class="fas fa-refresh"></i> Reset
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="manager-table">
+                <table class="table table-hover">
+                    <thead>
+                    <tr>
+                        <th>Spazio</th>
+                        <th>Città</th>
+                        <th>Tipo</th>
+                        <th>Capienza</th>
+                        <th>Prezzo/h</th>
+                        <th>Azioni</th>
+                    </tr>
+                    </thead>
+                    <tbody id="spacesTableBody">
+                    <tr>
+                        <td class="text-center py-4" colspan="8">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Caricamento...</span>
+                            </div>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mt-4">
+                <div class="text-muted">
+                    Mostra <span id="spacesShowing">0</span> di <span id="spacesTotal">0</span> spazi
+                </div>
+                <nav>
+                    <ul class="pagination mb-0" id="spacesPagination">
+                    </ul>
+                </nav>
+            </div>
+        </div>
+
+        <div class="modal fade" id="spaceModal" tabindex="-1">
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-building me-2"></i>
+                            <span id="spaceModalTitle">Nuovo Spazio</span>
+                        </h5>
+                        <button class="btn-close" data-bs-dismiss="modal" type="button"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="spaceForm">
+                            <input id="spaceId" type="hidden">
+
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <h6 class="text-primary border-bottom pb-2 mb-3">
+                                        <i class="fas fa-info-circle me-2"></i>Informazioni Base
+                                    </h6>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Nome Spazio *</label>
+                                    <input class="form-control" id="spaceName" required type="text">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Tipo Spazio *</label>
+                                    <select class="form-select" id="spaceType" required>
+                                        <option value="">Seleziona tipo</option>
+                                        <option value="hot-desk">Scrivania Condivisa</option>
+                                        <option value="private-office">Ufficio Privato</option>
+                                        <option value="meeting-room">Sala Meeting</option>
+                                        <option value="event-space">Spazio Eventi</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Capienza *</label>
+                                    <input class="form-control" id="spaceCapacity" max="100" min="1" required
+                                           type="number">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Prezzo/Ora (€) *</label>
+                                    <input class="form-control" id="spacePrice" min="0" required step="0.50"
+                                           type="number">
+                                </div>
+                            </div>
+
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <h6 class="text-primary border-bottom pb-2 mb-3">
+                                        <i class="fas fa-map-marker-alt me-2"></i>Località
+                                    </h6>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Città *</label>
+                                    <select class="form-select" id="spaceCity" required>
+                                        <option value="">Seleziona città</option>
+                                        <option value="Milano">Milano</option>
+                                        <option value="Roma">Roma</option>
+                                        <option value="Torino">Torino</option>
+                                        <option value="Bologna">Bologna</option>
+                                        <option value="Napoli">Napoli</option>
+                                        <option value="Firenze">Firenze</option>
+                                        <option value="Genova">Genova</option>
+                                        <option value="Palermo">Palermo</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Indirizzo *</label>
+                                    <input class="form-control" id="spaceAddress" required type="text">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">CAP</label>
+                                    <input class="form-control" id="spacePostalCode" pattern="[0-9]{5}" type="text">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Piano</label>
+                                    <input class="form-control" id="spaceFloor" placeholder="es. 2°, PT, -1"
+                                           type="text">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Numero Stanza</label>
+                                    <input class="form-control" id="spaceRoom" placeholder="es. A1, 205, Open Space"
+                                           type="text">
+                                </div>
+                            </div>
+
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <h6 class="text-primary border-bottom pb-2 mb-3">
+                                        <i class="fas fa-concierge-bell me-2"></i>Servizi Inclusi
+                                    </h6>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" id="wifiService" type="checkbox">
+                                        <label class="form-check-label" for="wifiService">
+                                            <i class="fas fa-wifi me-2"></i>WiFi Gratuito
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" id="coffeeService" type="checkbox">
+                                        <label class="form-check-label" for="coffeeService">
+                                            <i class="fas fa-coffee me-2"></i>Caffè/Tè
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" id="printerService" type="checkbox">
+                                        <label class="form-check-label" for="printerService">
+                                            <i class="fas fa-print me-2"></i>Stampante
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" id="projectorService" type="checkbox">
+                                        <label class="form-check-label" for="projectorService">
+                                            <i class="fas fa-video me-2"></i>Proiettore
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" id="whiteboardService" type="checkbox">
+                                        <label class="form-check-label" for="whiteboardService">
+                                            <i class="fas fa-chalkboard me-2"></i>Lavagna
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" id="parkingService" type="checkbox">
+                                        <label class="form-check-label" for="parkingService">
+                                            <i class="fas fa-parking me-2"></i>Parcheggio
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" id="airConditioningService" type="checkbox">
+                                        <label class="form-check-label" for="airConditioningService">
+                                            <i class="fas fa-snowflake me-2"></i>Aria Condizionata
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" id="securityService" type="checkbox">
+                                        <label class="form-check-label" for="securityService">
+                                            <i class="fas fa-shield-alt me-2"></i>Sicurezza 24h
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <h6 class="text-primary border-bottom pb-2 mb-3">
+                                        <i class="fas fa-align-left me-2"></i>Descrizione
+                                    </h6>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Descrizione Spazio *</label>
+                                    <textarea class="form-control" id="spaceDescription" placeholder="Descrizione dettagliata dello spazio, atmosfera, particolarità..." rows="4" required></textarea>
+                                </div>
+                                <div class="col-12 mt-3">
+                                    <label class="form-label">Note per Gestione</label>
+                                    <textarea class="form-control" id="spaceNotes" placeholder="Note interne per la gestione dello spazio (non visibili ai clienti)" rows="2"></textarea>
+                                </div>
+                            </div>
+
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <h6 class="text-primary border-bottom pb-2 mb-3">
+                                        <i class="fas fa-images me-2"></i>Immagini Spazio
+                                    </h6>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Carica Immagini dello Spazio</label>
+                                    <div class="mb-3">
+                                        <input class="form-control" type="file" id="spaceImages" accept="image/jpeg,image/jpg,image/png,image/gif" multiple>
+                                        <div class="form-text">
+                                            <i class="fas fa-info-circle me-1"></i> Seleziona una o più immagini (JPG, PNG, GIF). Dimensione massima per file: 5MB.
+                                        </div>
+                                    </div>
+                                    <div id="imagePreviewContainer" class="d-none">
+                                        <label class="form-label text-muted mb-2">
+                                            <i class="fas fa-eye me-1"></i>Anteprima immagini selezionate:
+                                        </label>
+                                        <div id="imagePreviewGrid" class="row g-3">
+                                        </div>
+                                    </div>
+                                    <div id="imageDropZone" class="border border-2 border-dashed border-secondary rounded p-4 text-center text-muted mt-3" style="cursor: pointer;">
+                                        <i class="fas fa-cloud-upload-alt fa-2x mb-2"></i>
+                                        <p class="mb-1">Trascina le immagini qui o clicca per selezionarle</p>
+                                        <small>Formato supportati: JPG, PNG, GIF</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-12">
+                                    <h6 class="text-primary border-bottom pb-2 mb-3">
+                                        <i class="fas fa-clock me-2"></i>Orari di Disponibilità
+                                    </h6>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Orario Apertura</label>
+                                    <input class="form-control" id="spaceOpenTime" type="time" value="08:00">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Orario Chiusura</label>
+                                    <input class="form-control" id="spaceCloseTime" type="time" value="20:00">
+                                </div>
+                                <div class="col-12 mt-3">
+                                    <label class="form-label">Giorni Disponibili</label>
+                                    <div class="d-flex gap-3 flex-wrap">
+                                        <div class="form-check">
+                                            <input checked class="form-check-input" id="dayMonday" type="checkbox">
+                                            <label class="form-check-label" for="dayMonday">Lunedì</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input checked class="form-check-input" id="dayTuesday" type="checkbox">
+                                            <label class="form-check-label" for="dayTuesday">Martedì</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input checked class="form-check-input" id="dayWednesday" type="checkbox">
+                                            <label class="form-check-label" for="dayWednesday">Mercoledì</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input checked class="form-check-input" id="dayThursday" type="checkbox">
+                                            <label class="form-check-label" for="dayThursday">Giovedì</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input checked class="form-check-input" id="dayFriday" type="checkbox">
+                                            <label class="form-check-label" for="dayFriday">Venerdì</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" id="daySaturday" type="checkbox">
+                                            <label class="form-check-label" for="daySaturday">Sabato</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" id="daySunday" type="checkbox">
+                                            <label class="form-check-label" for="daySunday">Domenica</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" data-bs-dismiss="modal" type="button">Annulla</button>
+                        <button class="btn btn-manager-primary" onclick="saveSpace()" type="button">
+                            <i class="fas fa-save me-2"></i>Salva Spazio
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="spaceDetailsModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-eye me-2"></i>Dettagli Spazio
+                        </h5>
+                        <button class="btn-close" data-bs-dismiss="modal" type="button"></button>
+                    </div>
+                    <div class="modal-body" id="spaceDetailsContent">
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" data-bs-dismiss="modal" type="button">Chiudi</button>
+                        <button class="btn btn-primary" onclick="editSpaceFromDetails()" type="button">
+                            <i class="fas fa-edit me-2"></i>Modifica
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="manager-section" id="bookingsSection" style="display: none;">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h4>
+                    <i class="fas fa-calendar-check text-primary me-2"></i>
+                    Gestione Prenotazioni
+                </h4>
+            </div>
+
+            <div class="manager-card mb-4">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Cerca</label>
+                        <input class="form-control" id="bookingSearch" placeholder="Nome cliente, spazio..."
+                               type="text">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Stato</label>
+                        <select class="form-select" id="bookingStatusFilter">
+                            <option value="">Tutti</option>
+                            <option value="confermata">Confermata</option>
+                            <option value="in-attesa">In Attesa</option>
+                            <option value="cancellata">Cancellata</option>
+                            <option value="completata">Completata</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Data</label>
+                        <input class="form-control" id="bookingDateFilter" type="date">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">&nbsp;</label>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-outline-primary" onclick="applyBookingFilters()">
+                                <i class="fas fa-search"></i> Filtra
+                            </button>
+                            <button class="btn btn-outline-secondary" onclick="resetBookingFilters()">
+                                <i class="fas fa-refresh"></i> Reset
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="manager-table">
+                <table class="table table-hover">
+                    <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Cliente</th>
+                        <th>Spazio</th>
+                        <th>Data</th>
+                        <th>Azioni</th>
+                    </tr>
+                    </thead>
+                    <tbody id="bookingsTableBody">
+                    <tr>
+                        <td class="text-center py-4" colspan="7">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mt-4">
+                <div class="text-muted">
+                    Mostra <span id="bookingsShowing">0</span> di <span id="bookingsTotal">0</span> prenotazioni
+                </div>
+                <nav>
+                    <ul class="pagination mb-0" id="bookingsPagination">
+                    </ul>
+                </nav>
+            </div>
+        </div>
+
+        <div class="modal fade" id="bookingModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-calendar-plus me-2"></i>
+                            <span id="bookingModalTitle">Nuova Prenotazione</span>
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="bookingForm">
+                            <input type="hidden" id="bookingId">
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">ID Spazio *</label>
+                                    <input type="text" class="form-control" id="spaceId" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">ID Utente *</label>
+                                    <input type="text" class="form-control" id="userId" required>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Data *</label>
+                                    <input type="date" class="form-control" id="bookingDate" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Orario Inizio *</label>
+                                    <input type="time" class="form-control" id="startTime" required>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Orario Fine *</label>
+                                    <input type="time" class="form-control" id="endTime" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Stato *</label>
+                                    <select class="form-select" id="bookingStatus" required>
+                                        <option value="confermata">Confermata</option>
+                                        <option value="in-attesa">In Attesa</option>
+                                        <option value="cancellata">Cancellata</option>
+                                        <option value="completata">Completata</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Note</label>
+                                <textarea class="form-control" id="bookingNotes" rows="2"></textarea>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                        <button type="button" class="btn btn-primary" onclick="saveBooking()">
+                            <i class="fas fa-save me-2"></i>Salva Prenotazione
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="deleteBookingModal" tabindex="-1">
+            <div class="modal-dialog modal-sm">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Conferma Eliminazione</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        Sei sicuro di voler eliminare questa prenotazione?
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                        <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Elimina</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // ==================== SECTIONS MANAGEMENT ====================
+    // Funzione per mostrare la sezione corretta
+    function showSection(sectionId) {
+        // Nascondi tutte le sezioni
+        document.querySelectorAll('.manager-section').forEach(section => {
+            section.style.display = 'none';
+        });
+
+        // Mostra la sezione desiderata
+        document.getElementById(sectionId + 'Section').style.display = 'block';
+
+        // Aggiorna il titolo della pagina
+        const pageTitle = document.getElementById('pageTitle');
+        const sectionName = sectionId.charAt(0).toUpperCase() + sectionId.slice(1);
+        pageTitle.textContent = sectionName;
+
+        // Aggiorna lo stato attivo nella sidebar
+        document.querySelectorAll('.sidebar-link').forEach(link => {
+            link.classList.remove('active');
+        });
+        document.querySelector(`.sidebar-link[href="#${sectionId}"]`).classList.add('active');
+
+        // Carica i dati per la sezione attiva
+        if (sectionId === 'dashboard') {
+            loadDashboardStats();
+        } else if (sectionId === 'spaces') {
+            loadSpaces();
+        } else if (sectionId === 'bookings') {
+            loadBookings();
+        }
+    }
+
+    // ==================== DASHBOARD STATS ====================
+    let revenueChart;
+
+    async function loadDashboardStats() {
+        const loadingOverlay = document.getElementById('dashboard-loading');
+        const errorSection = document.getElementById('dashboard-error');
+
+        // Mostra loading e nascondi errori precedenti
+        if (loadingOverlay) loadingOverlay.style.display = 'block';
+        if (errorSection) errorSection.style.display = 'none';
+
+
+        try {
+            console.log('🔄 Loading manager dashboard stats...');
+
+            // Ottieni token di autenticazione
+            const token = getAuthToken();
+            if (!token) {
+                throw new Error('Token di autenticazione non trovato. Effettua nuovamente il login.');
+            }
+
+            // Chiamata API per statistiche dashboard manager
+            const response = await fetch('http://localhost:3000/api/manager/dashboard/stats', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+
+            if (!result.success) {
+                throw new Error(result.message || 'Errore durante il caricamento delle statistiche');
+            }
+
+            const data = result.data;
+            console.log('✅ Dashboard stats loaded:', data);
+
+            // ===== AGGIORNA STATISTICHE SPAZI =====
+            const spaceStats = data.spaces || {};
+            document.getElementById('total-spaces').textContent = spaceStats.total_spaces || 0;
+
+            // ===== AGGIORNA STATISTICHE PRENOTAZIONI =====
+            const bookingStats = data.bookings || {};
+            document.getElementById('total-bookings').textContent = bookingStats.total_bookings || 0;
+            const averagePayment = parseFloat(bookingStats.avg_booking_value || 0);
+            document.getElementById('average-transaction').textContent = '€' + averagePayment.toFixed(2);
+
+            // Revenue
+            const totalRevenue = parseFloat(bookingStats.total_revenue || 0);
+            document.getElementById('total-revenue').textContent = '€' + totalRevenue.toFixed(2);
+
+            // ===== CALCOLO CRESCITA REVENUE =====
+            // Per ora usiamo i dati disponibili, in futuro si può implementare un confronto mensile
+            const weekBookings = parseInt(bookingStats.week_bookings || 0);
+            const monthBookings = parseInt(bookingStats.month_bookings || 0);
+
+            // Stima revenue settimanale
+            const weeklyRevenue = (totalRevenue / monthBookings) * weekBookings;
+            const remainingRevenue = totalRevenue - weeklyRevenue;
+
+            document.getElementById('current-revenue').textContent = '€' + weeklyRevenue.toFixed(2);
+            document.getElementById('previous-revenue').textContent = '€' + remainingRevenue.toFixed(2);
+
+            // Calcola crescita
+            const growthPercent = remainingRevenue > 0 ? ((weeklyRevenue - remainingRevenue) / remainingRevenue * 100).toFixed(1) : 0;
+            const growthText = growthPercent >= 0 ? '+' + growthPercent + '%' : growthPercent + '%';
+            document.getElementById('revenue-growth').textContent = growthText;
+
+            // ===== TOP SPAZI (genera dalla capacità degli spazi) =====
+            const topSpacesList = document.getElementById('top-spaces-list');
+            const topSpaces = [
+                { name: "I Tuoi Spazi", bookings: spaceStats.total_spaces || 0 },
+                { name: "Spazi Attivi", bookings: spaceStats.active_spaces || 0 },
+                { name: "Spazi in Evidenza", bookings: spaceStats.featured_spaces || 0 }
+            ];
+
+            topSpacesList.innerHTML = topSpaces.map(space => `
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="text-truncate"><i class="fas fa-star text-warning me-2"></i>${space.name}</span>
+                <span class="badge bg-primary rounded-pill">${space.bookings}</span>
+            </div>
+        `).join('');
+
+            // ===== GRAFICO REVENUE =====
+            // Genera dati per il grafico basati sui dati mensili
+            let revenueData = [];
+            let labels = [];
+
+            const transactionResult = await fetch(`http://localhost:3000/api/manager/bookings?limit=50&sortBy=created_at&sortOrder=ASC`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (transactionResult.ok) {
+                const transactionData = await transactionResult.json();
+
+                if (transactionData.success && transactionData.bookings) {
+                    console.log('Transaction data for chart:', transactionData.bookings);
+
+                    // Crea un punto per ogni prenotazione
+                    let cumulativeRevenue = 0;
+
+                    transactionData.bookings.forEach((booking, index) => {
+                        const bookingDate = new Date(booking.created_at);
+                        const dateLabel = bookingDate.toLocaleDateString('it-IT', {
+                            day: '2-digit',
+                            month: '2-digit'
+                        });
+
+                        cumulativeRevenue += parseFloat(booking.total_price || 0);
+
+                        labels.push(`${dateLabel} (#${index + 1})`);
+                        revenueData.push(cumulativeRevenue);
+                    });
+                }
+            }
+
+// Fallback se non ci sono transazioni
+            if (revenueData.length === 0) {
+                console.log('No transaction data, using fallback');
+                labels = ['Nessun dato'];
+                revenueData = [0];
+            }
+
+            console.log('Chart data:', { labels, revenueData });
+
+// Distruggi grafico esistente
+            if (window.revenueChart) {
+                window.revenueChart.destroy();
+            }
+
+// Crea nuovo grafico
+            const ctx = document.getElementById('revenueChartCanvas');
+            if (ctx) {
+                window.revenueChart = new Chart(ctx.getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Revenue Cumulativo (€)',
+                            data: revenueData,
+                            backgroundColor: 'rgba(40, 167, 69, 0.2)',
+                            borderColor: '#28a745',
+                            borderWidth: 3,
+                            tension: 0.1,
+                            fill: true,
+                            pointRadius: 6,
+                            pointHoverRadius: 8,
+                            pointBackgroundColor: '#28a745',
+                            pointBorderColor: '#ffffff',
+                            pointBorderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: {
+                            intersect: false,
+                            mode: 'index'
+                        },
+                        scales: {
+                            x: {
+                                display: true,
+                                title: {
+                                    display: true,
+                                    text: 'Prenotazioni (Cronologiche)'
+                                }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Revenue Cumulativo (€)'
+                                },
+                                ticks: {
+                                    callback: function(value) {
+                                        return '€' + value.toFixed(0);
+                                    }
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: true
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    title: function(context) {
+                                        return `Prenotazione ${context[0].label}`;
+                                    },
+                                    label: function(context) {
+                                        return 'Revenue totale: €' + context.parsed.y.toFixed(2);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+
+                console.log('Chart created successfully');
+            } else {
+                console.error('Canvas element not found');
+            }
+
+            // ===== AGGIORNA TIMESTAMP =====
+            const lastUpdate = document.getElementById('last-update');
+            if (lastUpdate) {
+                lastUpdate.textContent = new Date().toLocaleString('it-IT');
+            }
+
+            console.log('✅ Manager dashboard updated successfully');
+
+        } catch (error) {
+            console.error('❌ Errore durante il caricamento delle statistiche manager:', error);
+
+            if (errorSection) {
+                errorSection.style.display = 'block';
+                errorSection.innerHTML = `
+                <div class="alert alert-danger" role="alert">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Errore nel caricamento delle statistiche:</strong><br>
+                    ${error.message}
+                    <button class="btn btn-sm btn-outline-danger mt-2" onclick="loadDashboardStats()">
+                        <i class="fas fa-sync-alt me-1"></i>Riprova
+                    </button>
+                </div>
+            `;
+            }
+
+            // Mostra valori di fallback
+            showFallbackStats();
+
+        } finally {
+            if (loadingOverlay) loadingOverlay.style.display = 'none';
+        }
+    }
+
+    function showFallbackStats() {
+        console.log('📊 Showing fallback stats');
+
+        // Valori di default se l'API fallisce
+        document.getElementById('total-spaces').textContent = '0';
+        document.getElementById('total-bookings').textContent = '0';
+        document.getElementById('total-revenue').textContent = '€0.00';
+        document.getElementById('current-revenue').textContent = '€0.00';
+        document.getElementById('previous-revenue').textContent = '€0.00';
+        document.getElementById('revenue-growth').textContent = '0.0%';
+
+        // Top spazi vuoto
+        const topSpacesList = document.getElementById('top-spaces-list');
+        if (topSpacesList) {
+            topSpacesList.innerHTML = `
+            <div class="text-center text-muted py-3">
+                <i class="fas fa-building fa-2x mb-2"></i>
+                <p class="mb-0">Nessun dato disponibile</p>
+            </div>
+        `;
+        }
+
+        // Grafico vuoto
+        if (window.revenueChart) {
+            window.revenueChart.destroy();
+        }
+    }
+
+    // ==================== SPACES MANAGEMENT ====================
+    let spacesData = []; // Array per i dati reali dal database
+    let currentSpacesPage = 1;
+    let spacesLoading = false;
+
+    async function loadSpaces(page = 1, filters = {}) {
+        if (spacesLoading) return;
+        spacesLoading = true;
+
+        try {
+            // Mostra loading
+            showSpacesLoading();
+
+            // Ottieni token di autenticazione
+            const token = getAuthToken();
+            if (!token) {
+                showSpacesError('Token di autenticazione non trovato. Effettua nuovamente il login.');
+                return;
+            }
+
+            // Costruisci parametri query
+            const queryParams = new URLSearchParams({
+                page: page.toString(),
+                limit: '10',
+                sortBy: 'created_at',
+                sortOrder: 'DESC',
+                ...filters
+            });
+
+            console.log('🔍 Calling manager spaces API with params:', queryParams.toString());
+
+            // Chiamata API per ottenere spazi del manager
+            const response = await fetch(`http://localhost:3000/api/manager/spaces?${queryParams}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.message || `HTTP error! status: ${response.status}`);
+            }
+
+            if (!result.success) {
+                throw new Error(result.message || 'Errore durante il caricamento degli spazi');
+            }
+
+            // Aggiorna dati globali
+            spacesData = result.spaces || [];
+            currentSpacesPage = page;
+
+            console.log(`✅ Caricati ${spacesData.length} spazi per il manager`);
+
+            // Renderizza gli spazi
+            renderSpacesTable(result.spaces, result.pagination);
+
+        } catch (error) {
+            console.error('❌ Errore caricamento spazi manager:', error);
+            showSpacesError(error.message || 'Errore durante il caricamento degli spazi');
+        } finally {
+            spacesLoading = false;
+        }
+    }
+
+    function showSpacesLoading() {
+        const tableBody = document.getElementById('spacesTableBody');
+        const showCount = document.getElementById('spacesShowing');
+        const totalCount = document.getElementById('spacesTotal');
+
+        if (tableBody) {
+            tableBody.innerHTML = `
+            <tr>
+                <td colspan="7" class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Caricamento...</span>
+                    </div>
+                    <div class="mt-2">Caricamento spazi...</div>
+                </td>
+            </tr>
+        `;
+        }
+
+        if (showCount) showCount.textContent = '0';
+        if (totalCount) totalCount.textContent = '0';
+    }
+
+    function showSpacesError(message) {
+        const tableBody = document.getElementById('spacesTableBody');
+        if (tableBody) {
+            tableBody.innerHTML = `
+            <tr>
+                <td colspan="7" class="text-center py-4">
+                    <div class="text-danger">
+                        <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                        <div class="h5">Errore caricamento spazi</div>
+                        <div class="text-muted">${message}</div>
+                        <button class="btn btn-primary mt-3" onclick="loadSpaces()">
+                            <i class="fas fa-sync-alt me-2"></i>Riprova
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+        }
+    }
+
+    // ✅ FUNZIONE PER RENDERIZZARE LA PAGINAZIONE
+    function renderSpacesPagination(pagination) {
+        const paginationEl = document.getElementById('spacesPagination');
+        if (!paginationEl || !pagination) return;
+
+        const { currentPage, totalPages, hasNextPage, hasPreviousPage } = pagination;
+
+        let paginationHTML = '';
+
+        // Pulsante precedente
+        if (hasPreviousPage) {
+            paginationHTML += `
+            <li class="page-item">
+                <a class="page-link" href="#" onclick="loadSpaces(${currentPage - 1}, getSpaceFilters())">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+            </li>
+        `;
+        }
+
+        // Numeri pagina
+        for (let i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, currentPage + 2); i++) {
+            paginationHTML += `
+            <li class="page-item ${i === currentPage ? 'active' : ''}">
+                <a class="page-link" href="#" onclick="loadSpaces(${i}, getSpaceFilters())">${i}</a>
+            </li>
+        `;
+        }
+
+        // Pulsante successivo
+        if (hasNextPage) {
+            paginationHTML += `
+            <li class="page-item">
+                <a class="page-link" href="#" onclick="loadSpaces(${currentPage + 1}, getSpaceFilters())">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            </li>
+        `;
+        }
+
+        paginationEl.innerHTML = paginationHTML;
+    }
+
+    // ✅ AGGIORNA FILTRI PER USARE DATI REALI
+    function getSpaceFilters() {
+        return {
+            search: document.getElementById('spaceSearch')?.value || '',
+            type: document.getElementById('spaceTypeFilter')?.value || '',
+            city: document.getElementById('spaceCityFilter')?.value || ''
+        };
+    }
+
+    function applySpaceFilters() {
+        loadSpaces(1, getSpaceFilters());
+    }
+
+    function resetSpaceFilters() {
+        const searchEl = document.getElementById('spaceSearch');
+        const typeEl = document.getElementById('spaceTypeFilter');
+        const cityEl = document.getElementById('spaceCityFilter');
+
+        if (searchEl) searchEl.value = '';
+        if (typeEl) typeEl.value = '';
+        if (cityEl) cityEl.value = '';
+
+        loadSpaces();
+    }
+
+    // ✅ FUNZIONI PER GESTIRE GLI SPAZI (aggiornate per API reali)
+    async function showSpaceDetails(spaceId) {
+        try {
+            const token = getAuthToken();
+            if (!token) {
+                alert('Token di autenticazione non trovato');
+                return;
+            }
+
+            const response = await fetch(`http://localhost:3000/api/manager/spaces/${spaceId}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const result = await response.json();
+
+            if (result.success && result.space) {
+                const space = result.space;
+                const amenities = Array.isArray(space.amenities) ? space.amenities : JSON.parse(space.amenities || '[]');
+
+                alert(`Dettagli Spazio:
+ID: ${space.id}
+Nome: ${space.name}
+Descrizione: ${space.description || 'Nessuna descrizione'}
+Tipo: ${space.type}
+Città: ${space.city}
+Indirizzo: ${space.address}
+Capacità: ${space.capacity} persone
+Prezzo: €${parseFloat(space.price_per_day).toFixed(2)} al giorno
+Creato: ${new Date(space.created_at).toLocaleDateString('it-IT')}`);
+            } else {
+                alert('Errore nel caricamento dei dettagli dello spazio');
+            }
+        } catch (error) {
+            console.error('Errore nel caricamento dettagli:', error);
+            alert('Errore nel caricamento dei dettagli dello spazio');
+        }
+    }
+
+    async function editSpace(spaceId) {
+        // Trova lo spazio nei dati locali
+        const space = spacesData.find(s => s.id === spaceId);
+        if (space) {
+            // Popola il modal di modifica con i dati esistenti
+            document.getElementById('spaceModalTitle').textContent = 'Modifica Spazio';
+            document.getElementById('spaceId').value = space.id;
+            document.getElementById('spaceName').value = space.name || '';
+            document.getElementById('spaceDescription').value = space.description || '';
+            document.getElementById('spaceType').value = space.type || '';
+            document.getElementById('spaceCity').value = space.city || '';
+            document.getElementById('spaceAddress').value = space.address || '';
+            document.getElementById('spaceCapacity').value = space.capacity || '';
+            document.getElementById('spacePrice').value = space.price_per_day || '';
+
+            const spaceModal = new bootstrap.Modal(document.getElementById('spaceModal'));
+            spaceModal.show();
+        }
+    }
+
+    async function activateSpace(spaceId) {
+        if (!confirm('Sei sicuro di voler attivare questo spazio?')) return;
+
+        try {
+            const token = getAuthToken();
+            const response = await fetch(`http://localhost:3000/api/manager/spaces/${spaceId}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ is_active: true })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert('Spazio attivato con successo!');
+                loadSpaces(currentSpacesPage, getSpaceFilters());
+            } else {
+                alert(result.message || 'Errore nell\'attivazione dello spazio');
+            }
+        } catch (error) {
+            console.error('Errore attivazione spazio:', error);
+            alert('Errore nell\'attivazione dello spazio');
+        }
+    }
+
+    async function deactivateSpace(spaceId) {
+        if (!confirm('Sei sicuro di voler disattivare questo spazio? Non sarà più prenotabile.')) return;
+
+        try {
+            const token = getAuthToken();
+            const response = await fetch(`http://localhost:3000/api/manager/spaces/${spaceId}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ is_active: false })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert('Spazio disattivato con successo!');
+                loadSpaces(currentSpacesPage, getSpaceFilters());
+            } else {
+                alert(result.message || 'Errore nella disattivazione dello spazio');
+            }
+        } catch (error) {
+            console.error('Errore disattivazione spazio:', error);
+            alert('Errore nella disattivazione dello spazio');
+        }
+    }
+
+    function showDeleteSpaceModal(spaceId) {
+        if (confirm('Sei sicuro di voler eliminare questo spazio? Questa azione non può essere annullata.')) {
+            deleteSpace(spaceId);
+        }
+    }
+
+    async function deleteSpace(spaceId) {
+        try {
+            const token = getAuthToken();
+            const response = await fetch(`http://localhost:3000/api/spaces/${spaceId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert('Spazio eliminato con successo!');
+                loadSpaces(currentSpacesPage, getSpaceFilters());
+            } else {
+                alert(result.message || 'Errore nell\'eliminazione dello spazio');
+            }
+        } catch (error) {
+            console.error('Errore eliminazione spazio:', error);
+            alert('Errore nell\'eliminazione dello spazio');
+        }
+    }
+
+    function applyFilters() {
+        loadSpaces(1, getSpaceFilters());
+    }
+
+        // Variabile globale per le immagini selezionate
+    let selectedImages = [];
+
+    /**
+     * Salva uno spazio nuovo o modificato inviando i dati al backend.
+     */
+    async function saveSpace() {
+        console.log('🏢 Saving space...');
+
+        const spaceForm = document.getElementById('spaceForm');
+        if (!spaceForm || !spaceForm.checkValidity()) {
+            spaceForm?.reportValidity();
+            return;
+        }
+
+        try {
+        // 1. Converti le immagini in Base64
+            let imagesArray = [];
+            if (selectedImages && selectedImages.length > 0) {
+                imagesArray = await convertImagesToBase64();
+                console.log(`📸 Processed ${imagesArray.length} images for database`);
+            }
+
+        // 2. Raccogli i dati dal form
+            const spaceData = {
+                name: document.getElementById('spaceName').value.trim(),
+                type: document.getElementById('spaceType').value,
+                capacity: parseInt(document.getElementById('spaceCapacity').value),
+                price_per_day: parseFloat(document.getElementById('spacePrice').value),
+                city: document.getElementById('spaceCity').value,
+                address: document.getElementById('spaceAddress').value.trim(),
+                description: document.getElementById('spaceDescription')?.value.trim() || '',
+                amenities: getSelectedServices(),
+                days_available: getSelectedDays(),
+                images: imagesArray,
+                is_active: true
+            };
+
+            console.log('📤 Dati pronti per l\'invio:', { ...spaceData, images: `${imagesArray.length} immagini` });
+
+            const token = localStorage.getItem('auth_token');
+            if (!token) throw new Error('Token di autenticazione mancante.');
+
+            const spaceId = document.getElementById('spaceId')?.value;
+            const isEdit = !!spaceId;
+            const url = isEdit ? `http://localhost:3000/api/spaces/${spaceId}` : 'http://localhost:3000/api/spaces';
+            const method = isEdit ? 'PUT' : 'POST';
+
+            // 3. Invia i dati al server
+            const response = await fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(spaceData)
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                alert(isEdit ? 'Spazio aggiornato con successo!' : 'Spazio creato con successo!');
+                bootstrap.Modal.getInstance(document.getElementById('spaceModal'))?.hide();
+                await loadSpaces(); // Ricarica la tabella
+            } else {
+                throw new Error(result.message || 'Errore nel salvataggio dello spazio');
+            }
+
+        } catch (error) {
+            console.error('❌ Errore durante il salvataggio dello spazio:', error);
+            alert(`Errore: ${error.message}`);
+        }
+    }
+
+    /**
+     * Mostra la tabella degli spazi con i dati ricevuti dal server.
+     */
+    function renderSpacesTable(spaces) {
+        const tableBody = document.getElementById('spacesTableBody');
+        if (!tableBody) return;
+
+        if (!spaces || spaces.length === 0) {
+            tableBody.innerHTML = `<tr><td colspan="7" class="text-center py-4">Nessuno spazio trovato.</td></tr>`;
+            return;
+        }
+
+        tableBody.innerHTML = spaces.map(space => {
+            const imageUrl = (space.images && Array.isArray(space.images) && space.images.length > 0 && space.images[0].startsWith('data:image'))
+            ? space.images[0]
+            : '/assets/images/placeholder-space.jpg';
+
+            return `
+                <tr data-space-id="${space.id}">
+                    <td>
+                        <img src="${imageUrl}" alt="${space.name}" style="width: 80px; height: 60px; object-fit: cover; border-radius: 8px;">
+                    </td>
+                    <td>
+                        <div class="fw-semibold">${space.name || 'N/A'}</div>
+                        <small class="text-muted">${space.city || 'N/A'}</small>
+                    </td>
+                    <td>${space.city || 'N/A'}</td>
+                    <td><span class="badge bg-primary">${space.type || 'N/A'}</span></td>
+                    <td>${space.capacity || 0} persone</td>
+                    <td>€${parseFloat(space.price_per_day || 0).toFixed(2)}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteSpace('${space.id}')" title="Elimina">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </td>
+                </tr>
+                `;
+        }).join('');
+    }
+
+        // ===============================================
+        // FUNZIONI HELPER PER LA GESTIONE IMMAGINI
+        // ===============================================
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const imageInput = document.getElementById('spaceImages');
+        const previewContainer = document.getElementById('imagePreviewContainer');
+        const previewGrid = document.getElementById('imagePreviewGrid');
+        const dropZone = document.getElementById('imageDropZone');
+        const spaceModal = document.getElementById('spaceModal');
+
+        if (imageInput && dropZone) {
+            imageInput.addEventListener('change', handleImageSelection);
+            dropZone.addEventListener('click', () => imageInput.click());
+            dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('border-primary'); });
+            dropZone.addEventListener('dragleave', e => { e.preventDefault(); dropZone.classList.remove('border-primary'); });
+            dropZone.addEventListener('drop', handleDrop);
+        }
+
+        if (spaceModal) {
+            spaceModal.addEventListener('hidden.bs.modal', hidePreview); // Pulisce le preview alla chiusura
+        }
+    });
+
+    function handleImageSelection(event) {
+        const files = Array.from(event.target.files);
+        if (files.length === 0) {
+            hidePreview();
+            return;
+        }
+        const validFiles = validateImageFiles(files);
+        if (validFiles.length > 0) {
+            selectedImages = validFiles;
+            showImagePreviews(validFiles);
+        } else {
+            hidePreview();
+        }
+    }
+
+    function handleDrop(event) {
+        event.preventDefault();
+        document.getElementById('imageDropZone').classList.remove('border-primary');
+        const files = Array.from(event.dataTransfer.files);
+        const imageInput = document.getElementById('spaceImages');
+        const dataTransfer = new DataTransfer();
+        files.forEach(file => dataTransfer.items.add(file));
+        imageInput.files = dataTransfer.files;
+        handleImageSelection({ target: imageInput });
+    }
+
+    function validateImageFiles(files) {
+        const maxFileSize = 5 * 1024 * 1024; // 5MB
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+        return files.filter(file => {
+            if (!allowedTypes.includes(file.type)) {
+                alert(`${file.name} non è un'immagine valida.`);
+                return false;
+            }
+            if (file.size > maxFileSize) {
+                alert(`${file.name} è troppo grande (max 5MB).`);
+                return false;
+            }
+            return true;
+        });
+    }
+
+    function showImagePreviews(files) {
+        const previewContainer = document.getElementById('imagePreviewContainer');
+        const previewGrid = document.getElementById('imagePreviewGrid');
+        previewContainer.classList.remove('d-none');
+        previewGrid.innerHTML = '';
+        files.forEach((file, index) => {
+            const reader = new FileReader();
+            reader.onload = e => {
+                previewGrid.innerHTML += `
+                        <div class="col-md-4 col-sm-6">
+                            <div class="card shadow-sm">
+                                <img src="${e.target.result}" class="card-img-top" style="height: 150px; object-fit: cover;">
+                                <div class="card-body p-2">
+                                    <button type="button" class="btn btn-sm btn-outline-danger w-100" onclick="removeImageAtIndex(${index})">
+                                        Rimuovi
+                                    </button>
+                                </div>
+                            </div>
+                        </div>`;
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function hidePreview() {
+        document.getElementById('imagePreviewContainer').classList.add('d-none');
+        document.getElementById('imagePreviewGrid').innerHTML = '';
+        document.getElementById('spaceImages').value = '';
+        selectedImages = [];
+    }
+
+    function removeImageAtIndex(index) {
+        selectedImages.splice(index, 1);
+        const imageInput = document.getElementById('spaceImages');
+        const dataTransfer = new DataTransfer();
+        selectedImages.forEach(file => dataTransfer.items.add(file));
+        imageInput.files = dataTransfer.files;
+        if (selectedImages.length > 0) {
+            showImagePreviews(selectedImages);
+        } else {
+            hidePreview();
+        }
+    }
+
+    function convertImagesToBase64() {
+        return Promise.all(selectedImages.map(file => fileToBase64(file)));
+    }
+
+    function fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = error => reject(error);
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function getSelectedServices() {
+        const services = [];
+        document.querySelectorAll('#spaceForm .form-check-input[id$="Service"]:checked').forEach(checkbox => {
+            services.push(checkbox.id.replace('Service', ''));
+        });
+        return services;
+    }
+
+    function getSelectedDays() {
+        const days = [];
+        document.querySelectorAll('#spaceForm .form-check-input[id^="day"]:checked').forEach(checkbox => {
+            days.push(checkbox.id.replace('day', ''));
+        });
+        return days;
+    }
+
+    function showAddSpaceModal() {
+        console.log('📝 Opening new space modal');
+
+        // Reset del form
+        document.getElementById('spaceModalTitle').textContent = 'Nuovo Spazio';
+        document.getElementById('spaceId').value = '';
+        document.getElementById('spaceForm').reset();
+
+        // Valori di default
+        document.getElementById('spaceType').value = '';
+        document.getElementById('spaceCapacity').value = '1';
+        document.getElementById('spacePrice').value = '';
+
+        // Deseleziona tutti i servizi
+        const amenityCheckboxes = document.querySelectorAll('input[name="amenities"]');
+        amenityCheckboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+
+        // Mostra il modal
+        const spaceModal = new bootstrap.Modal(document.getElementById('spaceModal'));
+        spaceModal.show();
+    }
+
+    function validateSpaceForm() {
+        const spaceName = document.getElementById('spaceName').value.trim();
+        const spaceType = document.getElementById('spaceType').value;
+        const spaceCity = document.getElementById('spaceCity').value.trim();
+        const spaceCapacity = document.getElementById('spaceCapacity').value;
+        const spacePrice = document.getElementById('spacePrice').value;
+
+        const errors = [];
+
+        if (!spaceName) errors.push('Il nome dello spazio è obbligatorio');
+        if (!spaceType) errors.push('Il tipo di spazio è obbligatorio');
+        if (!spaceCity) errors.push('La città è obbligatoria');
+        if (!spaceCapacity || spaceCapacity <= 0) errors.push('La capacità deve essere un numero positivo');
+        if (!spacePrice || spacePrice <= 0) errors.push('Il prezzo deve essere un numero positivo');
+
+        return {
+            isValid: errors.length === 0,
+            errors: errors
+        };
+    }
+
+    function updateSaveButton() {
+        const validation = validateSpaceForm();
+        const saveButton = document.querySelector('#spaceModal .btn-primary');
+
+        if (saveButton) {
+            if (validation.isValid) {
+                saveButton.disabled = false;
+                saveButton.classList.remove('btn-secondary');
+                saveButton.classList.add('btn-primary');
+            } else {
+                saveButton.disabled = true;
+                saveButton.classList.remove('btn-primary');
+                saveButton.classList.add('btn-secondary');
+            }
+        }
+    }
+
+    function setupSpaceFormValidation() {
+        const requiredFields = ['spaceName', 'spaceType', 'spaceCity', 'spaceCapacity', 'spacePrice'];
+
+        requiredFields.forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            if (field) {
+                field.addEventListener('input', updateSaveButton);
+                field.addEventListener('change', updateSaveButton);
+            }
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        setupSpaceFormValidation();
+    });
+
+    // ==================== BOOKINGS MANAGEMENT ====================
+    let bookingsData = []; // Array per i dati reali dal database
+    let currentBookingsPage = 1;
+    let bookingsLoading = false;
+
+    async function loadBookings(page = 1, filters = {}) {
+        if (bookingsLoading) return;
+        bookingsLoading = true;
+
+        try {
+            // Mostra loading
+            showBookingsLoading();
+
+            // Ottieni token di autenticazione
+            const token = getAuthToken();
+            if (!token) {
+                showBookingsError('Token di autenticazione non trovato. Effettua nuovamente il login.');
+                return;
+            }
+
+            // Costruisci parametri query
+            const queryParams = new URLSearchParams({
+                page: page.toString(),
+                limit: '10',
+                sortBy: 'created_at',
+                sortOrder: 'DESC',
+                ...filters
+            });
+
+            // Chiamata API per ottenere prenotazioni del manager
+            const response = await fetch(`http://localhost:3000/api/manager/bookings?${queryParams}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.message || `HTTP error! status: ${response.status}`);
+            }
+
+            if (!result.success) {
+                throw new Error(result.message || 'Errore durante il caricamento delle prenotazioni');
+            }
+
+            // Aggiorna dati globali
+            bookingsData = result.bookings || [];
+            currentBookingsPage = page;
+
+            console.log(`✅ Caricate ${bookingsData.length} prenotazioni per il manager`);
+
+            // Renderizza le prenotazioni
+            renderBookingsTable(result.bookings, result.pagination);
+
+        } catch (error) {
+            console.error('❌ Errore caricamento prenotazioni manager:', error);
+            showBookingsError(error.message || 'Errore durante il caricamento delle prenotazioni');
+        } finally {
+            bookingsLoading = false;
+        }
+    }
+
+    function showBookingsLoading() {
+        const tableBody = document.getElementById('bookingsTableBody');
+        const showCount = document.getElementById('bookingsShowing');
+        const totalCount = document.getElementById('bookingsTotal');
+
+        if (tableBody) {
+            tableBody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Caricamento...</span>
+                    </div>
+                    <div class="mt-2">Caricamento prenotazioni...</div>
+                </td>
+            </tr>
+        `;
+        }
+
+        if (showCount) showCount.textContent = '0';
+        if (totalCount) totalCount.textContent = '0';
+    }
+
+    function showBookingsError(message) {
+        const tableBody = document.getElementById('bookingsTableBody');
+        if (tableBody) {
+            tableBody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center py-4">
+                    <div class="text-danger">
+                        <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                        <div class="h5">Errore caricamento prenotazioni</div>
+                        <div class="text-muted">${message}</div>
+                        <button class="btn btn-primary mt-3" onclick="loadBookings()">
+                            <i class="fas fa-sync-alt me-2"></i>Riprova
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+        }
+    }
+
+    function renderBookingsTable(bookings, pagination) {
+        const tableBody = document.getElementById('bookingsTableBody');
+        const showCount = document.getElementById('bookingsShowing');
+        const totalCount = document.getElementById('bookingsTotal');
+        const paginationEl = document.getElementById('bookingsPagination');
+
+        if (!tableBody) {
+            console.error('Elemento bookingsTableBody non trovato');
+            return;
+        }
+
+        // Se non ci sono prenotazioni
+        if (!bookings || bookings.length === 0) {
+            tableBody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center py-4">
+                    <div class="text-muted">
+                        <i class="fas fa-calendar-times fa-2x mb-3"></i>
+                        <div class="h5">Nessuna prenotazione trovata</div>
+                        <div>Non ci sono prenotazioni per i tuoi spazi al momento.</div>
+                    </div>
+                </td>
+            </tr>
+        `;
+            if (showCount) showCount.textContent = '0';
+            if (totalCount) totalCount.textContent = '0';
+            if (paginationEl) paginationEl.innerHTML = '';
+            return;
+        }
+
+        // Renderizza le prenotazioni reali
+        tableBody.innerHTML = '';
+        bookings.forEach(booking => {
+            const row = document.createElement('tr');
+
+            // Mappa gli status del database agli status dell'interfaccia
+            const statusMap = {
+                'pending': { class: 'warning', text: 'In Attesa' },
+                'confirmed': { class: 'success', text: 'Confermata' },
+                'completed': { class: 'info', text: 'Completata' },
+                'cancelled': { class: 'danger', text: 'Cancellata' }
+            };
+
+            const statusInfo = statusMap[booking.status] || { class: 'secondary', text: booking.status };
+
+            // Formatta le date
+            const startDate = new Date(booking.start_date);
+            const endDate = new Date(booking.end_date);
+            const dateStr = startDate.toLocaleDateString('it-IT');
+            const startTime = startDate.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+            const endTime = endDate.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+
+            row.innerHTML = `
+            <td>
+                <div class="fw-bold">#${booking.id.substring(0, 8)}</div>
+                <small class="text-muted">€${parseFloat(booking.total_price || 0).toFixed(2)}</small>
+            </td>
+            <td>
+                <div class="fw-bold">${booking.client_first_name || 'N/A'} ${booking.client_last_name || ''}</div>
+                <small class="text-muted">${booking.client_email || 'Email non disponibile'}</small>
+            </td>
+            <td>
+                <div class="fw-bold">${booking.space_name || 'Spazio non trovato'}</div>
+                <small class="text-muted">${booking.space_type || ''} - ${booking.space_city || ''}</small>
+            </td>
+            <td>
+                <div class="fw-bold">${dateStr}</div>
+            </td>
+            <td>
+                <div class="btn-group" role="group">
+                    <button class="btn btn-sm btn-outline-info" onclick="showBookingDetails('${booking.id}')" title="Visualizza dettagli">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+            </td>
+        `;
+
+            tableBody.appendChild(row);
+        });
+
+        // Aggiorna contatori
+        if (showCount) showCount.textContent = bookings.length;
+        if (totalCount && pagination) totalCount.textContent = pagination.totalBookings || 0;
+
+        // Renderizza paginazione
+        if (paginationEl && pagination) {
+            renderBookingsPagination(pagination);
+        }
+    }
+
+    function renderBookingsPagination(pagination) {
+        const paginationEl = document.getElementById('bookingsPagination');
+        if (!paginationEl || !pagination) return;
+
+        const { currentPage, totalPages, hasNextPage, hasPreviousPage } = pagination;
+
+        let paginationHTML = '';
+
+        // Pulsante precedente
+        if (hasPreviousPage) {
+            paginationHTML += `
+            <li class="page-item">
+                <a class="page-link" href="#" onclick="loadBookings(${currentPage - 1}, getBookingFilters())">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+            </li>
+        `;
+        }
+
+        // Numeri pagina
+        for (let i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, currentPage + 2); i++) {
+            paginationHTML += `
+            <li class="page-item ${i === currentPage ? 'active' : ''}">
+                <a class="page-link" href="#" onclick="loadBookings(${i}, getBookingFilters())">${i}</a>
+            </li>
+        `;
+        }
+
+        // Pulsante successivo
+        if (hasNextPage) {
+            paginationHTML += `
+            <li class="page-item">
+                <a class="page-link" href="#" onclick="loadBookings(${currentPage + 1}, getBookingFilters())">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            </li>
+        `;
+        }
+
+        paginationEl.innerHTML = paginationHTML;
+    }
+
+    function getAuthToken() {
+        return localStorage.getItem('auth_token');
+    }
+
+    function getBookingFilters() {
+        return {
+            search: document.getElementById('bookingSearch')?.value || '',
+            status: document.getElementById('bookingStatusFilter')?.value || '',
+            start_date_from: document.getElementById('bookingDateFilter')?.value || ''
+        };
+    }
+
+    function applyBookingFilters() {
+        loadBookings(1, getBookingFilters());
+    }
+
+    function resetBookingFilters() {
+        const searchEl = document.getElementById('bookingSearch');
+        const statusEl = document.getElementById('bookingStatusFilter');
+        const dateEl = document.getElementById('bookingDateFilter');
+
+        if (searchEl) searchEl.value = '';
+        if (statusEl) statusEl.value = '';
+        if (dateEl) dateEl.value = '';
+
+        loadBookings();
+    }
+
+    async function showBookingDetails(bookingId) {
+        try {
+            const token = getAuthToken();
+            if (!token) {
+                alert('Token di autenticazione non trovato');
+                return;
+            }
+
+            const response = await fetch(`http://localhost:3000/api/manager/bookings/${bookingId}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const result = await response.json();
+
+            if (result.success && result.booking) {
+                const booking = result.booking;
+                const startDate = new Date(booking.start_date);
+                const endDate = new Date(booking.end_date);
+
+                alert(`Dettagli Prenotazione:
+ID: ${booking.id}
+Cliente: ${booking.client_first_name} ${booking.client_last_name}
+Email: ${booking.client_email}
+Spazio: ${booking.space_name}
+Data: ${startDate.toLocaleDateString('it-IT')}
+Ospiti: ${booking.guests_count || 1}
+Prezzo: €${parseFloat(booking.total_price || 0).toFixed(2)}
+Note: ${booking.notes || 'Nessuna nota'}`);
+            } else {
+                alert('Errore nel caricamento dei dettagli della prenotazione');
+            }
+        } catch (error) {
+            console.error('Errore nel caricamento dettagli:', error);
+            alert('Errore nel caricamento dei dettagli della prenotazione');
+        }
+    }
+
+    async function confirmBooking(bookingId) {
+        if (!confirm('Sei sicuro di voler confermare questa prenotazione?')) return;
+
+        try {
+            const token = getAuthToken();
+            const response = await fetch(`http://localhost:3000/api/bookings/${bookingId}/confirm`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert('Prenotazione confermata con successo!');
+                loadBookings(currentBookingsPage, getBookingFilters());
+            } else {
+                alert(result.message || 'Errore nella conferma della prenotazione');
+            }
+        } catch (error) {
+            console.error('Errore conferma prenotazione:', error);
+            alert('Errore nella conferma della prenotazione');
+        }
+    }
+
+    async function cancelBooking(bookingId, reason = '') {
+        try {
+            const token = getAuthToken();
+            const response = await fetch(`http://localhost:3000/api/bookings/${bookingId}/cancel`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ reason })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert('Prenotazione cancellata con successo!');
+                loadBookings(currentBookingsPage, getBookingFilters());
+            } else {
+                alert(result.message || 'Errore nella cancellazione della prenotazione');
+            }
+        } catch (error) {
+            console.error('Errore cancellazione prenotazione:', error);
+            alert('Errore nella cancellazione della prenotazione');
+        }
+    }
+
+    function saveBooking() {
+        const bookingId = document.getElementById('bookingId').value;
+        const newBooking = {
+            id: bookingId || bookingsData.length + 1,
+            userId: document.getElementById('userId').value,
+            spaceId: document.getElementById('spaceId').value,
+            date: document.getElementById('bookingDate').value,
+            startTime: document.getElementById('startTime').value,
+            endTime: document.getElementById('endTime').value,
+            status: document.getElementById('bookingStatus').value,
+            notes: document.getElementById('bookingNotes').value
+        };
+
+        if (bookingId) {
+            const index = bookingsData.findIndex(b => b.id == bookingId);
+            if (index > -1) {
+                bookingsData[index] = newBooking;
+            }
+        } else {
+            bookingsData.push(newBooking);
+        }
+
+        loadBookings();
+        const modal = bootstrap.Modal.getInstance(document.getElementById('bookingModal'));
+        modal.hide();
+    }
+
+    function deleteBooking(id) {
+        bookingsData = bookingsData.filter(b => b.id !== parseInt(id));
+        loadBookings();
+        alert('Prenotazione eliminata con successo!');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // Avvia la prima sezione (Dashboard)
+        showSection('dashboard');
+
+        const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+        const deleteBookingModal = document.getElementById('deleteBookingModal');
+        let bookingToDeleteId = null;
+
+        deleteBookingModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            bookingToDeleteId = button.getAttribute('data-booking-id');
+        });
+
+        confirmDeleteBtn.addEventListener('click', () => {
+            if (bookingToDeleteId) {
+                deleteBooking(bookingToDeleteId);
+                const modal = bootstrap.Modal.getInstance(deleteBookingModal);
+                modal.hide();
+            }
+        });
+    });
+</script>
+</body>
+</html>

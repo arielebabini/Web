@@ -1,0 +1,4125 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>Admin Dashboard - CoWorkSpace</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Chart.js (solo JS, niente CSS!) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        :root {
+            --primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --primary-solid: #667eea;
+            --sidebar-width: 280px;
+            --header-height: 70px;
+        }
+
+        body {
+            background: #f8fafc;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        /* Sidebar */
+        .admin-sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: var(--sidebar-width);
+            background: linear-gradient(180deg, #2d3748 0%, #1a202c 100%);
+            color: white;
+            z-index: 1000;
+            transition: all 0.3s ease;
+            overflow-y: auto;
+        }
+
+        .admin-sidebar.collapsed {
+            width: 80px;
+        }
+
+        .sidebar-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #4a5568;
+            text-align: center;
+        }
+
+        .sidebar-brand {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: white;
+            text-decoration: none;
+        }
+
+        .sidebar-menu {
+            padding: 1rem 0;
+        }
+
+        .sidebar-item {
+            margin: 0.25rem 1rem;
+        }
+
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            color: #e2e8f0;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .sidebar-link:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            transform: translateX(4px);
+        }
+
+        .sidebar-link.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .sidebar-icon {
+            width: 20px;
+            margin-right: 0.75rem;
+            text-align: center;
+        }
+
+        /* Main content */
+        .admin-main {
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+            transition: margin-left 0.3s ease;
+        }
+
+        .admin-main.expanded {
+            margin-left: 80px;
+        }
+
+        .admin-header {
+            background: white;
+            height: var(--header-height);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 2rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            position: sticky;
+            top: 0;
+            z-index: 999;
+        }
+
+        .admin-content {
+            padding: 2rem;
+        }
+
+        /* Cards */
+        .admin-card {
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 25px rgba(0, 0, 0, 0.08);
+            border: 1px solid #e2e8f0;
+            transition: all 0.3s ease;
+        }
+
+        .admin-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.12);
+        }
+
+        .stats-card {
+            background: var(--primary);
+            color: white;
+            border: none;
+        }
+
+        .stats-card .stats-icon {
+            font-size: 2.5rem;
+            opacity: 0.8;
+        }
+
+        /* Tables */
+        .admin-table {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 4px 25px rgba(0, 0, 0, 0.08);
+        }
+
+        .admin-table table {
+            margin: 0;
+        }
+
+        .admin-table th {
+            background: #f8fafc;
+            border: none;
+            padding: 1rem 1.5rem;
+            font-weight: 600;
+            color: #4a5568;
+        }
+
+        .admin-table td {
+            border: none;
+            padding: 1rem 1.5rem;
+            vertical-align: middle;
+        }
+
+        .admin-table tbody tr {
+            border-bottom: 1px solid #e2e8f0;
+            transition: background-color 0.2s ease;
+        }
+
+        .admin-table tbody tr:hover {
+            background: #f7fafc;
+        }
+
+        /* Buttons */
+        .btn-admin {
+            border-radius: 8px;
+            font-weight: 600;
+            padding: 0.5rem 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn-admin-primary {
+            background: var(--primary);
+            border: none;
+            color: white;
+        }
+
+        .btn-admin-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+            color: white;
+        }
+
+        /* Status badges */
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 50px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .status-active {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-inactive {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-suspended {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        /* Role badges */
+        .role-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 50px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .role-admin {
+            background: #e1effe;
+            color: #1e40af;
+        }
+
+        .role-manager {
+            background: #f0fdf4;
+            color: #166534;
+        }
+
+        .role-client {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .admin-sidebar {
+                transform: translateX(-100%);
+            }
+
+            .admin-sidebar.mobile-open {
+                transform: translateX(0);
+            }
+
+            .admin-main {
+                margin-left: 0;
+            }
+        }
+
+        /* Loading states */
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        .spinner-border-sm {
+            width: 1rem;
+            height: 1rem;
+        }
+
+        /* Charts */
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+    </style>
+</head>
+<body>
+<!-- Sidebar -->
+<div class="admin-sidebar" id="adminSidebar">
+    <div class="sidebar-header">
+        <a class="sidebar-brand" href="#">
+            <i class="fas fa-cog"></i>
+            <span class="brand-text">Admin</span>
+        </a>
+        <button class="btn btn-link text-white d-md-none" onclick="toggleSidebar()">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+
+    <div class="sidebar-menu">
+        <div class="sidebar-item">
+            <a class="sidebar-link" href="#dashboard" onclick="showSection('dashboard')">
+                <i class="fas fa-tachometer-alt sidebar-icon"></i>
+                <span>Dashboard</span>
+            </a>
+        </div>
+        <div class="sidebar-item">
+            <a class="sidebar-link" href="#users" onclick="showSection('users')">
+                <i class="fas fa-users sidebar-icon"></i>
+                <span>Gestione Utenti</span>
+            </a>
+        </div>
+        <div class="sidebar-item">
+            <a class="sidebar-link" href="#spaces" onclick="showSection('spaces')">
+                <i class="fas fa-building sidebar-icon"></i>
+                <span>Gestione Spazi</span>
+            </a>
+        </div>
+        <div class="sidebar-item">
+            <a class="sidebar-link" href="#bookings" onclick="showSection('bookings')">
+                <i class="fas fa-calendar-check sidebar-icon"></i>
+                <span>Prenotazioni</span>
+            </a>
+        </div>
+        <div class="sidebar-item mt-4">
+            <a class="sidebar-link" href="../index.html">
+                <i class="fas fa-arrow-left sidebar-icon"></i>
+                <span>Torna al Sito</span>
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Main Content -->
+<div class="admin-main" id="adminMain">
+    <!-- Header -->
+    <div class="admin-header">
+        <div class="d-flex align-items-center">
+            <button class="btn btn-link d-md-none me-3" onclick="toggleSidebar()">
+                <i class="fas fa-bars"></i>
+            </button>
+            <h4 class="mb-0" id="pageTitle">Dashboard</h4>
+        </div>
+        <div class="d-flex align-items-center">
+            <div class="dropdown">
+                <button class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown">
+                    <i class="fas fa-user"></i>
+                    <span id="adminUserName">Admin</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item" href="#profile"><i class="fas fa-user me-2"></i>Profilo</a></li>
+                    <li>
+                        <hr class="dropdown-divider">
+                    </li>
+                    <li><a class="dropdown-item" href="#" onclick="logout()"><i class="fas fa-sign-out-alt me-2"></i>Logout</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div class="admin-content">
+        <!-- Dashboard Section -->
+        <div class="admin-section" id="dashboardSection">
+            <!-- Loading Overlay -->
+            <div class="position-fixed..." id="dashboard-loading" style="display: none !important;">
+                <div class="text-center">
+                    <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;"></div>
+                    <div class="mt-2">Caricamento statistiche...</div>
+                </div>
+            </div>
+
+            <!-- Error Container -->
+            <div id="dashboard-error" style="display: none;"></div>
+
+            <!-- Header Dashboard -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h4><i class="fas fa-chart-line text-primary"></i> Dashboard Amministratore</h4>
+                </div>
+            </div>
+
+            <!-- Statistiche Generali -->
+            <div class="row mb-4">
+                <!-- Utenti -->
+                <div class="col-md-3 mb-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="card-title">Utenti Totali</h6>
+                                    <h3 class="mb-0" id="total-users">0</h3>
+                                    <small>+<span id="new-users">0</span> nuovi</small>
+                                </div>
+                                <i class="fas fa-users fa-2x opacity-75"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Spazi -->
+                <div class="col-md-3 mb-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="card-title">Spazi Attivi</h6>
+                                    <h3 class="mb-0" id="total-spaces">0</h3>
+                                    <small>spazi disponibili</small>
+                                </div>
+                                <i class="fas fa-building fa-2x opacity-75"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Prenotazioni -->
+                <div class="col-md-3 mb-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="card-title">Prenotazioni</h6>
+                                    <h3 class="mb-0" id="total-bookings">0</h3>
+                                    <small><span id="confirmed-bookings">0</span> confermate</small>
+                                </div>
+                                <i class="fas fa-calendar-check fa-2x opacity-75"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Revenue -->
+                <div class="col-md-3 mb-3">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="card-title">Revenue Totale</h6>
+                                    <h3 class="mb-0" id="total-revenue">€0.00</h3>
+                                    <small><span id="total-payments">0</span> pagamenti</small>
+                                </div>
+                                <i class="fas fa-euro-sign fa-2x opacity-75"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Riga con Grafici e Statistiche -->
+            <div class="row">
+                <!-- Grafico Revenue -->
+                <div class="col-md-8 mb-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-chart-area text-success"></i> Andamento Revenue</h5>
+                        </div>
+                        <div class="card-body">
+                            <!-- Statistiche Revenue -->
+                            <div class="row mb-3">
+                                <div class="col-md-4 text-center">
+                                    <div class="border-end">
+                                        <h6 class="text-muted">Periodo Corrente</h6>
+                                        <h4 class="text-success" id="current-revenue">€0.00</h4>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 text-center">
+                                    <div class="border-end">
+                                        <h6 class="text-muted">Periodo Precedente</h6>
+                                        <h4 class="text-muted" id="previous-revenue">€0.00</h4>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 text-center">
+                                    <h6 class="text-muted">Crescita</h6>
+                                    <h4 id="revenue-growth">+0.0%</h4>
+                                </div>
+                            </div>
+
+                            <!-- Area Grafico -->
+                          <div id="revenue-chart" class="mt-3">
+                            <canvas id="revenueChartCanvas" width="400" height="200"></canvas>
+                          </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Top Spazi -->
+                <div class="col-md-4 mb-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-trophy text-warning"></i> Top Spazi</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="top-spaces-list">
+                                <div class="text-center text-muted py-4">
+                                    <i class="fas fa-building fa-2x mb-2"></i>
+                                    <p>Caricamento top spazi...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statistiche Aggiuntive -->
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <i class="fas fa-credit-card fa-2x text-primary mb-2"></i>
+                            <h6 class="text-muted">Pagamenti Medi</h6>
+                            <h4 id="average-transaction">€0.00</h4>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <i class="fas fa-clock fa-2x text-info mb-2"></i>
+                            <h6 class="text-muted">Ultimo Aggiornamento</h6>
+                            <small id="last-update">Ora</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Users Management Section -->
+        <div class="admin-section" id="usersSection" style="display: none;">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h4>
+                    <i class="fas fa-users text-primary me-2"></i>
+                    Gestione Utenti
+                </h4>
+                <button class="btn btn-admin-primary" onclick="showAddUserModal()">
+                    <i class="fas fa-plus me-2"></i>Nuovo Utente
+                </button>
+            </div>
+
+            <!-- Filters -->
+            <div class="admin-card mb-4">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Cerca</label>
+                        <input class="form-control" id="userSearch" placeholder="Nome, email..." type="text">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Ruolo</label>
+                        <select class="form-select" id="roleFilter">
+                            <option value="">Tutti</option>
+                            <option value="client">Client</option>
+                            <option value="manager">Manager</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Status</label>
+                        <select class="form-select" id="statusFilter">
+                            <option value="">Tutti</option>
+                            <option value="active">Attivo</option>
+                            <option value="inactive">Inattivo</option>
+                            <option value="suspended">Sospeso</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">&nbsp;</label>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-outline-primary" onclick="applyUserFilters()">
+                                <i class="fas fa-search"></i> Filtra
+                            </button>
+                            <button class="btn btn-outline-secondary" onclick="resetUserFilters()">
+                                <i class="fas fa-refresh"></i> Reset
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Users Table -->
+            <div class="admin-table">
+                <table class="table table-hover">
+                    <thead>
+                    <tr>
+                        <th>Utente</th>
+                        <th>Email</th>
+                        <th>Ruolo</th>
+                        <th>Status</th>
+                        <th>Registrato</th>
+                        <th>Azioni</th>
+                    </tr>
+                    </thead>
+                    <tbody id="usersTableBody">
+                    <tr>
+                        <td class="text-center py-4" colspan="6">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="d-flex justify-content-between align-items-center mt-4">
+                <div class="text-muted">
+                    Mostra <span id="usersShowing">0</span> di <span id="usersTotal">0</span> utenti
+                </div>
+                <nav>
+                    <ul class="pagination mb-0" id="usersPagination">
+                        <!-- Pagination will be generated here -->
+                    </ul>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Modal Nuovo/Modifica Utente -->
+        <div class="modal fade" id="userModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-user-plus me-2"></i>
+                            <span id="userModalTitle">Nuovo Utente</span>
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="userForm">
+                            <input type="hidden" id="userId">
+
+                            <!-- Nome e Cognome -->
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Nome *</label>
+                                    <input type="text" class="form-control" id="firstName" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Cognome *</label>
+                                    <input type="text" class="form-control" id="lastName" required>
+                                </div>
+                            </div>
+
+                            <!-- Email e Telefono -->
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Email *</label>
+                                    <input type="email" class="form-control" id="email" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Telefono</label>
+                                    <input type="tel" class="form-control" id="phone">
+                                </div>
+                            </div>
+
+                            <!-- Password (solo per nuovo utente) -->
+                            <div class="row mb-3" id="passwordSection">
+                                <div class="col-md-6">
+                                    <label class="form-label">Password *</label>
+                                    <input type="password" class="form-control" id="password" required>
+                                    <small class="text-muted">Min 8 caratteri con maiuscola, minuscola e numero</small>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Conferma Password *</label>
+                                    <input type="password" class="form-control" id="confirmPassword" required>
+                                </div>
+                            </div>
+
+                            <!-- Ruolo e Status -->
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Ruolo *</label>
+                                    <select class="form-select" id="role" required>
+                                        <option value="">Seleziona ruolo</option>
+                                        <option value="client">Client</option>
+                                        <option value="manager">Manager</option>
+                                        <option value="admin">Admin</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Status *</label>
+                                    <select class="form-select" id="status" required>
+                                        <option value="active">Attivo</option>
+                                        <option value="inactive">Inattivo</option>
+                                        <option value="suspended">Sospeso</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                        <button type="button" class="btn btn-primary" onclick="saveUser()">
+                            <i class="fas fa-save me-2"></i>Crea Utente
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- User Space Management -->
+        <div class="admin-section" id="spacesSection" style="display: none;">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h4>
+                    <i class="fas fa-building text-primary me-2"></i>
+                    Gestione Spazi
+                </h4>
+                <button class="btn btn-admin-primary" onclick="showAddSpaceModal()">
+                    <i class="fas fa-plus me-2"></i>Nuovo Spazio
+                </button>
+            </div>
+
+            <!-- Filtri e Ricerca -->
+            <div class="admin-card mb-4">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Cerca Spazio</label>
+                        <input class="form-control" id="spaceSearch" placeholder="Nome, città, indirizzo..."
+                               type="text">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Città</label>
+                        <select class="form-select" id="cityFilter">
+                            <option value="">Tutte le città</option>
+                            <option value="Milano">Milano</option>
+                            <option value="Roma">Roma</option>
+                            <option value="Torino">Torino</option>
+                            <option value="Bologna">Bologna</option>
+                            <option value="Napoli">Napoli</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Tipo</label>
+                        <select class="form-select" id="spaceTypeFilter">
+                            <option value="">Tutti i tipi</option>
+                            <option value="hot-desk">Scrivania Condivisa</option>
+                            <option value="private-office">Ufficio Privato</option>
+                            <option value="meeting-room">Sala Meeting</option>
+                            <option value="event-space">Spazio Eventi</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">&nbsp;</label>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-outline-primary" onclick="applyFilters()">
+                                <i class="fas fa-search"></i> Filtra
+                            </button>
+                            <button class="btn btn-outline-secondary" onclick="resetSpaceFilters()">
+                                <i class="fas fa-refresh"></i> Reset
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabella Spazi -->
+            <div class="admin-table">
+                <table class="table table-hover">
+                    <thead>
+                    <tr>
+                        <th>Spazio</th>
+                        <th>Città</th>
+                        <th>Tipo</th>
+                        <th>Capienza</th>
+                        <th>Prezzo/h</th>
+                        <th>Azioni</th>
+                    </tr>
+                    </thead>
+                    <tbody id="spacesTableBody">
+                    <tr>
+                        <td class="text-center py-4" colspan="8">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Caricamento...</span>
+                            </div>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Paginazione -->
+            <div class="d-flex justify-content-between align-items-center mt-4">
+                <div class="text-muted">
+                    Mostra <span id="spacesShowing">0</span> di <span id="spacesTotal">0</span> spazi
+                </div>
+                <nav>
+                    <ul class="pagination mb-0" id="spacesPagination">
+                        <!-- Pagination will be generated here -->
+                    </ul>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Modal per Nuovo/Modifica Spazio -->
+        <div class="modal fade" id="spaceModal" tabindex="-1">
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-building me-2"></i>
+                            <span id="spaceModalTitle">Nuovo Spazio</span>
+                        </h5>
+                        <button class="btn-close" data-bs-dismiss="modal" type="button"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="spaceForm">
+                            <input id="spaceId" type="hidden">
+
+                            <!-- Informazioni Base -->
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <h6 class="text-primary border-bottom pb-2 mb-3">
+                                        <i class="fas fa-info-circle me-2"></i>Informazioni Base
+                                    </h6>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Nome Spazio *</label>
+                                    <input class="form-control" id="spaceName" required type="text">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Tipo Spazio *</label>
+                                    <select class="form-select" id="spaceType" required>
+                                        <option value="">Seleziona tipo</option>
+                                        <option value="hot-desk">Scrivania Condivisa</option>
+                                        <option value="private-office">Ufficio Privato</option>
+                                        <option value="meeting-room">Sala Meeting</option>
+                                        <option value="event-space">Spazio Eventi</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Capienza *</label>
+                                    <input class="form-control" id="spaceCapacity" max="100" min="1" required
+                                           type="number">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Prezzo/Ora (€) *</label>
+                                    <input class="form-control" id="spacePrice" min="0" required step="0.50"
+                                           type="number">
+                                </div>
+                            </div>
+
+                            <!-- Località -->
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <h6 class="text-primary border-bottom pb-2 mb-3">
+                                        <i class="fas fa-map-marker-alt me-2"></i>Località
+                                    </h6>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Città *</label>
+                                    <select class="form-select" id="spaceCity" required>
+                                        <option value="">Seleziona città</option>
+                                        <option value="Milano">Milano</option>
+                                        <option value="Roma">Roma</option>
+                                        <option value="Torino">Torino</option>
+                                        <option value="Bologna">Bologna</option>
+                                        <option value="Napoli">Napoli</option>
+                                        <option value="Firenze">Firenze</option>
+                                        <option value="Genova">Genova</option>
+                                        <option value="Palermo">Palermo</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Indirizzo *</label>
+                                    <input class="form-control" id="spaceAddress" required type="text">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">CAP</label>
+                                    <input class="form-control" id="spacePostalCode" pattern="[0-9]{5}" type="text">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Piano</label>
+                                    <input class="form-control" id="spaceFloor" placeholder="es. 2°, PT, -1"
+                                           type="text">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Numero Stanza</label>
+                                    <input class="form-control" id="spaceRoom" placeholder="es. A1, 205, Open Space"
+                                           type="text">
+                                </div>
+                            </div>
+
+                            <!-- Servizi -->
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <h6 class="text-primary border-bottom pb-2 mb-3">
+                                        <i class="fas fa-concierge-bell me-2"></i>Servizi Inclusi
+                                    </h6>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" id="wifiService" type="checkbox">
+                                        <label class="form-check-label" for="wifiService">
+                                            <i class="fas fa-wifi me-2"></i>WiFi Gratuito
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" id="coffeeService" type="checkbox">
+                                        <label class="form-check-label" for="coffeeService">
+                                            <i class="fas fa-coffee me-2"></i>Caffè/Tè
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" id="printerService" type="checkbox">
+                                        <label class="form-check-label" for="printerService">
+                                            <i class="fas fa-print me-2"></i>Stampante
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" id="projectorService" type="checkbox">
+                                        <label class="form-check-label" for="projectorService">
+                                            <i class="fas fa-video me-2"></i>Proiettore
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" id="whiteboardService" type="checkbox">
+                                        <label class="form-check-label" for="whiteboardService">
+                                            <i class="fas fa-chalkboard me-2"></i>Lavagna
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" id="parkingService" type="checkbox">
+                                        <label class="form-check-label" for="parkingService">
+                                            <i class="fas fa-parking me-2"></i>Parcheggio
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" id="airConditioningService" type="checkbox">
+                                        <label class="form-check-label" for="airConditioningService">
+                                            <i class="fas fa-snowflake me-2"></i>Aria Condizionata
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" id="securityService" type="checkbox">
+                                        <label class="form-check-label" for="securityService">
+                                            <i class="fas fa-shield-alt me-2"></i>Sicurezza 24h
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Descrizione e Note -->
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <h6 class="text-primary border-bottom pb-2 mb-3">
+                                        <i class="fas fa-align-left me-2"></i>Descrizione
+                                    </h6>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Descrizione Spazio *</label>
+                                    <textarea class="form-control" id="spaceDescription" placeholder="Descrizione dettagliata dello spazio, atmosfera, particolarità..."
+                                              rows="4" required></textarea>
+                                </div>
+                                <div class="col-12 mt-3">
+                                    <label class="form-label">Note per Gestione</label>
+                                    <textarea class="form-control" id="spaceNotes" placeholder="Note interne per la gestione dello spazio (non visibili ai clienti)"
+                                              rows="2"></textarea>
+                                </div>
+                            </div>
+
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <h6 class="text-primary border-bottom pb-2 mb-3">
+                                        <i class="fas fa-images me-2"></i>Immagini Spazio
+                                    </h6>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Carica Immagini dello Spazio</label>
+                                    <div class="mb-3">
+                                        <input class="form-control"
+                                               type="file"
+                                               id="spaceImages"
+                                               accept="image/jpeg,image/jpg,image/png,image/gif"
+                                               multiple>
+                                        <div class="form-text">
+                                            <i class="fas fa-info-circle me-1"></i>
+                                            Seleziona una o più immagini (JPG, PNG, GIF). Dimensione massima per file: 5MB.
+                                        </div>
+                                    </div>
+
+                                    <!-- Preview delle immagini selezionate -->
+                                    <div id="imagePreviewContainer" class="d-none">
+                                        <label class="form-label text-muted mb-2">
+                                            <i class="fas fa-eye me-1"></i>Anteprima immagini selezionate:
+                                        </label>
+                                        <div id="imagePreviewGrid" class="row g-3">
+                                            <!-- Le anteprime verranno inserite qui dinamicamente -->
+                                        </div>
+                                    </div>
+
+                                    <!-- Area di drop per drag & drop (opzionale) -->
+                                    <div id="imageDropZone" class="border border-2 border-dashed border-secondary rounded p-4 text-center text-muted mt-3" style="cursor: pointer;">
+                                        <i class="fas fa-cloud-upload-alt fa-2x mb-2"></i>
+                                        <p class="mb-1">Trascina le immagini qui o clicca per selezionarle</p>
+                                        <small>Formato supportati: JPG, PNG, GIF</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Orari -->
+                            <div class="row">
+                                <div class="col-12">
+                                    <h6 class="text-primary border-bottom pb-2 mb-3">
+                                        <i class="fas fa-clock me-2"></i>Orari di Disponibilità
+                                    </h6>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Orario Apertura</label>
+                                    <input class="form-control" id="spaceOpenTime" type="time" value="08:00">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Orario Chiusura</label>
+                                    <input class="form-control" id="spaceCloseTime" type="time" value="20:00">
+                                </div>
+                                <div class="col-12 mt-3">
+                                    <label class="form-label">Giorni Disponibili</label>
+                                    <div class="d-flex gap-3 flex-wrap">
+                                        <div class="form-check">
+                                            <input checked class="form-check-input" id="dayMonday" type="checkbox">
+                                            <label class="form-check-label" for="dayMonday">Lunedì</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input checked class="form-check-input" id="dayTuesday" type="checkbox">
+                                            <label class="form-check-label" for="dayTuesday">Martedì</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input checked class="form-check-input" id="dayWednesday" type="checkbox">
+                                            <label class="form-check-label" for="dayWednesday">Mercoledì</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input checked class="form-check-input" id="dayThursday" type="checkbox">
+                                            <label class="form-check-label" for="dayThursday">Giovedì</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input checked class="form-check-input" id="dayFriday" type="checkbox">
+                                            <label class="form-check-label" for="dayFriday">Venerdì</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" id="daySaturday" type="checkbox">
+                                            <label class="form-check-label" for="daySaturday">Sabato</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" id="daySunday" type="checkbox">
+                                            <label class="form-check-label" for="daySunday">Domenica</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" data-bs-dismiss="modal" type="button">Annulla</button>
+                        <button class="btn btn-admin-primary" onclick="saveSpace()" type="button">
+                            <i class="fas fa-save me-2"></i>Salva Spazio
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Dettagli Spazio -->
+        <div class="modal fade" id="spaceDetailsModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-eye me-2"></i>Dettagli Spazio
+                        </h5>
+                        <button class="btn-close" data-bs-dismiss="modal" type="button"></button>
+                    </div>
+                    <div class="modal-body" id="spaceDetailsContent">
+                        <!-- Contenuto sarà popolato dinamicamente -->
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" data-bs-dismiss="modal" type="button">Chiudi</button>
+                        <button class="btn btn-primary" onclick="editSpaceFromDetails()" type="button">
+                            <i class="fas fa-edit me-2"></i>Modifica
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            // ==================== SPACES MANAGEMENT ====================
+
+            let currentSpacePage = 1;
+            let spacesData = [];
+
+            // Load spaces when section is shown
+            function loadSpaces(page = 1, filters = {}) {
+                // Implementation will be added to main admin dashboard
+                console.log('Loading spaces...', {page, filters});
+            }
+
+            // Space management functions
+            function showAddSpaceModal() {
+                document.getElementById('spaceModalTitle').textContent = 'Nuovo Spazio';
+                document.getElementById('spaceId').value = '';
+                document.getElementById('spaceForm').reset();
+
+                // Set default values
+                document.getElementById('spaceOpenTime').value = '08:00';
+                document.getElementById('spaceCloseTime').value = '20:00';
+                document.getElementById('wifiService').checked = true;
+
+                // Check weekdays by default
+                ['dayMonday', 'dayTuesday', 'dayWednesday', 'dayThursday', 'dayFriday'].forEach(day => {
+                    document.getElementById(day).checked = true;
+                });
+
+                new bootstrap.Modal(document.getElementById('spaceModal')).show();
+            }
+
+            function applySpaceFilters() {
+                const filters = {
+                    search: document.getElementById('spaceSearch').value,
+                    city: document.getElementById('cityFilter').value,
+                    type: document.getElementById('spaceTypeFilter').value,
+                    status: document.getElementById('spaceStatusFilter').value
+                };
+
+                // Filter object removing empty values
+                const activeFilters = Object.fromEntries(
+                    Object.entries(filters).filter(([_, value]) => value)
+                );
+
+                loadSpaces(1, activeFilters);
+            }
+
+            function resetSpaceFilters() {
+                document.getElementById('spaceSearch').value = '';
+                document.getElementById('cityFilter').value = '';
+                document.getElementById('spaceTypeFilter').value = '';
+                document.getElementById('spaceStatusFilter').value = '';
+                loadSpaces(1);
+            }
+
+            function exportSpacesData() {
+                // Implementation for exporting spaces data
+                console.log('Exporting spaces data...');
+                showNotification('Export in preparazione...', 'info');
+            }
+
+            async function  saveSpace() {
+                //let selectedImages = [];
+                console.log('🏢 Saving space with images...');
+
+                // Validazione form
+                const spaceForm = document.getElementById('spaceForm');
+                if (!spaceForm || !spaceForm.checkValidity()) {
+                    if (spaceForm) spaceForm.reportValidity();
+                    return;
+                }
+
+                // Validazione campi obbligatori
+                const requiredFields = [
+                    { id: 'spaceName', name: 'Nome Spazio' },
+                    { id: 'spaceType', name: 'Tipo Spazio' },
+                    { id: 'spaceCapacity', name: 'Capacità' },
+                    { id: 'spacePrice', name: 'Prezzo' },
+                    { id: 'spaceCity', name: 'Città' },
+                    { id: 'spaceAddress', name: 'Indirizzo' }
+                ];
+
+                for (const field of requiredFields) {
+                    const element = document.getElementById(field.id);
+                    if (!element || !element.value.trim()) {
+                        showNotification(`Campo obbligatorio mancante: ${field.name}`, 'error');
+                        element?.focus();
+                        return;
+                    }
+                }
+
+                try {
+                    // Converti le immagini in formato compatibile database
+                    let imagesArray = [];
+                    if (selectedImages && selectedImages.length > 0) {
+                        try {
+                            imagesArray = await convertImagesToBase64();
+
+                            // Il blocco if con validateImageData è stato rimosso.
+                            // La conversione è già avvenuta e i dati sono pronti.
+                            console.log(`📸 Processed ${imagesArray.length} images for database`);
+
+                        } catch (error) {
+                            console.error('Errore conversione immagini:', error);
+                            showNotification('Errore nel processare le immagini', 'error');
+                            return;
+                        }
+                    }
+
+                    // Raccogli servizi/amenities selezionati
+                    const amenities = [];
+                    const serviceCheckboxes = document.querySelectorAll('#spaceForm .form-check-input[type="checkbox"]');
+                    serviceCheckboxes.forEach(checkbox => {
+                        if (checkbox.checked) {
+                            // Rimuovi 'Service' dal nome se presente
+                            const service = checkbox.id.replace('Service', '').replace('space', '');
+                            amenities.push(service.toLowerCase());
+                        }
+                    });
+
+                    // Raccogli giorni disponibili
+                    const availableDays = [];
+                    const dayCheckboxes = document.querySelectorAll('[id^="day"]:checked');
+                    dayCheckboxes.forEach(checkbox => {
+                        availableDays.push(checkbox.id.replace('day', '').toLowerCase());
+                    });
+
+                    // Prepara oggetto dati spazio
+                    const spaceData = {
+                        name: document.getElementById('spaceName').value.trim(),
+                        type: document.getElementById('spaceType').value,
+                        capacity: parseInt(document.getElementById('spaceCapacity').value),
+                        price_per_day: parseFloat(document.getElementById('spacePrice').value), // NOTA: nel tuo HTML è price_per_hour, qui lo chiamo per_day come nel codice
+                        city: document.getElementById('spaceCity').value,
+                        address: document.getElementById('spaceAddress').value.trim(),
+                        postal_code: document.getElementById('spacePostalCode')?.value.trim() || null,
+                        floor: document.getElementById('spaceFloor')?.value.trim() || null,
+                        room_number: document.getElementById('spaceRoom')?.value.trim() || null,
+                        description: document.getElementById('spaceDescription')?.value.trim() || '',
+                        notes: document.getElementById('spaceNotes')?.value.trim() || '',
+                        open_time: document.getElementById('spaceOpenTime')?.value || '08:00',
+                        close_time: document.getElementById('spaceCloseTime')?.value || '18:00',
+
+                        amenities: getSelectedServices(),
+                        days_available: getSelectedDays(),
+
+                        images: imagesArray, // Array di stringhe base64
+
+                        is_active: true,
+                    };
+
+                    console.log('📤 Space data to send:', {
+                        ...spaceData,
+                        images: `${spaceData.images.length} images converted`,
+                        imagePreview: spaceData.images[0] ? spaceData.images[0].substring(0, 50) + '...' : 'none'
+                    });
+
+                    // Invia richiesta al server
+                    const token = localStorage.getItem('auth_token');
+                    if (!token) {
+                        throw new Error('Token di autenticazione mancante. Effettua il login.');
+                    }
+
+                    const spaceId = document.getElementById('spaceId')?.value;
+                    const isEdit = !!spaceId;
+
+                    const url = isEdit
+                        ? `http://localhost:3000/api/spaces/${spaceId}`
+                        : 'http://localhost:3000/api/spaces';
+                    const method = isEdit ? 'PUT' : 'POST';
+
+                    const response = await fetch(url, {
+                        method: method,
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify(spaceData)
+                    });
+
+                    const result = await response.json();
+                    console.log('📥 Server response:', result);
+
+                    if (response.ok && result.success) {
+                        showNotification(
+                            isEdit ? 'Spazio aggiornato con successo!' : 'Spazio creato con successo!',
+                            'success'
+                        );
+
+                        // Chiudi il modal
+                        const modalElement = document.getElementById('spaceModal');
+                        if (modalElement) {
+                            const modal = bootstrap.Modal.getInstance(modalElement) || new bootstrap.Modal(modalElement);
+                            modal.hide();
+                        }
+
+                        // Ricarica la tabella
+                        if (typeof loadSpaces === 'function') {
+                            loadSpaces();
+                        } else {
+                            location.reload();
+                        }
+
+                    } else {
+                        const errorMessage = result.message || 'Errore nel salvataggio dello spazio';
+                        throw new Error(errorMessage);
+                    }
+
+                } catch (error) {
+                    console.error('❌ Errore durante il salvataggio dello spazio:', error);
+                    showNotification(`Errore: ${error.message}`, 'error');
+                }
+            }
+
+            function getSelectedDays() {
+                const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+                const dayIds = ['dayMonday', 'dayTuesday', 'dayWednesday', 'dayThursday', 'dayFriday', 'daySaturday', 'daySunday'];
+
+                return days.filter((day, index) =>
+                    document.getElementById(dayIds[index]).checked
+                );
+            }
+
+            function getSelectedServices() {
+                const services = [
+                    {id: 'wifiService', name: 'wifi'},
+                    {id: 'coffeeService', name: 'coffee'},
+                    {id: 'printerService', name: 'printer'},
+                    {id: 'projectorService', name: 'projector'},
+                    {id: 'whiteboardService', name: 'whiteboard'},
+                    {id: 'parkingService', name: 'parking'},
+                    {id: 'airConditioningService', name: 'air_conditioning'},
+                    {id: 'securityService', name: 'security'}
+                ];
+
+                return services
+                    .filter(service => document.getElementById(service.id).checked)
+                    .map(service => service.name);
+            }
+
+            console.log('📍 Admin Spaces Section loaded');
+        </script>
+        <div class="admin-section" id="bookingsSection" style="display: none;">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h4>
+                    <i class="fas fa-calendar-check text-primary me-2"></i>
+                    Gestione Prenotazioni
+                </h4>
+            </div>
+
+            <div class="admin-table">
+                <table class="table table-hover">
+                    <thead>
+                    <tr>
+                        <th>ID Prenotazione</th>
+                        <th>Spazio</th>
+                        <th>Cliente</th>
+                        <th>Data Inizio</th>
+                        <th>Data Fine</th>
+                        <th>Orario</th>
+                        <th>Prezzo Totale</th>
+                        <th>Azioni</th>
+                    </tr>
+                    </thead>
+                    <tbody id="bookingsTableBody">
+                    <tr>
+                        <td class="text-center py-4" colspan="9">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Caricamento...</span>
+                            </div>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mt-4">
+                <div class="text-muted">
+                    Mostra tutte le prenotazioni
+                </div>
+                <nav>
+                    <ul class="pagination mb-0" id="bookingsPagination"></ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="bookingDetailsModal" tabindex="-1" aria-labelledby="bookingDetailsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="bookingDetailsModalLabel">Dettagli Prenotazione</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-info-circle me-2 text-primary"></i>Info Prenotazione</h6>
+                            <p><strong>ID:</strong> <span id="modal-booking-id"></span></p>
+                            <p><strong>Data Inizio:</strong> <span id="modal-booking-start-date"></span></p>
+                            <p><strong>Data Fine:</strong> <span id="modal-booking-end-date"></span></p>
+                            <p><strong>Orario:</strong> <span id="modal-booking-times"></span></p>
+                            <p><strong>Prezzo Totale:</strong> <span id="modal-booking-price"></span></p>
+                            <p><strong>Note:</strong> <span id="modal-booking-notes"></span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-building me-2 text-primary"></i>Dettagli Spazio</h6>
+                            <p><strong>Nome Spazio:</strong> <span id="modal-space-name"></span></p>
+                            <p><strong>Tipo:</strong> <span id="modal-space-type"></span></p>
+                            <p><strong>Città:</strong> <span id="modal-space-city"></span></p>
+                        </div>
+                        <div class="col-12">
+                            <h6><i class="fas fa-user me-2 text-primary"></i>Dettagli Cliente</h6>
+                            <p><strong>Nome:</strong> <span id="modal-user-name"></span></p>
+                            <p><strong>Email:</strong> <span id="modal-user-email"></span></p>
+                            <p><strong>Persone:</strong> <span id="modal-people-count"></span></p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="deleteBookingModal" tabindex="-1" aria-labelledby="deleteBookingModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteBookingModalLabel">Conferma Eliminazione</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    Sei sicuro di voler eliminare questa prenotazione? Questa azione non può essere annullata.
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Elimina</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .admin-section .card {
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s ease-in-out;
+    }
+
+    .admin-section .card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .admin-section .bg-primary {
+        background: linear-gradient(45deg, #007bff, #0056b3) !important;
+    }
+
+    .admin-section .bg-info {
+        background: linear-gradient(45deg, #17a2b8, #117a8b) !important;
+    }
+
+    .admin-section .bg-success {
+        background: linear-gradient(45deg, #28a745, #1e7e34) !important;
+    }
+
+    .admin-section .bg-warning {
+        background: linear-gradient(45deg, #ffc107, #d39e00) !important;
+    }
+
+    #dashboard-loading {
+        backdrop-filter: blur(3px);
+    }
+
+    .opacity-75 {
+        opacity: 0.75 !important;
+    }
+
+    .border-end {
+        border-right: 1px solid #dee2e6 !important;
+    }
+
+    @media (max-width: 768px) {
+        .border-end {
+            border-right: none !important;
+            border-bottom: 1px solid #dee2e6 !important;
+            padding-bottom: 1rem;
+            margin-bottom: 1rem;
+        }
+    }
+</style>
+`;
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="/js/admin-dashboard-loader.js"></script>
+
+<script>
+    // Admin Dashboard JavaScript
+    let currentPage = 1;
+    let usersData = [];
+    let filteredUsers = [];
+
+    // Initialize dashboard
+    document.addEventListener('DOMContentLoaded', function () {
+        initializeDashboard();
+    });
+
+    function initializeDashboard() {
+        console.log('🚀 Initializing admin dashboard...');
+
+        // Debug: mostra tutto il contenuto del localStorage
+        console.log('🔍 localStorage contents:');
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            const value = localStorage.getItem(key);
+            console.log(`  ${key}:`, key.includes('token') ? value.substring(0, 20) + '...' : value);
+        }
+
+        // Verifica token all'avvio
+        if (!validateAuthToken()) {
+            return; // La validazione ha già gestito l'errore
+        }
+
+        const userJson = localStorage.getItem('user');
+        const user = JSON.parse(userJson);
+
+        // Set admin name
+        const adminUserNameEl = document.getElementById('adminUserName');
+        if (adminUserNameEl && user) {
+            const fullName = `${user.first_name || ''} ${user.last_name || ''}`.trim();
+            adminUserNameEl.textContent = fullName || user.email || 'Admin';
+            console.log('👤 Admin name set to:', adminUserNameEl.textContent);
+        }
+
+        // Carica dati iniziali
+        loadDashboardStats();
+
+        console.log('✅ Dashboard initialized successfully');
+    }
+
+    // Navigation
+    function showSection(section) {
+        // Verifica token prima di cambiare sezione
+        if (!validateAuthToken()) {
+            return;
+        }
+
+        // Nasconde tutte le sezioni
+        document.querySelectorAll('.admin-section').forEach(s => s.style.display = 'none');
+
+        // Mostra la sezione richiesta
+        const targetSection = document.getElementById(section + 'Section');
+        if (targetSection) {
+            targetSection.style.display = 'block';
+        }
+
+        // Carica i dati specifici per ogni sezione
+        if (section === 'dashboard') {
+            console.log('🎯 Loading dashboard section...');
+            loadDashboardStats();
+        } else if (section === 'users') {
+            console.log('👥 Loading users section...');
+            loadUsers();
+        } else if (section === 'spaces') {
+            console.log('🏢 Loading spaces section...');
+            loadSpaces();
+            fetchDashboardStats();
+        }else if (section === 'bookings') {
+            loadBookings();
+        }
+
+        // Update active menu
+        document.querySelectorAll('.sidebar-link').forEach(link => link.classList.remove('active'));
+        const activeLink = document.querySelector(`[onclick="showSection('${section}')"]`);
+        if (activeLink) activeLink.classList.add('active');
+
+        // Aggiorna il titolo della pagina
+        const pageTitle = document.getElementById('pageTitle');
+        if (pageTitle) {
+            const titles = {
+                'dashboard': 'Dashboard',
+                'users': 'Gestione Utenti',
+                'spaces': 'Gestione Spazi',
+                'bookings': 'Prenotazioni'
+            };
+            pageTitle.textContent = titles[section] || 'Dashboard';
+        }
+    }
+
+    function toggleSidebar() {
+        const sidebar = document.getElementById('adminSidebar');
+        const main = document.getElementById('adminMain');
+
+        if (window.innerWidth <= 768) {
+            sidebar.classList.toggle('mobile-open');
+        } else {
+            sidebar.classList.toggle('collapsed');
+            main.classList.toggle('expanded');
+        }
+    }
+
+    // Dashboard Stats
+    async function loadDashboardStats() {
+        try {
+            console.log('🚀 Loading dashboard stats...');
+            const token = localStorage.getItem('auth_token');
+
+            if (!token) {
+                console.error('❌ No auth token found');
+                return;
+            }
+
+            const response = await fetch('http://localhost:3000/api/analytics/dashboard/admin', {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            console.log('📊 API Response status:', response.status);
+
+            if (response.ok) {
+                const result = await response.json();
+                console.log('📊 API response:', result.success);
+
+                if (result.success && result.data) {
+                    // Aggiorna statistiche generali
+                    if (result.data.general) {
+                        console.log('📈 Updating general stats...');
+                        updateDashboardStats(result.data.general);
+                    }
+
+                    // Aggiorna top spazi
+                    if (result.data.topSpaces) {
+                        console.log('🏆 Updating top spaces...');
+                        updateTopSpaces(result.data.topSpaces);
+                    } else {
+                        console.warn('⚠️ No topSpaces in response');
+                        updateTopSpaces([]);
+                    }
+
+                    console.log('✅ Dashboard loaded successfully');
+                }
+            } else {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+        } catch (error) {
+            console.error('❌ Error loading dashboard stats:', error);
+
+            // Mostra errore nel container dei top spazi
+            const container = document.getElementById('top-spaces-list');
+            if (container) {
+                container.innerHTML = `
+                <div class="text-center text-danger py-4">
+                    <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                    <p class="mb-1">Errore nel caricamento</p>
+                    <small>${error.message}</small>
+                    <div class="mt-2">
+                        <button class="btn btn-sm btn-outline-primary" onclick="loadDashboardStats()">
+                            <i class="fas fa-redo me-1"></i>Riprova
+                        </button>
+                    </div>
+                </div>
+            `;
+            }
+        }
+    }
+
+    function updateTopSpaces(topSpaces) {
+        console.log('🏆 Updating top spaces:', topSpaces);
+
+        const container = document.getElementById('top-spaces-list');
+
+        if (!container) {
+            console.error('❌ Container top-spaces-list not found!');
+            return;
+        }
+
+        if (!topSpaces || topSpaces.length === 0) {
+            container.innerHTML = `
+            <div class="text-center text-muted py-4">
+                <i class="fas fa-building fa-2x mb-2 text-secondary"></i>
+                <p class="mb-1">Nessun dato disponibile</p>
+                <small class="text-muted">I top spazi appariranno quando ci saranno delle prenotazioni</small>
+            </div>
+        `;
+            return;
+        }
+
+        // Ordina per prenotazioni totali (decrescente)
+        const sortedSpaces = [...topSpaces].sort((a, b) => b.bookings.total - a.bookings.total);
+
+        const spacesHtml = sortedSpaces.map((space, index) => {
+            const badgeColors = ['bg-warning', 'bg-info', 'bg-success', 'bg-secondary', 'bg-dark'];
+            const badgeColor = badgeColors[index] || 'bg-secondary';
+
+            return `
+            <div class="d-flex justify-content-between align-items-center py-3 ${index < sortedSpaces.length - 1 ? 'border-bottom' : ''}">
+                <div class="d-flex align-items-center">
+                    <div class="badge ${badgeColor} me-3 d-flex align-items-center justify-content-center"
+                         style="width: 32px; height: 32px; border-radius: 50%; font-size: 14px; font-weight: bold;">
+                        ${index + 1}
+                    </div>
+                    <div>
+                        <h6 class="mb-1 fw-bold" style="font-size: 0.9rem;">${space.name}</h6>
+                        <small class="text-muted" style="font-size: 0.75rem;">
+                            <i class="fas fa-map-marker-alt me-1"></i>
+                            ${space.location}
+                        </small>
+                    </div>
+                </div>
+                <div class="text-end">
+                    <div class="fw-bold text-primary mb-1" style="font-size: 0.85rem;">
+                        <i class="fas fa-calendar-check me-1"></i>
+                        ${space.bookings.total} prenotazioni
+                    </div>
+                    <div class="d-flex flex-column">
+                        <small class="text-muted" style="font-size: 0.7rem;">
+                            <i class="fas fa-euro-sign me-1"></i>€${space.revenue.toFixed(2)}
+                        </small>
+                        <small class="text-success" style="font-size: 0.7rem;">
+                            <i class="fas fa-check-circle me-1"></i>
+                            ${space.bookings.total} confermate
+                        </small>
+                    </div>
+                </div>
+            </div>
+        `;
+        }).join('');
+
+        container.innerHTML = spacesHtml;
+        console.log(`✅ Rendered ${sortedSpaces.length} top spaces successfully`);
+    }
+
+    function updateDashboardStats(stats) {
+        console.log('📈 Updating dashboard stats with your specific IDs:', stats);
+
+        if (!stats) {
+            console.warn('⚠️ No stats provided');
+            return;
+        }
+
+        // Mapping ottimizzato per i tuoi ID specifici
+        const updates = {
+            'total-users': stats.users?.total || 0,
+            'new-users': stats.users?.new || 0,
+            'total-spaces': stats.spaces?.total || 0,
+            'total-bookings': stats.bookings?.total || 0,
+            'confirmed-bookings': stats.bookings?.total || 0,
+            'total-revenue': `€${(stats.revenue?.total || 0).toFixed(2)}`,
+            'total-payments': stats.revenue?.payments || 0,
+            'average-transaction': `€${stats.revenue?.averageTransaction || 0}`
+        };
+
+        // Aggiorna tutti gli elementi
+        Object.entries(updates).forEach(([id, value]) => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.textContent = value;
+                console.log(`✅ Updated ${id}: ${value}`);
+            } else {
+                console.warn(`⚠️ Element ${id} not found`);
+            }
+        });
+    }
+
+    // Auto-refresh ogni 2 minuti (opzionale)
+    let dashboardRefreshInterval;
+
+    function startDashboardAutoRefresh() {
+        // Pulisci interval precedente se esiste
+        if (dashboardRefreshInterval) {
+            clearInterval(dashboardRefreshInterval);
+        }
+
+        // Auto-refresh ogni 2 minuti se la dashboard è visibile
+        dashboardRefreshInterval = setInterval(() => {
+            const dashboardSection = document.getElementById('dashboardSection');
+            if (dashboardSection && dashboardSection.style.display !== 'none') {
+                console.log('🔄 Auto-refreshing dashboard...');
+                loadDashboardStats();
+            }
+        }, 120000); // 2 minuti
+    }
+
+    // Inizializza quando il DOM è pronto
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('📄 DOM loaded');
+
+        // Se la dashboard è già visibile, carica i dati
+        const dashboardSection = document.getElementById('dashboardSection');
+        if (dashboardSection && dashboardSection.style.display !== 'none') {
+            setTimeout(loadDashboardStats, 1000);
+        }
+
+        // Avvia auto-refresh
+        startDashboardAutoRefresh();
+    });
+
+    // Users Management
+    async function loadUsers(page = 1, filters = {}) {
+        try {
+            // Verifica token prima di fare la chiamata
+            if (!validateAuthToken()) {
+                return; // La validazione ha già gestito l'errore
+            }
+
+            const token = localStorage.getItem('auth_token');
+
+            // Mostra loading
+            showUsersLoading();
+
+            const params = new URLSearchParams({
+                page: page,
+                limit: 10,
+                ...filters
+            });
+
+            console.log('🔄 Loading users with params:', params.toString());
+
+            const response = await fetch(`http://localhost:3000/api/users?${params}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                }
+            });
+
+            console.log('📊 Users API response status:', response.status);
+
+            // Gestione specifica per errore 401
+            if (response.status === 401) {
+                const errorData = await response.json().catch(() => ({}));
+                console.error('❌ 401 Unauthorized:', errorData);
+
+                // Token non valido o scaduto
+                clearAuthAndRedirect(errorData.message || 'Token non valido');
+                return;
+            }
+
+            // Gestione altri errori HTTP
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            console.log('📊 Users data received:', data);
+
+            if (data.success && data.users) {
+                usersData = data.users;
+                currentPage = data.currentPage || page;
+
+                renderUsersTable(data.users);
+                renderUsersPagination(data.totalPages || 1, data.total || data.totalUsers || 0);
+
+                console.log('✅ Users loaded successfully');
+            } else {
+                throw new Error(data.message || 'Errore nel formato dei dati');
+            }
+
+        } catch (error) {
+            console.error('❌ Error loading users:', error);
+
+            // Non mostrare l'errore se abbiamo già reindirizzato
+            if (error.message.includes('Token')) {
+                return;
+            }
+
+            showNotification('Errore nel caricamento degli utenti: ' + error.message, 'error');
+            showUsersError(error.message);
+        }
+    }
+
+    function validateAuthToken() {
+        const token = localStorage.getItem('auth_token');
+        const userJson = localStorage.getItem('user');  // Verifica 'user' invece di 'user_data'
+
+        console.log('🔍 Checking auth token:', {
+            hasToken: !!token,
+            hasUser: !!userJson,
+            tokenLength: token ? token.length : 0,
+            userJson: userJson
+        });
+
+        // Verifica se il token esiste
+        if (!token) {
+            console.error('❌ No auth token found');
+            redirectToLogin('Token mancante');
+            return false;
+        }
+
+        // Verifica se i dati utente esistono
+        if (!userJson) {
+            console.error('❌ No user data found in localStorage');
+            clearAuthAndRedirect('Dati utente mancanti');
+            return false;
+        }
+
+        let user;
+        try {
+            user = JSON.parse(userJson);
+            console.log('📊 Parsed user data:', user);
+        } catch (error) {
+            console.error('❌ Error parsing user data:', error);
+            clearAuthAndRedirect('Dati utente corrotti');
+            return false;
+        }
+
+        // Verifica formato del token (dovrebbe essere un JWT)
+        const jwtRegex = /^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+$/;
+        if (!jwtRegex.test(token)) {
+            console.error('❌ Invalid JWT format');
+            clearAuthAndRedirect('Token malformato');
+            return false;
+        }
+
+        // Verifica se l'utente è admin
+        if (!user || !user.role || user.role !== 'admin') {
+            console.error('❌ User is not admin:', user);
+            redirectToLogin('Accesso non autorizzato - Solo amministratori');
+            return false;
+        }
+
+        // Verifica se il token è scaduto (opzionale)
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            const currentTime = Math.floor(Date.now() / 1000);
+
+            if (payload.exp && payload.exp < currentTime) {
+                console.error('❌ Token expired');
+                clearAuthAndRedirect('Token scaduto');
+                return false;
+            }
+
+            console.log('✅ Token validation passed');
+            return true;
+        } catch (error) {
+            console.error('❌ Error parsing token:', error);
+            clearAuthAndRedirect('Token corrotto');
+            return false;
+        }
+    }
+
+    // 2. Funzione per pulire l'autenticazione e reindirizzare
+    function clearAuthAndRedirect(reason) {
+        console.log('🚪 Clearing auth and redirecting:', reason);
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('refresh_token'); // Se presente
+
+        alert(`Sessione non valida: ${reason}. Effettua il login nuovamente.`);
+        window.location.href = '../index.html';
+    }
+
+    // 3. Funzione per reindirizzare al login
+    function redirectToLogin(reason) {
+        console.log('🚪 Redirecting to login:', reason);
+        alert(`${reason}. Effettua il login.`);
+        window.location.href = '../index.html';
+    }
+
+    function showUsersLoading() {
+        const tbody = document.getElementById('usersTableBody');
+        if (tbody) {
+            tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Caricamento...</span>
+                    </div>
+                    <p class="mt-2 mb-0">Caricamento utenti...</p>
+                </td>
+            </tr>
+        `;
+        }
+    }
+
+    function showUsersError(message) {
+        const tbody = document.getElementById('usersTableBody');
+        if (tbody) {
+            tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center py-4">
+                    <i class="fas fa-exclamation-triangle text-warning fa-2x mb-3"></i>
+                    <p class="mb-2">${message}</p>
+                    <button class="btn btn-sm btn-outline-primary" onclick="loadUsers()">
+                        <i class="fas fa-redo me-1"></i>Riprova
+                    </button>
+                </td>
+            </tr>
+        `;
+        }
+    }
+
+    function renderUsersTable(users) {
+        const tbody = document.getElementById('usersTableBody');
+
+        if (!tbody) {
+            console.error('❌ Element #usersTableBody not found');
+            return;
+        }
+
+        if (!users || users.length === 0) {
+            tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center py-4">
+                    <i class="fas fa-users text-muted fa-2x mb-3"></i>
+                    <p class="mb-0">Nessun utente trovato</p>
+                </td>
+            </tr>
+        `;
+            return;
+        }
+
+        tbody.innerHTML = users.map(user => {
+            const firstName = user.first_name || user.firstName || '';
+            const lastName = user.last_name || user.lastName || '';
+            const fullName = `${firstName} ${lastName}`.trim() || 'Nome non disponibile';
+            const initials = getAvatarInitials(firstName, lastName);
+
+            return `
+            <tr>
+                <td>
+                    <div class="d-flex align-items-center">
+                        <div class="avatar me-3">
+                            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; font-weight: bold;">
+                                ${initials}
+                            </div>
+                        </div>
+                        <div>
+                            <div class="fw-semibold">${fullName}</div>
+                            <small class="text-muted">ID: ${user.id}</small>
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <div>${user.email}</div>
+                    ${user.phone ? `<small class="text-muted">${user.phone}</small>` : ''}
+                </td>
+                <td><span class="role-badge role-${user.role}">${user.role}</span></td>
+                <td><span class="status-badge status-${user.status}">${user.status}</span></td>
+                <td>${formatDate(user.created_at || user.createdAt)}</td>
+                <td>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button class="btn btn-outline-primary" onclick="editUser('${user.id}')" title="Modifica">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-outline-info" onclick="viewUser('${user.id}')" title="Visualizza">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        ${user.role !== 'admin' ? `
+                            <div class="dropdown">
+                                <button class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" title="Più azioni">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="#" onclick="toggleUserStatus('${user.id}', '${user.status}')">
+                                        <i class="fas fa-toggle-${user.status === 'active' ? 'off' : 'on'} me-2"></i>
+                                        ${user.status === 'active' ? 'Sospendi' : 'Attiva'}
+                                    </a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item text-danger" href="#" onclick="deleteUser('${user.id}')">
+                                        <i class="fas fa-trash me-2"></i>Elimina
+                                    </a></li>
+                                </ul>
+                            </div>
+                        ` : `
+                            <button class="btn btn-outline-secondary" disabled title="Admin non modificabile">
+                                <i class="fas fa-lock"></i>
+                            </button>
+                        `}
+                    </div>
+                </td>
+            </tr>
+        `;
+        }).join('');
+
+        console.log(`✅ Rendered ${users.length} users in table`);
+    }
+
+    function getAvatarInitials(firstName, lastName) {
+        const first = (firstName || '').charAt(0).toUpperCase();
+        const last = (lastName || '').charAt(0).toUpperCase();
+        return first + last || 'U';
+    }
+
+    function formatDate(dateString) {
+        if (!dateString) return 'N/A';
+        try {
+            return new Date(dateString).toLocaleDateString('it-IT');
+        } catch (error) {
+            return 'N/A';
+        }
+    }
+
+    function editUser(userId) {
+        showEditUserModal(userId);
+    }
+
+    function viewUser(userId) {
+        console.log('View user:', userId);
+        const user = usersData.find(u => u.id === userId);
+        if (user) {
+            const details = `
+                Nome: ${user.first_name || user.firstName || ''} ${user.last_name || user.lastName || ''}
+                Email: ${user.email}
+                Ruolo: ${user.role}
+                Status: ${user.status}
+                Registrato: ${formatDate(user.created_at || user.createdAt)}
+            `.trim();
+            alert(details);
+        }
+    }
+
+    // Aggiungi questa funzione insieme alle altre funzioni JavaScript
+    async function toggleUserStatus(userId, currentStatus) {
+        console.log('Toggle user status called:', { userId, currentStatus });
+
+        const user = usersData.find(u => u.id === userId);
+        const userName = user ? `${user.first_name || user.firstName || ''} ${user.last_name || user.lastName || ''}`.trim() : 'Utente';
+        const newStatus = currentStatus === 'active' ? 'suspended' : 'active';
+        const action = newStatus === 'active' ? 'attivare' : 'sospendere';
+
+        if (!confirm(`Confermi di voler ${action} l'utente "${userName}"?`)) {
+            return;
+        }
+
+        try {
+            const token = localStorage.getItem('auth_token');
+            if (!token) {
+                throw new Error('Token mancante');
+            }
+
+            const response = await fetch(`http://localhost:3000/api/users/${userId}/status`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ status: newStatus })
+            });
+
+            if (response.ok) {
+                showNotification(`Utente ${action === 'attivare' ? 'attivato' : 'sospeso'} con successo`, 'success');
+                loadUsers(currentPage || 1, getCurrentUserFilters());
+            } else {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Errore aggiornamento status');
+            }
+        } catch (error) {
+            console.error('Error toggling user status:', error);
+            showNotification('Errore: ' + error.message, 'error');
+        }
+    }
+
+    async function suspendUser(userId) {
+        const user = usersData.find(u => u.id === userId);
+        const userName = user ? `${user.first_name || user.firstName || ''} ${user.last_name || user.lastName || ''}`.trim() : 'Utente';
+
+        if (!confirm(`Confermi di voler sospendere l'utente "${userName || user?.email}"?`)) {
+            return;
+        }
+
+        try {
+            const token = localStorage.getItem('auth_token');
+            const response = await fetch(`http://localhost:3000/api/users/${userId}/status`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ status: 'suspended' })
+            });
+
+            if (response.ok) {
+                showNotification('Utente sospeso con successo', 'success');
+                loadUsers(currentPage || 1, getCurrentUserFilters());
+            } else {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Errore nella sospensione');
+            }
+        } catch (error) {
+            console.error('Error suspending user:', error);
+            showNotification('Errore nella sospensione dell\'utente: ' + error.message, 'error');
+        }
+    }
+
+    // Funzione per riattivare utente (alternativa diretta)
+    async function activateUser(userId) {
+        const user = usersData.find(u => u.id === userId);
+        const userName = user ? `${user.first_name || user.firstName || ''} ${user.last_name || user.lastName || ''}`.trim() : 'Utente';
+
+        if (!confirm(`Confermi di voler riattivare l'utente "${userName || user?.email}"?`)) {
+            return;
+        }
+
+        try {
+            const token = localStorage.getItem('auth_token');
+            const response = await fetch(`http://localhost:3000/api/users/${userId}/status`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ status: 'active' })
+            });
+
+            if (response.ok) {
+                showNotification('Utente riattivato con successo', 'success');
+                loadUsers(currentPage || 1, getCurrentUserFilters());
+            } else {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Errore nella riattivazione');
+            }
+        } catch (error) {
+            console.error('Error activating user:', error);
+            showNotification('Errore nella riattivazione dell\'utente: ' + error.message, 'error');
+        }
+    }
+
+    function renderUsersPagination(totalPages, totalUsers) {
+        const pagination = document.getElementById('usersPagination');
+        const showing = document.getElementById('usersShowing');
+        const total = document.getElementById('usersTotal');
+
+        // Update counters
+        const startItem = ((currentPage - 1) * 10) + 1;
+        const endItem = Math.min(currentPage * 10, totalUsers);
+        showing.textContent = `${startItem}-${endItem}`;
+        total.textContent = totalUsers;
+
+        // Generate pagination
+        let paginationHTML = '';
+
+        // Previous button
+        paginationHTML += `
+                <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="loadUsers(${currentPage - 1})">
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+                </li>
+            `;
+
+        // Page numbers
+        const startPage = Math.max(1, currentPage - 2);
+        const endPage = Math.min(totalPages, currentPage + 2);
+
+        if (startPage > 1) {
+            paginationHTML += `<li class="page-item"><a class="page-link" href="#" onclick="loadUsers(1)">1</a></li>`;
+            if (startPage > 2) {
+                paginationHTML += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+            }
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+            paginationHTML += `
+                    <li class="page-item ${i === currentPage ? 'active' : ''}">
+                        <a class="page-link" href="#" onclick="loadUsers(${i})">${i}</a>
+                    </li>
+                `;
+        }
+
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) {
+                paginationHTML += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+            }
+            paginationHTML += `<li class="page-item"><a class="page-link" href="#" onclick="loadUsers(${totalPages})">${totalPages}</a></li>`;
+        }
+
+        // Next button
+        paginationHTML += `
+                <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="loadUsers(${currentPage + 1})">
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                </li>
+            `;
+
+        pagination.innerHTML = paginationHTML;
+    }
+
+    // User Management Actions
+    function showAddUserModal() {
+        console.log('Opening new user modal');
+
+        // Controlla se la modal esiste
+        const modal = document.getElementById('userModal');
+        if (!modal) {
+            alert('Modal non trovata nell\'HTML!');
+            return;
+        }
+
+        // Reset form se esiste
+        const form = document.getElementById('userForm');
+        if (form) form.reset();
+
+        // Imposta valori solo se gli elementi esistono
+        const titleEl = document.getElementById('userModalTitle');
+        if (titleEl) titleEl.textContent = 'Nuovo Utente';
+
+        const userIdEl = document.getElementById('userId');
+        if (userIdEl) userIdEl.value = '';
+
+        // Mostra modal
+        const bootstrapModal = new bootstrap.Modal(modal);
+        bootstrapModal.show();
+    }
+
+    function showEditUserModal(userId) {
+        console.log('Opening edit user modal for:', userId);
+
+        const user = usersData.find(u => u.id === userId);
+        if (!user) {
+            showNotification('Utente non trovato', 'error');
+            return;
+        }
+
+        // Popola form con dati utente
+        document.getElementById('userId').value = user.id;
+        document.getElementById('firstName').value = user.first_name || user.firstName || '';
+        document.getElementById('lastName').value = user.last_name || user.lastName || '';
+        document.getElementById('email').value = user.email || '';
+        document.getElementById('phone').value = user.phone || '';
+        document.getElementById('role').value = user.role || 'client';
+        document.getElementById('status').value = user.status || 'active';
+        document.getElementById('company').value = user.company || '';
+
+        // Imposta titoli per modifica
+        document.getElementById('userModalTitle').textContent = 'Modifica Utente';
+        document.getElementById('saveButtonText').textContent = 'Salva Modifiche';
+
+        // Nascondi sezione password per modifica
+        document.getElementById('passwordSection').style.display = 'none';
+        document.getElementById('password').required = false;
+        document.getElementById('confirmPassword').required = false;
+
+        // Mostra modal
+        const modal = new bootstrap.Modal(document.getElementById('userModal'));
+        modal.show();
+    }
+
+    async function saveUser() {
+        console.log('Saving user...');
+
+        // Controlla che tutti gli elementi esistano
+        const requiredElements = ['firstName', 'lastName', 'email', 'role', 'status'];
+        for (const id of requiredElements) {
+            if (!document.getElementById(id)) {
+                alert(`Elemento mancante nell'HTML: ${id}`);
+                return;
+            }
+        }
+
+        const form = document.getElementById('userForm');
+        const userId = document.getElementById('userId')?.value || '';
+        const isEdit = !!userId;
+
+        // Validazione form
+        if (!form || !form.checkValidity()) {
+            if (form) form.reportValidity();
+            return;
+        }
+
+        // Validazione password per nuovo utente
+        if (!isEdit) {
+            const passwordEl = document.getElementById('password');
+            const confirmPasswordEl = document.getElementById('confirmPassword');
+
+            if (!passwordEl || !confirmPasswordEl) {
+                alert('Campi password mancanti nell\'HTML');
+                return;
+            }
+
+            const password = passwordEl.value;
+            const confirmPassword = confirmPasswordEl.value;
+
+            if (password !== confirmPassword) {
+                alert('Le password non corrispondono');
+                return;
+            }
+
+            if (password.length < 8) {
+                alert('La password deve essere di almeno 8 caratteri');
+                return;
+            }
+        }
+
+        // Raccogli dati in modo sicuro
+        const userData = {
+            first_name: document.getElementById('firstName')?.value?.trim() || '',
+            last_name: document.getElementById('lastName')?.value?.trim() || '',
+            email: document.getElementById('email')?.value?.trim() || '',
+            phone: document.getElementById('phone')?.value?.trim() || null,
+            role: document.getElementById('role')?.value || 'client',
+            status: document.getElementById('status')?.value || 'active'
+        };
+
+        // Aggiungi password solo per nuovo utente
+        if (!isEdit) {
+            userData.password = document.getElementById('password')?.value || '';
+        }
+
+        console.log('User data to save:', userData);
+
+        try {
+            const token = localStorage.getItem('auth_token');
+            if (!token) {
+                alert('Token di accesso mancante');
+                return;
+            }
+
+            const url = isEdit
+                ? `http://localhost:3000/api/users/${userId}`
+                : 'http://localhost:3000/api/users';
+
+            const method = isEdit ? 'PUT' : 'POST';
+
+            const response = await fetch(url, {
+                method: method,
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(userData)
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                console.log('User save successful:', result);
+
+                // Chiudi modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('userModal'));
+                if (modal) modal.hide();
+
+                alert('Utente creato con successo!');
+
+                // Ricarica tabella
+                if (typeof loadUsers === 'function') {
+                    loadUsers(currentPage || 1, getCurrentUserFilters());
+                } else {
+                    location.reload();
+                }
+
+            } else {
+                const errorData = await response.json();
+                alert('Errore: ' + (errorData.message || 'Errore sconosciuto'));
+            }
+
+        } catch (error) {
+            console.error('Error saving user:', error);
+            alert('Errore nel salvataggio: ' + error.message);
+        }
+    }
+
+    // Filters
+    function applyUserFilters() {
+        const search = document.getElementById('userSearch').value;
+        const role = document.getElementById('roleFilter').value;
+        const status = document.getElementById('statusFilter').value;
+
+        const filters = {};
+        if (search) filters.search = search;
+        if (role) filters.role = role;
+        if (status) filters.status = status;
+
+        loadUsers(1, filters);
+    }
+
+    // Funzione per eliminare un utente
+    async function deleteUser(userId) {
+        console.log('Attempting to delete user:', userId);
+
+        // Trova l'utente per mostrare il nome nella conferma
+        const user = usersData.find(u => u.id === userId);
+        const userName = user ? `${user.first_name || user.firstName || ''} ${user.last_name || user.lastName || ''}`.trim() : 'Utente';
+        const userEmail = user ? user.email : 'sconosciuto';
+
+        // Conferma eliminazione
+        const confirmMessage = `Sei sicuro di voler eliminare l'utente?\n\nNome: ${userName || 'N/A'}\nEmail: ${userEmail}\n\nQuesta azione non può essere annullata.`;
+
+        if (!confirm(confirmMessage)) {
+            return;
+        }
+
+        try {
+            const token = localStorage.getItem('auth_token');
+            if (!token) {
+                throw new Error('Token di accesso mancante');
+            }
+
+            console.log('Making DELETE request for user:', userId);
+
+            const response = await fetch(`http://localhost:3000/api/users/${userId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.status === 401) {
+                clearAuthAndRedirect('Sessione scaduta');
+                return;
+            }
+
+            if (response.ok) {
+                const result = await response.json();
+                console.log('Delete successful:', result);
+
+                showNotification(`Utente "${userName || userEmail}" eliminato con successo`, 'success');
+
+                // Ricarica la tabella utenti
+                loadUsers(currentPage || 1, getCurrentUserFilters());
+
+            } else {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || `Errore HTTP ${response.status}`);
+            }
+
+        } catch (error) {
+            console.error('Error deleting user:', error);
+            showNotification(`Errore nell'eliminazione dell'utente: ${error.message}`, 'error');
+        }
+    }
+
+    async function confirmUserDeletion(userId) {
+        try {
+            // Carica dettagli utente aggiuntivi se necessario
+            const token = localStorage.getItem('auth_token');
+            const response = await fetch(`http://localhost:3000/api/users/${userId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                const user = result.user || result.data;
+
+                if (user) {
+                    const confirmHtml = `
+                    <div style="text-align: left; padding: 10px;">
+                        <h4>Conferma Eliminazione Utente</h4>
+                        <hr>
+                        <p><strong>Nome:</strong> ${user.first_name || user.firstName || ''} ${user.last_name || user.lastName || ''}</p>
+                        <p><strong>Email:</strong> ${user.email}</p>
+                        <p><strong>Ruolo:</strong> ${user.role}</p>
+                        <p><strong>Status:</strong> ${user.status}</p>
+                        <p><strong>Registrato:</strong> ${new Date(user.created_at || user.createdAt).toLocaleDateString('it-IT')}</p>
+                        <hr>
+                        <p style="color: red;"><strong>⚠️ ATTENZIONE:</strong> Questa azione eliminerà permanentemente:</p>
+                        <ul>
+                            <li>Tutti i dati personali dell'utente</li>
+                            <li>Le prenotazioni associate (verranno annullate)</li>
+                            <li>I pagamenti collegati</li>
+                        </ul>
+                        <p><strong>Questa azione NON può essere annullata!</strong></p>
+                    </div>
+                `;
+
+                    // Usa una modal Bootstrap se disponibile, altrimenti usa confirm
+                    if (typeof bootstrap !== 'undefined') {
+                        showDeleteConfirmationModal(userId, confirmHtml);
+                    } else {
+                        const confirmed = confirm(`Elimina utente ${user.email}?\n\nQuesta azione non può essere annullata.`);
+                        if (confirmed) {
+                            await deleteUser(userId);
+                        }
+                    }
+                }
+            } else {
+                // Fallback alla funzione delete standard
+                await deleteUser(userId);
+            }
+        } catch (error) {
+            console.error('Error loading user details:', error);
+            // Fallback alla funzione delete standard
+            await deleteUser(userId);
+        }
+    }
+
+    // Funzione per mostrare modal di conferma (se Bootstrap è disponibile)
+    function showDeleteConfirmationModal(userId, content) {
+        // Crea modal dinamicamente
+        const modalHtml = `
+        <div class="modal fade" id="deleteConfirmModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Conferma Eliminazione</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        ${content}
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                        <button type="button" class="btn btn-danger" onclick="proceedWithDelete('${userId}')">
+                            <i class="fas fa-trash me-2"></i>Elimina Definitivamente
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+        // Rimuovi modal esistente se presente
+        const existingModal = document.getElementById('deleteConfirmModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+
+        // Aggiungi nuovo modal
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+        // Mostra modal
+        const modal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+        modal.show();
+    }
+
+    // Funzione per procedere con l'eliminazione dalla modal
+    async function proceedWithDelete(userId) {
+        // Chiudi modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('deleteConfirmModal'));
+        if (modal) {
+            modal.hide();
+        }
+
+        // Procedi con l'eliminazione
+        await deleteUser(userId);
+    }
+
+    console.log('🗑️ Delete user functions loaded');
+
+    // Funzione helper per ottenere i filtri correnti
+    function getCurrentUserFilters() {
+        return {
+            search: document.getElementById('userSearch')?.value || '',
+            role: document.getElementById('roleFilter')?.value || '',
+            status: document.getElementById('statusFilter')?.value || ''
+        };
+    }
+
+    // Utility Functions
+    function showNotification(message, type = 'info') {
+        // Remove existing notifications
+        const existingNotifications = document.querySelectorAll('.admin-notification');
+        existingNotifications.forEach(notification => notification.remove());
+
+        // Create new notification
+        const notification = document.createElement('div');
+        notification.className = `admin-notification alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show position-fixed`;
+        notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; max-width: 400px;';
+        notification.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
+            `;
+
+        document.body.appendChild(notification);
+
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            if (notification.parentElement) {
+                notification.remove();
+            }
+        }, 5000);
+    }
+
+    function logout() {
+        if (confirm('Sei sicuro di voler uscire?')) {
+            console.log('👋 Logging out...');
+
+            // Pulisci tutto lo storage
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user');
+            localStorage.removeItem('refresh_token');
+            sessionStorage.clear();
+
+            // Reindirizza
+            window.location.href = '../index.html';
+        }
+    }
+
+    function setupGlobalAuthInterceptor() {
+        // Override del fetch globale per gestire automaticamente i 401
+        const originalFetch = window.fetch;
+
+        window.fetch = async function(...args) {
+            try {
+                const response = await originalFetch.apply(this, args);
+
+                // Se riceviamo un 401, gestiscilo automaticamente
+                if (response.status === 401) {
+                    console.warn('🔒 Received 401, clearing auth');
+                    const errorData = await response.clone().json().catch(() => ({}));
+                    clearAuthAndRedirect(errorData.message || 'Sessione scaduta');
+                    return response; // Ritorna comunque la response per evitare errori
+                }
+
+                return response;
+            } catch (error) {
+                console.error('❌ Fetch error:', error);
+                throw error;
+            }
+        };
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('📄 DOM loaded, checking admin dashboard...');
+
+        // Verifica se siamo sulla pagina admin
+        if (document.getElementById('adminSidebar')) {
+            setupGlobalAuthInterceptor();
+            initializeDashboard();
+
+            // Auto-refresh del token ogni 30 minuti (opzionale)
+            setInterval(() => {
+                if (document.visibilityState === 'visible') {
+                    validateAuthToken();
+                }
+            }, 30 * 60 * 1000);
+        }
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', function (e) {
+        // Alt + U = Users section
+        if (e.altKey && e.key === 'u') {
+            e.preventDefault();
+            showSection('users');
+        }
+
+        // Alt + D = Dashboard
+        if (e.altKey && e.key === 'd') {
+            e.preventDefault();
+            showSection('dashboard');
+        }
+
+        // Ctrl + N = New user (when in users section)
+        if (e.ctrlKey && e.key === 'n' && document.getElementById('usersSection').style.display !== 'none') {
+            e.preventDefault();
+            showAddUserModal();
+        }
+    });
+
+    // Handle form submissions with Enter key
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+            if (e.target.id === 'userSearch') {
+                e.preventDefault();
+                applyUserFilters();
+            }
+        }
+    });
+
+    // Responsive handling
+    window.addEventListener('resize', function () {
+        if (window.innerWidth > 768) {
+            document.getElementById('adminSidebar').classList.remove('mobile-open');
+        }
+    });
+
+    // Auto-refresh data every 30 seconds
+    setInterval(() => {
+        if (document.getElementById('dashboardSection').style.display !== 'none') {
+            loadDashboardStats();
+        }
+    }, 30000);
+
+
+    // Aggiorna timestamp ultimo aggiornamento
+    function updateLastUpdate() {
+        const element = document.getElementById('last-update');
+        if (element) {
+            element.textContent = new Date().toLocaleTimeString('it-IT');
+        }
+    }
+
+    // Aggiorna timestamp ogni minuto
+    setInterval(updateLastUpdate, 60000);
+    updateLastUpdate(); // Prima chiamata immediata
+
+    console.log('🎯 Admin Dashboard HTML loaded and ready');
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Se siamo sulla pagina admin, esegui il debug
+        if (document.getElementById('adminSidebar')) {
+            console.log('📍 Admin dashboard page detected');
+            initializeDashboard();
+        }
+    });
+</script>
+
+<script>
+    const API_CONFIG = {
+        // Server backend sulla porta 3000
+        SERVER_PORT: 3000,
+        // Frontend sulla porta 3001
+        FRONTEND_PORT: 3001,
+        // Base URL per le API
+        API_BASE_URL: 'http://localhost:3000/api'
+    };
+
+    setTimeout(() => {
+        fetch('http://localhost:3000/api/analytics/dashboard/admin')
+            .then(r => r.json())
+            .then(data => {
+                console.log('📊 Dashboard response:', data);
+
+                // Controlla se la risposta è valida
+                if (data.success && data.data && data.data.general) {
+                    const stats = data.data.general;
+
+                    const updates = {
+                        'total-users': stats.users.total,
+                        'new-users': stats.users.new,
+                        'total-spaces': stats.spaces.total,
+                        'total-bookings': stats.bookings.total,
+                        'confirmed-bookings': stats.bookings.total,
+                        'total-revenue': '€' + stats.revenue.total.toFixed(2),
+                        'total-payments': stats.revenue.payments
+                    };
+
+                    Object.entries(updates).forEach(([id, value]) => {
+                        const element = document.getElementById(id);
+                        if (element) {
+                            element.textContent = value;
+                            console.log(`✅ Updated ${id}: ${value}`);
+                        }
+                    });
+                } else {
+                    console.error('❌ Invalid response structure:', data);
+                }
+
+              if (data.data.revenue && data.data.revenue.dailyRevenue) {
+                console.log('Creating chart with data:', data.data.revenue.dailyRevenue);
+
+                const ctx = document.getElementById('revenueChartCanvas');
+                if (ctx) {
+                  // Distruggi grafico esistente se presente
+                  if (window.revenueChart) {
+                    window.revenueChart.destroy();
+                  }
+
+                  // Prepara i dati
+                  const labels = data.data.revenue.dailyRevenue.map(day =>
+                          new Date(day.date).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' })
+                  );
+                  const revenues = data.data.revenue.dailyRevenue.map(day => day.revenue);
+
+                  // Crea il grafico
+                  window.revenueChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                      labels: labels,
+                      datasets: [{
+                        label: 'Revenue (€)',
+                        data: revenues,
+                        borderColor: 'rgba(40, 167, 69, 1)',
+                        backgroundColor: 'rgba(40, 167, 69, 0.2)',
+                        borderWidth: 2,
+                        pointRadius: 5,
+                        pointBackgroundColor: 'rgba(40, 167, 69, 1)',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        fill: false
+                      }]
+                    },
+                    options: {
+                      responsive: true,
+                      scales: {
+                        y: {
+                          beginAtZero: true
+                        }
+                      },
+                      elements: {
+                        point: {
+                          radius: 6,
+                          hoverRadius: 8
+                        }
+                      }
+                    }
+                  });
+                }
+              }
+
+              // Dopo l'aggiornamento degli altri elementi, aggiungi:
+              if (data.data.revenue && data.data.revenue.totals) {
+                const totals = data.data.revenue.totals;
+
+                const currentEl = document.getElementById('current-revenue');
+                const previousEl = document.getElementById('previous-revenue');
+                const growthEl = document.getElementById('revenue-growth');
+
+                if (currentEl) currentEl.textContent = '€' + totals.current.toFixed(2);
+                if (previousEl) previousEl.textContent = '€' + totals.previous.toFixed(2);
+                if (growthEl) {
+                  const isPositive = totals.growthRate >= 0;
+                  growthEl.innerHTML = `<span class="${isPositive ? 'text-success' : 'text-danger'}">
+                      ${isPositive ? '+' : ''}${totals.growthRate.toFixed(1)}%
+                  </span>`;
+                }
+              }
+
+            })
+            .catch(err => console.error('❌ Dashboard error:', err));
+    }, 1000);
+</script>
+
+<script>
+    // Sezione spazi
+    const spacesTableBody = document.getElementById('spacesTableBody');
+    const totalSpacesCountEl = document.getElementById('totalSpacesCount');
+    const activeSpacesCountEl = document.getElementById('activeSpacesCount');
+
+    // Funzione per caricare gli spazi
+    async function loadSpaces(filters = {}) {
+        showLoadingState();
+        try {
+            const token = localStorage.getItem('auth_token'); // Recupera il token da localStorage
+            if (!token) {
+                console.error('Token di autenticazione mancante.');
+                showErrorState('Accesso negato. Effettua il login.');
+                return;
+            }
+
+            // Costruisce la stringa di query dai filtri
+            const queryString = new URLSearchParams(filters).toString();
+
+            // Aggiunge la stringa di query all'URL della tua API
+            const response = await fetch(`http://localhost:3000/api/spaces/all?${queryString}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}` // Invia il token nell'header
+                }
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                renderSpacesTable(data.spaces);
+                updateSpacesStats(data.spaces);
+            } else {
+                showErrorState(data.message || 'Errore durante il caricamento degli spazi.');
+            }
+        } catch (error) {
+            console.error('Errore nel caricamento degli spazi:', error);
+            showErrorState('Impossibile caricare gli spazi. Riprova più tardi.');
+        }
+    }
+
+    async function loadTopSpaces() {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                console.error('Token non trovato. Impossibile caricare i top spazi.');
+                return;
+            }
+
+            const topSpacesResponse = await fetch('/api/spaces/top-spaces', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!topSpacesResponse.ok) {
+                throw new Error('Errore nel caricamento dei top spazi');
+            }
+
+            const topSpacesData = await topSpacesResponse.json();
+            const topSpacesList = document.getElementById('top-spaces-list');
+            topSpacesList.innerHTML = ''; // Pulisce il messaggio di caricamento
+
+            if (topSpacesData.success && topSpacesData.spaces.length > 0) {
+                topSpacesData.spaces.forEach(space => {
+                    const spaceItem = document.createElement('div');
+                    spaceItem.className = 'd-flex align-items-center mb-3';
+                    spaceItem.innerHTML = `
+                    <div class="me-3 text-warning">
+                        <i class="fas fa-trophy fa-2x"></i>
+                    </div>
+                    <div>
+                        <h6 class="mb-0">${space.name}</h6>
+                        <small class="text-muted">Prenotazioni: ${space.bookings_count}</small>
+                    </div>
+                `;
+                    topSpacesList.appendChild(spaceItem);
+                });
+            } else {
+                topSpacesList.innerHTML = `
+                <div class="text-center text-muted py-4">
+                    <i class="fas fa-exclamation-circle fa-2x mb-2"></i>
+                    <p>Nessun top spazio trovato.</p>
+                </div>
+            `;
+            }
+
+        } catch (error) {
+            console.error('Errore nel caricamento dei top spazi:', error);
+            const topSpacesList = document.getElementById('top-spaces-list');
+            topSpacesList.innerHTML = `
+            <div class="text-center text-danger py-4">
+                <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                <p>Errore. Impossibile caricare i top spazi.</p>
+            </div>
+        `;
+        }
+    }
+
+    async function fetchDashboardStats() {
+        const loadingEl = document.getElementById('dashboard-loading');
+        const errorEl = document.getElementById('dashboard-error');
+
+        loadingEl.style.display = 'flex';
+        errorEl.style.display = 'none';
+
+        try {
+            const response = await fetch('/api/spaces/stats');
+            const data = await response.json();
+
+            if (data.success) {
+                updateSpacesStats(data.stats);
+            } else {
+                errorEl.textContent = data.message || 'Errore sconosciuto durante il caricamento delle statistiche.';
+                errorEl.style.display = 'block';
+            }
+        } catch (error) {
+            console.error('Errore nel fetch delle statistiche:', error);
+            errorEl.textContent = 'Impossibile connettersi al server. Riprova più tardi.';
+            errorEl.style.display = 'block';
+        } finally {
+            loadingEl.style.display = 'none';
+        }
+    }
+
+    // Funzione per renderizzare la tabella
+    function renderSpacesTable(spaces) {
+        console.log('🎨 Rendering spaces table with', spaces.length, 'spaces');
+
+        const tableBody = document.getElementById('spacesTableBody');
+
+        if (!tableBody) {
+            console.error('❌ Element spacesTableBody not found!');
+            return;
+        }
+
+        // Se non ci sono spazi
+        if (!spaces || spaces.length === 0) {
+            tableBody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center py-4">
+                    <div class="text-muted">
+                        <i class="fas fa-building fa-3x mb-3"></i>
+                        <p class="mb-0">Nessuno spazio trovato</p>
+                        <small>Prova a modificare i filtri di ricerca</small>
+                    </div>
+                </td>
+            </tr>
+        `;
+            return;
+        }
+
+        // Renderizza le righe della tabella
+        tableBody.innerHTML = spaces.map(space => {
+            // Funzioni di utilità inline per evitare dipendenze
+            const safeName = (space.name || 'Nome non disponibile').replace(/[<>&"']/g, '');
+            const safeCity = (space.city || 'N/A').replace(/[<>&"']/g, '');
+            const safeDescription = space.description ?
+                space.description.substring(0, 50).replace(/[<>&"']/g, '') + '...' : '';
+
+            // Formattazione tipo spazio
+            const typeLabels = {
+                'hot-desk': 'Hot Desk',
+                'private-office': 'Ufficio Privato',
+                'meeting-room': 'Sala Meeting',
+                'event-space': 'Spazio Eventi',
+                'desk': 'Scrivania',
+                'meeting_room': 'Sala Meeting',
+                'private_office': 'Ufficio Privato',
+                'coworking': 'Coworking'
+            };
+            const typeLabel = typeLabels[space.type] || space.type || 'N/A';
+
+            // Colori badge tipo
+            const typeColors = {
+                'hot-desk': 'bg-primary',
+                'private-office': 'bg-success',
+                'meeting-room': 'bg-warning text-dark',
+                'event-space': 'bg-info',
+                'desk': 'bg-primary',
+                'meeting_room': 'bg-warning text-dark',
+                'private_office': 'bg-success',
+                'coworking': 'bg-info'
+            };
+            const typeColor = typeColors[space.type] || 'bg-secondary';
+
+            // Formattazione prezzo
+            const price = parseFloat(space.price_per_day || space.pricePerDay || 0).toFixed(2);
+            const spaceId = space.id || space._id || '';
+
+            return `
+            <tr data-space-id="${spaceId}">
+                <td>
+                    <div>
+                        <div class="fw-semibold">${safeName}</div>
+                        ${safeDescription ? `<small class="text-muted">${safeDescription}</small>` : ''}
+                    </div>
+                </td>
+                <td>
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-map-marker-alt text-muted me-2"></i>
+                        ${safeCity}
+                    </div>
+                </td>
+                <td>
+                    <span class="badge ${typeColor}">
+                        ${typeLabel}
+                    </span>
+                </td>
+                <td>
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-users text-muted me-2"></i>
+                        ${space.capacity || 0} ${space.capacity === 1 ? 'persona' : 'persone'}
+                    </div>
+                </td>
+                <td>
+                    <div class="fw-semibold">
+                        €${price}
+                        <small class="text-muted d-block">al giorno</small>
+                    </div>
+                </td>
+                <td>
+                    <button class="btn btn-sm btn-outline-danger" onclick="showDeleteSpaceModal('${spaceId}')" title="Elimina">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+        }).join('');
+
+        console.log('✅ Table rendered successfully');
+    }
+
+    // Funzione di formattazione del tipo di spazio
+    function formatSpaceType(type) {
+        const types = {
+            'desk': 'Scrivania',
+            'meeting_room': 'Sala Meeting',
+            'private_office': 'Ufficio Privato',
+            'coworking': 'Coworking',
+            'hot-desk': 'Hot-Desk',
+            'private-desk': 'Scrivania Privata',
+            'phone-booth': 'Cabina Telefonica',
+            'event-space': 'Spazio Eventi'
+        };
+        return types[type] || type;
+    }
+
+    /**
+     * Funzione per applicare i filtri e avviare la ricerca
+     * @description Legge i valori dai campi di ricerca e filtra i dati mock degli spazi.
+     */
+    function applyFilters() {
+        console.log('🔍 Applying filters with correct server port...');
+
+        const searchInput = document.getElementById('spaceSearch');
+        const typeFilter = document.getElementById('spaceTypeFilter');
+        const cityFilter = document.getElementById('cityFilter');
+
+        // Verifica che gli elementi esistano
+        if (!searchInput || !typeFilter || !cityFilter) {
+            console.error('❌ DOM elements not found:', {
+                searchInput: !!searchInput,
+                typeFilter: !!typeFilter,
+                cityFilter: !!cityFilter
+            });
+
+            // Mostra tutti gli elementi con ID per debug
+            console.log('🔍 Available elements with ID:');
+            document.querySelectorAll('[id]').forEach(el => {
+                console.log(`  ${el.id}: ${el.tagName}`);
+            });
+
+            showErrorInTable('Elementi filtro non trovati nel DOM');
+            return;
+        }
+
+        const searchValue = searchInput.value.trim();
+        const typeValue = typeFilter.value;
+        const cityValue = cityFilter.value;
+
+        console.log('📋 Filter values:', {
+            search: searchValue,
+            type: typeValue,
+            city: cityValue
+        });
+
+        // Costruisci parametri query
+        const queryParams = new URLSearchParams();
+
+        if (searchValue) {
+            queryParams.append('search', searchValue);
+        }
+
+        if (typeValue) {
+            // Mapping dei tipi per compatibilità backend
+            const typeMapping = {
+                'desk': 'hot-desk',
+                'meeting_room': 'meeting-room',
+                'private_office': 'private-office',
+                'coworking': 'event-space'
+            };
+
+            const mappedType = typeMapping[typeValue] || typeValue;
+            queryParams.append('type', mappedType);
+            console.log('🔄 Type mapping:', typeValue, '->', mappedType);
+        }
+
+        if (cityValue) {
+            queryParams.append('city', cityValue);
+        }
+
+        // Parametri di paginazione
+        queryParams.append('page', '1');
+        queryParams.append('limit', '50');
+        queryParams.append('sortBy', 'created_at');
+        queryParams.append('sortOrder', 'DESC');
+
+        const queryString = queryParams.toString();
+        const endpoint = `/spaces/all${queryString ? '?' + queryString : ''}`;
+
+        console.log('🌐 Final endpoint:', endpoint);
+
+        // Chiama con l'endpoint corretto
+        fetchFilteredSpaces(endpoint);
+    }
+
+    async function fetchFilteredSpaces(endpoint) {
+        const loadingEl = document.getElementById('spacesLoading') ||
+            document.querySelector('.spinner-border')?.closest('tr');
+        const tableBody = document.getElementById('spacesTableBody');
+
+        console.log('🚀 fetchFilteredSpaces called with endpoint:', endpoint);
+
+        // Costruisci URL completo con la porta corretta del server (3000)
+        const fullUrl = endpoint.startsWith('http') ?
+            endpoint :
+            `${API_CONFIG.API_BASE_URL}${endpoint.startsWith('/api') ? endpoint.replace('/api', '') : endpoint}`;
+
+        console.log('🌐 Full API URL:', fullUrl);
+
+        // Mostra loading
+        if (loadingEl) {
+            loadingEl.style.display = loadingEl.tagName === 'TR' ? 'table-row' : 'block';
+        }
+
+        try {
+            const token = localStorage.getItem('auth_token');
+            if (!token) {
+                throw new Error('Token di autenticazione mancante. Effettua il login.');
+            }
+
+            console.log('🔐 Using token:', token ? 'Present' : 'Missing');
+
+            const response = await fetch(fullUrl, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            console.log(`📶 Response status: ${response.status} ${response.statusText}`);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('❌ HTTP Error:', response.status, errorText);
+
+                // Prova a parsare l'errore JSON se possibile
+                let errorMessage;
+                try {
+                    const errorData = JSON.parse(errorText);
+                    errorMessage = errorData.message || `HTTP ${response.status}: ${response.statusText}`;
+                } catch {
+                    errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+                }
+
+                throw new Error(errorMessage);
+            }
+
+            const data = await response.json();
+            console.log('✅ API Response:', {
+                success: data.success,
+                spacesCount: data.spaces?.length || 0,
+                hasSpaces: !!data.spaces,
+                hasPagination: !!data.pagination
+            });
+
+            if (data.success && Array.isArray(data.spaces)) {
+                renderSpacesTable(data.spaces);
+
+                if (data.pagination) {
+                    updatePagination(data.pagination);
+                }
+            } else {
+                console.warn('⚠️ Unexpected API response format:', data);
+                throw new Error(data.message || 'Formato risposta API non valido');
+            }
+
+        } catch (error) {
+            console.error('❌ Fetch Error:', error);
+            showErrorInTable(error.message, fullUrl);
+        } finally {
+            if (loadingEl) {
+                loadingEl.style.display = 'none';
+            }
+        }
+    }
+
+    function updatePagination(pagination) {
+        console.log('📄 Updating pagination:', pagination);
+
+        // Se non ci sono dati di paginazione, non fare nulla
+        if (!pagination) {
+            return;
+        }
+
+        const {
+            page = 1,
+            limit = 50,
+            total = 0,
+            totalPages = 1
+        } = pagination;
+
+        // Cerca elementi di paginazione esistenti e aggiorna le informazioni
+        const totalCountEl = document.getElementById('spacesTotal');
+        const rangeInfoEl = document.getElementById('spacesRange');
+        const pageInfoEl = document.getElementById('pageInfo');
+
+        if (totalCountEl) {
+            totalCountEl.textContent = total;
+        }
+
+        if (rangeInfoEl) {
+            const startItem = Math.min((page - 1) * limit + 1, total);
+            const endItem = Math.min(page * limit, total);
+            rangeInfoEl.textContent = total > 0 ?
+                `Visualizzati ${startItem}-${endItem} di ${total}` :
+                'Nessun risultato';
+        }
+
+        if (pageInfoEl) {
+            pageInfoEl.textContent = `Pagina ${page} di ${totalPages}`;
+        }
+
+        console.log(`✅ Pagination updated: Page ${page}/${totalPages}, Total: ${total}`);
+    }
+
+    // Funzione per mostrare errori nella tabella
+    function showErrorInTable(message, url = '') {
+        const tableBody = document.getElementById('spacesTableBody');
+        if (tableBody) {
+            tableBody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center py-4">
+                    <div class="alert alert-danger mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Errore:</strong> ${message}
+                        ${url ? `<br><small class="text-muted">URL: ${url}</small>` : ''}
+                        <br><br>
+                        <button class="btn btn-sm btn-outline-danger" onclick="retryLastRequest()">
+                            <i class="fas fa-redo me-1"></i>Riprova
+                        </button>
+                        <button class="btn btn-sm btn-outline-primary ms-2" onclick="testConnection()">
+                            <i class="fas fa-wifi me-1"></i>Test Connessione
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+        }
+    }
+
+    function showSuccessMessage(message) {
+        const tableBody = document.getElementById('spacesTableBody');
+        if (tableBody) {
+            tableBody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center py-4">
+                    <div class="alert alert-success mb-0">
+                        <i class="fas fa-check-circle me-2"></i>
+                        ${message}
+                    </div>
+                </td>
+            </tr>
+        `;
+        }
+    }
+
+    let lastEndpoint = '/spaces/all';
+
+    function retryLastRequest() {
+        console.log('🔄 Retrying last request:', lastEndpoint);
+        fetchFilteredSpaces(lastEndpoint);
+    }
+
+    const originalFetchFilteredSpaces = fetchFilteredSpaces;
+    fetchFilteredSpaces = function(endpoint) {
+        lastEndpoint = endpoint;
+        return originalFetchFilteredSpaces(endpoint);
+    };
+
+    function applySpaceFilters() {
+        applyFilters();
+    }
+
+    /**
+     * Funzione per resettare i filtri di ricerca
+     * @description Resetta i valori dei campi di input e ricarica tutti gli spazi.
+     */
+    function resetSpaceFilters() {
+        console.log('🧹 Resetting filters...');
+
+        const searchInput = document.getElementById('spaceSearch');
+        const typeFilter = document.getElementById('spaceTypeFilter');
+        const cityFilter = document.getElementById('cityFilter');
+
+        if (searchInput) searchInput.value = '';
+        if (typeFilter) typeFilter.value = '';
+        if (cityFilter) cityFilter.value = '';
+
+        console.log('✅ Filters reset, loading all spaces...');
+
+        // Ricarica tutti gli spazi
+        fetchFilteredSpaces('/spaces/all');
+    }
+
+    // Funzioni per gestire lo stato di caricamento/errore
+    function showLoadingState() {
+        spacesTableBody.innerHTML = `<tr><td class="text-center py-4" colspan="7"><div class="spinner-border text-primary" role="status"></div><div class="mt-2">Caricamento spazi...</div></td></tr>`;
+    }
+
+    function showErrorState(message) {
+        spacesTableBody.innerHTML = `<tr><td class="text-center text-danger py-4" colspan="7"><i class="fas fa-exclamation-triangle me-2"></i>${message}</td></tr>`;
+    }
+
+    function connectDeleteSpaceButtons() {
+        // Trova tutti i pulsanti di eliminazione e collega la funzione
+        document.querySelectorAll('.btn-outline-danger[onclick*="alert"]').forEach(button => {
+            const onclickAttr = button.getAttribute('onclick');
+            if (onclickAttr && onclickAttr.includes('Elimina spazio')) {
+                // Estrai l'ID dello spazio dal onclick originale
+                const spaceIdMatch = onclickAttr.match(/spazio: (\w+)/);
+                if (spaceIdMatch) {
+                    const spaceId = spaceIdMatch[1];
+                    // Sostituisci onclick con la funzione corretta
+                    button.setAttribute('onclick', `showDeleteSpaceModal('${spaceId}')`);
+                    console.log(`✅ Connected delete button for space ${spaceId}`);
+                }
+            }
+        });
+    }
+
+    async function deleteSpace(spaceId) {
+        try {
+            const token = localStorage.getItem('auth_token');
+            if (!token) {
+                alert('Token di autenticazione non trovato');
+                return;
+            }
+
+            const response = await fetch(`http://localhost:3000/api/spaces/${spaceId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert('Spazio eliminato con successo!');
+                // Ricarica la lista spazi
+                if (typeof loadSpaces === 'function') {
+                    loadSpaces();
+                } else if (typeof fetchFilteredSpaces === 'function') {
+                    fetchFilteredSpaces('/spaces/all');
+                }
+            } else {
+                alert(result.message || 'Errore nell\'eliminazione dello spazio');
+            }
+        } catch (error) {
+            console.error('Errore eliminazione spazio:', error);
+            alert('Errore nell\'eliminazione dello spazio');
+        }
+    }
+
+    // Funzione per mostrare il modal di conferma eliminazione
+    function showDeleteSpaceModal(spaceId) {
+        if (confirm('Sei sicuro di voler eliminare questo spazio? Questa azione non può essere annullata.')) {
+            deleteSpace(spaceId);
+        }
+    }
+
+    async function loadSpacesStats() {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                console.warn('⚠️ Token mancante');
+                showErrorState('Accesso negato. Effettua il login.');
+                return;
+            }
+
+            // Carica statistiche dashboard
+            const statsResponse = await fetch('http://localhost:3000/api/spaces/dashboard-stats', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            const statsData = await statsResponse.json();
+            if (statsData.success) {
+                updateSpacesStats(statsData.stats);
+            }
+
+            // Carica lista spazi
+            const spacesResponse = await fetch('http://localhost:3000/api/spaces/all', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            const spacesData = await spacesResponse.json();
+            if (spacesData.success) {
+                renderSpacesTable(spacesData.spaces);
+            } else {
+                showErrorState(spacesData.message || 'Errore durante il caricamento degli spazi.');
+            }
+        } catch (error) {
+            console.error('Errore nel caricamento degli spazi:', error);
+            showErrorState('Impossibile caricare gli spazi. Riprova più tardi.');
+        }
+    }
+
+    function updateSpacesStats(stats) {
+        // Spazi totali
+        const totalSpacesCountEl = document.getElementById('totalSpacesCount');
+        if (totalSpacesCountEl) {
+            totalSpacesCountEl.textContent = stats.total || 0;
+        }
+
+        // Spazi attivi
+        const activeSpacesCountEl = document.getElementById('activeSpacesCount');
+        if (activeSpacesCountEl) {
+            activeSpacesCountEl.textContent = stats.active || 0;
+        }
+
+        // Spazi prenotati oggi
+        const bookedSpacesCountEl = document.getElementById('bookedSpacesCount');
+        if (bookedSpacesCountEl) {
+            bookedSpacesCountEl.textContent = stats.bookedToday || 0;
+        }
+
+        // Ricavi mensili
+        const spacesRevenueEl = document.getElementById('spacesRevenue');
+        if (spacesRevenueEl) {
+            spacesRevenueEl.textContent = `€${(stats.monthlyRevenue || 0).toLocaleString('it-IT', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            })}`;
+        }
+
+        // Aggiorna anche i totali della paginazione
+        const spacesTotalEl = document.getElementById('spacesTotal');
+        if (spacesTotalEl) {
+            spacesTotalEl.textContent = stats.total || 0;
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Collega i pulsanti esistenti
+        connectDeleteSpaceButtons();
+
+        // Observer per collegare pulsanti aggiunti dinamicamente
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.addedNodes.length > 0) {
+                    connectDeleteSpaceButtons();
+                }
+            });
+        });
+
+        // Osserva la tabella degli spazi per nuovi elementi
+        const spacesTable = document.getElementById('spacesTableBody');
+        if (spacesTable) {
+            observer.observe(spacesTable, { childList: true, subtree: true });
+        }
+    });
+
+    // Carica gli spazi all'avvio della pagina se la sezione spaces è attiva
+    document.addEventListener('DOMContentLoaded', () => {
+        if (window.location.hash === '#spaces') {
+            loadSpaces();
+        }
+    });
+
+    window.fetchFilteredSpaces = fetchFilteredSpaces;
+    window.applyFilters = applyFilters;
+    window.applySpaceFilters = applySpaceFilters;
+    window.resetSpaceFilters = resetSpaceFilters;
+    window.retryLastRequest = retryLastRequest;
+
+    // INIZIALIZZAZIONE AUTOMATICA
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('🚀 Page loaded with correct API configuration');
+        console.log('🔧 Server:', API_CONFIG.API_BASE_URL);
+        console.log('🌐 Frontend:', `http://localhost:${API_CONFIG.FRONTEND_PORT}`);
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('Initializing image upload functionality...');
+
+        const imageInput = document.getElementById('spaceImages');
+        const previewContainer = document.getElementById('imagePreviewContainer');
+        const previewGrid = document.getElementById('imagePreviewGrid');
+        const dropZone = document.getElementById('imageDropZone');
+
+        // IMPORTANTE: Inizializza selectedImages come array vuoto
+        selectedImages = [];
+
+        // Inizializza solo se gli elementi esistono
+        if (imageInput && previewContainer && previewGrid && dropZone) {
+            initializeImageUpload();
+        } else {
+            console.warn('Image upload elements not found in DOM');
+        }
+
+        function initializeImageUpload() {
+            // Event listener per il file input
+            imageInput.addEventListener('change', handleImageSelection);
+
+            // Event listeners per drag & drop
+            dropZone.addEventListener('click', () => imageInput.click());
+            dropZone.addEventListener('dragover', handleDragOver);
+            dropZone.addEventListener('dragleave', handleDragLeave);
+            dropZone.addEventListener('drop', handleDrop);
+
+            console.log('Image upload initialized');
+        }
+
+        function handleImageSelection(event) {
+            const files = Array.from(event.target.files);
+            console.log(`Selected ${files.length} files`);
+
+            if (files.length === 0) {
+                hidePreview();
+                selectedImages = []; // Reset array
+                return;
+            }
+
+            // Valida i file
+            const validFiles = validateImageFiles(files);
+
+            if (validFiles.length > 0) {
+                selectedImages = validFiles; // Assegna all'array globale
+                showImagePreviews(validFiles);
+            } else {
+                hidePreview();
+                selectedImages = []; // Reset se nessun file valido
+            }
+        }
+
+        function validateImageFiles(files) {
+            const maxFileSize = 5 * 1024 * 1024; // 5MB
+            const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+            const validFiles = [];
+
+            files.forEach((file, index) => {
+                console.log(`Validating file ${index + 1}: ${file.name}`);
+
+                // Controlla tipo file
+                if (!allowedTypes.includes(file.type.toLowerCase())) {
+                    showNotification(`${file.name} non è un'immagine valida`, 'warning');
+                    return;
+                }
+
+                // Controlla dimensione file
+                if (file.size > maxFileSize) {
+                    const sizeMB = (file.size / 1024 / 1024).toFixed(1);
+                    showNotification(`${file.name} è troppo grande (${sizeMB}MB > 5MB)`, 'warning');
+                    return;
+                }
+
+                validFiles.push(file);
+                console.log(`File ${file.name} validato correttamente`);
+            });
+
+            return validFiles;
+        }
+
+        function showImagePreviews(files) {
+            console.log(`Showing previews for ${files.length} images`);
+
+            previewContainer.classList.remove('d-none');
+            previewGrid.innerHTML = '';
+
+            files.forEach((file, index) => {
+                const reader = new FileReader();
+
+                reader.onload = function(e) {
+                    const fileSize = (file.size / 1024).toFixed(1);
+
+                    const previewHtml = `
+                    <div class="col-md-4 col-sm-6">
+                        <div class="card shadow-sm">
+                            <img src="${e.target.result}"
+                                 class="card-img-top"
+                                 style="height: 150px; object-fit: cover; cursor: pointer;"
+                                 onclick="previewImageFullSize('${e.target.result}', '${file.name}')"
+                                 title="Clicca per ingrandire">
+                            <div class="card-body p-3">
+                                <small class="text-muted d-block mb-1">
+                                    <i class="fas fa-file-image me-1"></i>
+                                    ${file.name}
+                                </small>
+                                <small class="text-muted d-block mb-2">
+                                    <i class="fas fa-weight-hanging me-1"></i>
+                                    ${fileSize} KB
+                                </small>
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-danger w-100"
+                                        onclick="removeImageAtIndex(${index})">
+                                    <i class="fas fa-trash-alt me-1"></i>Rimuovi
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                    previewGrid.innerHTML += previewHtml;
+                };
+
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function hidePreview() {
+            previewContainer.classList.add('d-none');
+            previewGrid.innerHTML = '';
+            selectedImages = []; // Reset array globale
+        }
+
+        // Drag & Drop handlers
+        function handleDragOver(e) {
+            e.preventDefault();
+            dropZone.classList.add('border-primary', 'bg-light');
+        }
+
+        function handleDragLeave(e) {
+            e.preventDefault();
+            dropZone.classList.remove('border-primary', 'bg-light');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            dropZone.classList.remove('border-primary', 'bg-light');
+
+            const files = Array.from(e.dataTransfer.files);
+            console.log(`Dropped ${files.length} files`);
+
+            // Simula la selezione di file
+            const dt = new DataTransfer();
+            files.forEach(file => dt.items.add(file));
+            imageInput.files = dt.files;
+
+            // Gestisci come se fosse una selezione normale
+            handleImageSelection({ target: { files: files } });
+        }
+
+        // Reset quando si chiude il modal
+        const spaceModal = document.getElementById('spaceModal');
+        if (spaceModal) {
+            spaceModal.addEventListener('hidden.bs.modal', function () {
+                console.log('Resetting image upload on modal close');
+
+                // Reset input file
+                if (imageInput) {
+                    imageInput.value = '';
+                }
+
+                // Nascondi anteprime e reset array
+                hidePreview();
+                selectedImages = []; // IMPORTANTE: Reset della variabile globale
+            });
+        }
+    });
+
+    // Funzioni globali (devono rimanere fuori dal DOMContentLoaded)
+    window.removeImageAtIndex = function(index) {
+        console.log(`Removing image at index ${index}`);
+
+        selectedImages.splice(index, 1);
+
+        // Aggiorna il file input
+        const imageInput = document.getElementById('spaceImages');
+        const dt = new DataTransfer();
+        selectedImages.forEach(file => dt.items.add(file));
+        imageInput.files = dt.files;
+
+        // Rigenera le anteprime
+        if (selectedImages.length > 0) {
+            // Richiama la funzione di preview (devi assicurarti che sia accessibile)
+            showImagePreviews(selectedImages);
+        } else {
+            const previewContainer = document.getElementById('imagePreviewContainer');
+            const previewGrid = document.getElementById('imagePreviewGrid');
+            previewContainer.classList.add('d-none');
+            previewGrid.innerHTML = '';
+        }
+    };
+
+    window.previewImageFullSize = function(src, filename) {
+        console.log(`Opening full size preview for: ${filename}`);
+        // ... resto della funzione come già esistente
+    };
+
+    // Funzione per convertire le immagini in base64 (CORRETTA)
+    window.convertImagesToBase64 = async function() {
+        console.log(`Converting ${selectedImages.length} images to base64 for database...`);
+
+        if (!selectedImages || selectedImages.length === 0) {
+            console.log('No images to convert');
+            return [];
+        }
+
+        const base64Images = [];
+
+        for (const file of selectedImages) {
+            try {
+                const base64 = await fileToBase64(file);
+                base64Images.push(base64);
+                console.log(`Converted: ${file.name}`);
+            } catch (error) {
+                console.error(`Error converting ${file.name}:`, error);
+                showNotification(`Errore nel processare ${file.name}`, 'error');
+            }
+        }
+
+        console.log(`Successfully converted ${base64Images.length} images`);
+        return base64Images;
+    };
+
+    function fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                resolve(e.target.result);
+            };
+            reader.onerror = function(error) {
+                reject(error);
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    // Debug function
+    window.debugSelectedImages = function() {
+        console.log('Current selectedImages:', selectedImages);
+        console.log('Length:', selectedImages?.length || 0);
+        if (selectedImages && selectedImages.length > 0) {
+            console.log('First image:', selectedImages[0].name, selectedImages[0].size);
+        }
+    };
+
+    console.log('🖼️ Image upload functionality loaded');
+</script>
+
+<script>
+    // ============ GESTIONE PRENOTAZIONI ===============
+
+    // ===============================================
+    //  GESTIONE PRENOTAZIONI
+    // ===============================================
+
+    async function loadBookings() {
+        const bookingsTableBody = document.getElementById('bookingsTableBody');
+        const sectionId = 'bookings';
+
+        // Mostra il caricamento all'interno della tabella
+        showLoading(sectionId);
+
+        try {
+            const token = localStorage.getItem('auth_token');
+            if (!token) {
+                showError(sectionId, 'Autenticazione richiesta. Ricarica la pagina e accedi.');
+                return;
+            }
+
+            const response = await fetch('http://localhost:3000/api/bookings/all', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (response.status === 401) {
+                console.warn('🔒 Received 401, clearing auth');
+                localStorage.removeItem('token');
+                window.location.href = '/login.html';
+                return;
+            }
+
+            // Controlla se la risposta non è OK prima di tentare il JSON
+            if (!response.ok) {
+                const errorData = await response.json();
+                showError(sectionId, errorData.message || 'Errore nel recupero delle prenotazioni.');
+                return;
+            }
+
+            const data = await response.json();
+
+            // Aggiungi un controllo per assicurarti che i dati delle prenotazioni esistano e siano un array
+            if (!data.bookings || !Array.isArray(data.bookings)) {
+                console.error('Dati prenotazioni non validi ricevuti dal server:', data);
+                showError(sectionId, 'Dati prenotazioni non validi ricevuti dal server.');
+                return;
+            }
+
+            // Chiamata alla funzione di rendering con i dati corretti
+            renderBookingsTable(data.bookings);
+
+        } catch (error) {
+            console.error('Error loading bookings:', error);
+            showError(sectionId, 'Errore di connessione o del server.');
+        }
+    }
+
+    /**
+     * Rende la tabella delle prenotazioni.
+     * @param {Object[]} bookings - L'elenco delle prenotazioni da visualizzare
+     */
+    function renderBookingsTable(bookings) {
+        const bookingsTableBody = document.getElementById('bookingsTableBody');
+        bookingsTableBody.innerHTML = ''; // Pulisce la tabella
+
+        if (bookings.length === 0) {
+            bookingsTableBody.innerHTML = `<tr><td colspan="9" class="text-center py-4">Nessuna prenotazione trovata.</td></tr>`;
+            return;
+        }
+
+        bookings.forEach((booking, index) => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${booking.id.substring(0, 8)}...</td>
+                <td>
+                    <i class="fas fa-building me-2"></i>
+                    ${booking.space_name}
+                    <small class="d-block text-muted">${booking.space_city}</small>
+                </td>
+                <td>
+                    <i class="fas fa-user me-2"></i>
+                    ${booking.user_first_name} ${booking.user_last_name}
+                    <small class="d-block text-muted">${booking.user_email}</small>
+                </td>
+                <td>${new Date(booking.start_date).toLocaleDateString('it-IT')}</td>
+                <td>${new Date(booking.end_date).toLocaleDateString('it-IT')}</td>
+                <td>${booking.start_time} - ${booking.end_time || 'N/A'}</td>
+                <td><strong>€${parseFloat(booking.total_price).toFixed(2)}</strong></td>
+                <td>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-outline-info show-details-btn" data-bs-toggle="modal" data-bs-target="#bookingDetailsModal" data-booking-index="${index}" title="Dettagli">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger delete-btn" data-bs-toggle="modal" data-bs-target="#deleteBookingModal" data-booking-id="${booking.id}" title="Cancella">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            `;
+            bookingsTableBody.appendChild(row);
+        });
+    }
+
+    /**
+     * Mostra il modal con i dettagli della prenotazione
+     * @param {Object} booking - L'oggetto prenotazione con tutti i dettagli
+     */
+    function showBookingDetailsModal(booking) {
+        // Popola i campi del modal con i dati della prenotazione
+        document.getElementById('modal-booking-id').textContent = booking.id;
+        document.getElementById('modal-booking-start-date').textContent = new Date(booking.start_date).toLocaleDateString('it-IT');
+        document.getElementById('modal-booking-end-date').textContent = new Date(booking.end_date).toLocaleDateString('it-IT');
+        document.getElementById('modal-booking-times').textContent = `${booking.start_time} - ${booking.end_time || 'N/A'}`;
+        document.getElementById('modal-booking-price').textContent = `€${parseFloat(booking.total_price).toFixed(2)}`;
+        document.getElementById('modal-booking-notes').textContent = booking.notes || 'Nessuna nota';
+        document.getElementById('modal-people-count').textContent = booking.people_count;
+
+        // Dettagli Spazio
+        document.getElementById('modal-space-name').textContent = booking.space_name;
+        document.getElementById('modal-space-type').textContent = booking.space_type;
+        document.getElementById('modal-space-city').textContent = booking.space_city;
+
+        // Dettagli Cliente
+        document.getElementById('modal-user-name').textContent = `${booking.user_first_name} ${booking.user_last_name}`;
+        document.getElementById('modal-user-email').textContent = booking.user_email;
+    }
+
+    // ===============================================
+    //  FUNZIONI DI UTILITÀ PER L'UI
+    // ===============================================
+
+    /**
+     * Mostra l'overlay di caricamento e nasconde la tabella.
+     * @param {string} sectionId - L'ID della sezione (es. 'users', 'spaces')
+     */
+    function showLoading(sectionId) {
+        const section = document.getElementById(sectionId + 'Section');
+        if (section) {
+            const tableBody = section.querySelector('tbody');
+            if (tableBody) {
+                // Colspan corretto per 9 colonne
+                tableBody.innerHTML = `<tr><td class="text-center py-4" colspan="9">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Caricamento...</span>
+                    </div>
+                </td></tr>`;
+            }
+        }
+    }
+
+    /**
+     * Mostra il contenuto e nasconde gli indicatori di caricamento.
+     * @param {string} sectionId - L'ID della sezione (es. 'users', 'spaces')
+     */
+    function showContent(sectionId) {
+        const section = document.getElementById(sectionId + 'Section');
+        if (section) {
+            // Mostra il contenuto che era nascosto, se necessario
+            const contentContainer = section.querySelector('.admin-table');
+            if (contentContainer) {
+                contentContainer.style.display = 'block';
+            }
+        }
+    }
+
+    /**
+     * Mostra un messaggio di errore e nasconde il contenuto.
+     * @param {string} sectionId - L'ID della sezione (es. 'users', 'spaces')
+     * @param {string} message - Il messaggio di errore da visualizzare
+     */
+    function showError(sectionId, message) {
+        const section = document.getElementById(sectionId + 'Section');
+        if (section) {
+            const tableBody = section.querySelector('tbody');
+            if (tableBody) {
+                // Colspan corretto per 9 colonne
+                tableBody.innerHTML = `<tr><td class="text-center text-danger py-4" colspan="9">
+                    <i class="fas fa-exclamation-triangle me-2"></i>${message}
+                </td></tr>`;
+            }
+        }
+    }
+
+    /**
+     * Gestisce l'eliminazione di una prenotazione
+     * @param {string} bookingId - L'ID della prenotazione da eliminare
+     */
+    async function deleteBooking(bookingId) {
+        try {
+            const token = localStorage.getItem('auth_token');
+            const response = await fetch(`http://localhost:3000/api/bookings/${bookingId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (response.status === 401) {
+                // Gestione dell'autenticazione come nelle altre funzioni
+                localStorage.removeItem('auth_token');
+                window.location.href = '/login.html';
+                return;
+            }
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                alert('Errore: ' + (errorData.message || 'Impossibile eliminare la prenotazione.'));
+                return;
+            }
+
+            alert('Prenotazione eliminata con successo!');
+            // Ricarica la tabella per visualizzare lo stato aggiornato
+            loadBookings();
+
+        } catch (error) {
+            console.error('Error deleting booking:', error);
+            alert('Errore di connessione o del server.');
+        }
+    }
+
+    // Aggiungi un listener al pulsante di conferma nel modal di eliminazione
+    document.addEventListener('DOMContentLoaded', () => {
+        const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+        const deleteBookingModal = document.getElementById('deleteBookingModal');
+        let bookingToDeleteId = null;
+
+        // Listener che cattura l'ID della prenotazione quando il modal si apre
+        deleteBookingModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            bookingToDeleteId = button.getAttribute('data-booking-id');
+        });
+
+        // Listener per il pulsante di conferma nel modal
+        confirmDeleteBtn.addEventListener('click', () => {
+            if (bookingToDeleteId) {
+                deleteBooking(bookingToDeleteId);
+                // Chiudi il modal dopo aver cliccato Elimina
+                const modal = bootstrap.Modal.getInstance(deleteBookingModal);
+                modal.hide();
+            }
+        });
+    });
+</script>
+</body>
+</html>
