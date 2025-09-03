@@ -3,6 +3,7 @@
  * Main Express app configuration with frontend integration
  */
 
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -10,11 +11,16 @@ const rateLimit = require('express-rate-limit');
 const compression = require('compression');
 const morgan = require('morgan');
 const path = require('path');
+const bcrypt = require('bcryptjs');
 
 // Internal imports
 const logger = require('./src/utils/logger');
 const db = require('./src/config/database');
-const { errorHandler, notFoundHandler } = require('./src/middleware/errorHandler'); // FIX: Destructuring
+const { errorHandler, notFoundHandler } = require('./src/middleware/errorHandler');
+const User = require('./src/models/User'); // O il percorso corretto
+
+// Passport configuration - NUOVO
+const passport = require('./src/config/passport');
 
 // Route imports
 const authRoutes = require('./src/routes/auth');
@@ -25,83 +31,50 @@ const paymentRoutes = require('./src/routes/payments');
 const analyticsRoutes = require('./src/routes/analytics');
 const adminRoutes = require('./src/routes/admin');
 const managerRoutes = require('./src/routes/manager');
-const User = require('./src/models/User'); // O il percorso corretto
-const bcrypt = require('bcryptjs');
 
-// ===== EXPRESS APP SETUP =====
+// ===============================================
+// ===== EXPRESS APP & CORE MIDDLEWARE SETUP =====
+// ===============================================
 const app = express();
-app.use(cors());
 
-
-// Trust proxy for accurate IP addresses
+// Trust proxy for accurate IP addresses if behind a reverse proxy
 app.set('trust proxy', 1);
 
-// ===== CORS CONFIGURATION =====
+// ===== CORS CONFIGURATION (UNIFIED) =====
 const corsOptions = {
     origin: function (origin, callback) {
-        console.log('🌐 CORS Request from origin:', origin);
-
         // List of allowed origins from environment
-        let allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3001')
+        let allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3001,http://localhost:8080')
             .split(',')
             .map(url => url.trim())
-            .filter(url => url.length > 0);
+            .filter(Boolean);
 
-        // In development, add common local origins
+        // In development, you can be more permissive or add more origins
         if (process.env.NODE_ENV !== 'production') {
             allowedOrigins = [
                 ...allowedOrigins,
-                'http://localhost:3001',
                 'http://127.0.0.1:3001',
-                'http://localhost:8080',
                 'http://127.0.0.1:8080',
                 'http://localhost:5000',
-                'http://127.0.0.1:5000',
-                'file://',
-                null,
-                undefined
+                // Add other development origins if needed
             ];
         }
 
-        // Allow requests with no origin (mobile apps, Postman, local files, etc.)
-        if (!origin) {
-            console.log('✅ CORS: Request with no origin allowed');
-            return callback(null, true);
-        }
-
-        // Check if origin is in allowed list or if we're in development
-        if (allowedOrigins.includes(origin) || allowedOrigins.includes('*') || process.env.NODE_ENV === 'development') {
-            console.log('✅ CORS: Origin allowed:', origin);
+        // Allow requests with no origin (like Postman, mobile apps, etc.) or if origin is in the list
+        if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
             callback(null, true);
         } else {
-            console.log('❌ CORS: Origin blocked:', origin);
-            console.log('📋 Allowed origins:', allowedOrigins);
             logger.warn('CORS blocked origin:', origin);
             callback(new Error('Not allowed by CORS policy'));
         }
     },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: [
-        'Origin',
-        'X-Requested-With',
-        'Content-Type',
-        'Accept',
-        'Authorization',
-        'Cache-Control',
-        'X-User-Agent',
-        'X-Request-ID'
-    ],
+    allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization'],
     credentials: true,
-    optionsSuccessStatus: 200, // Some legacy browsers choke on 204
-    maxAge: 86400 // 24 hours
+    optionsSuccessStatus: 200,
 };
-
-app.use(cors({
-    origin: '*',
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
-}));
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // Enable pre-flight requests for all routes
 
 // ===== SECURITY MIDDLEWARE =====
 if (process.env.ENABLE_HELMET !== 'false') {
@@ -120,157 +93,75 @@ if (process.env.ENABLE_HELMET !== 'false') {
     }));
 }
 
-// ===== COMPRESSION =====
-app.use(compression({
-    filter: (req, res) => {
-        if (req.headers['x-no-compression']) {
-            return false;
-        }
-        return compression.filter(req, res);
-    },
-    level: 6,
-    threshold: 1024
-}));
-
-async function ensureDefaultAdmin() {
-    try {
-        // Controlla se esiste già un admin usando il metodo corretto
-        const adminExists = await User.findAll({ role: 'admin', limit: 1 });
-
-        if (!adminExists || adminExists.users.length === 0) {
-            console.log('Nessun admin trovato, creazione admin predefinito...');
-
-            const ADMIN_CREDENTIALS = {
-                email: 'admin@coworkspace.test',
-                password: 'Admin123',
-                first_name: 'Admin',
-                last_name: 'CoWorkSpace'
-            };
-
-            const hashedPassword = await bcrypt.hash(ADMIN_CREDENTIALS.password, 12);
-
-            const adminUser = await User.create({
-                email: ADMIN_CREDENTIALS.email,
-                password_hash: hashedPassword,
-                first_name: ADMIN_CREDENTIALS.first_name,
-                last_name: ADMIN_CREDENTIALS.last_name,
-                role: 'admin',
-                status: 'active',
-                email_verified: true,
-                company: 'CoWorkSpace System'
-            });
-
-            console.log('Admin predefinito creato:');
-            console.log('Email:', ADMIN_CREDENTIALS.email);
-            console.log('Password:', ADMIN_CREDENTIALS.password);
-
-            return adminUser;
-        } else {
-            const existingAdmin = adminExists.users[0];
-            console.log('Admin già esistente nel sistema');
-
-            return existingAdmin;
-        }
-    } catch (error) {
-        console.error('Errore nella creazione admin predefinito:', error);
-        throw error;
-    }
-}
-
 // ===== LOGGING =====
 if (process.env.ENABLE_REQUEST_LOGGING !== 'false') {
     const morganFormat = process.env.NODE_ENV === 'production' ? 'combined' : 'dev';
-
     app.use(morgan(morganFormat, {
-        stream: {
-            write: (message) => {
-                logger.info(message.trim());
-            }
-        },
-        skip: (req) => {
-            // Skip logging for health checks in production
-            return process.env.NODE_ENV === 'production' &&
-                (req.path === '/api/health' || req.path === '/health');
-        }
+        stream: { write: (message) => logger.info(message.trim()) },
+        skip: (req) => (req.path === '/api/health' || req.path === '/health'),
     }));
 }
 
-app.listen(3000, () => {
-    console.log('Server in ascolto sulla porta 3000 con CORS abilitato');
-});
+// ===== BODY PARSING MIDDLEWARE =====
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// ===== BODY PARSING =====
-app.use(express.json({
-    limit: '10mb',
-    strict: true
-}));
+// ===== COMPRESSION =====
+app.use(compression());
 
-app.use(express.urlencoded({
-    extended: true,
-    limit: '10mb'
-}));
+// ===== PASSPORT INITIALIZATION - NUOVO =====
+app.use(passport.initialize());
+// Non usiamo passport.session() perché utilizziamo JWT invece di sessioni
 
 // ===== STATIC FILES (for uploaded content) =====
-app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
-    maxAge: '1d',
-    etag: true
-}));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// ===== PREFLIGHT HANDLING =====
-app.options('*', cors(corsOptions));
+// ======================================
+// ===== API ROUTES & HEALTH CHECKS =====
+// ======================================
 
-// ===== HEALTH CHECK =====
-app.get('/health', (req, res) => {
-    res.status(200).json({
-        success: true,
-        message: 'CoWorkSpace API is healthy',
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime(),
-        environment: process.env.NODE_ENV || 'development',
-        version: process.env.npm_package_version || '1.0.0'
-    });
-});
-
+// Health checks
+app.get('/health', (req, res) => res.status(200).json({ status: 'ok' }));
 app.get('/api/health', async (req, res) => {
     try {
-        // Test database connection
-        const dbTest = await db.query('SELECT 1 as test');
-        const dbHealthy = dbTest.rows.length > 0;
+        await db.query('SELECT 1');
 
-        // System info
-        const healthData = {
+        // Test Google OAuth configuration
+        const googleConfigOk = !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+
+        res.status(200).json({
             success: true,
             message: 'CoWorkSpace API is operational',
-            timestamp: new Date().toISOString(),
-            uptime: process.uptime(),
-            environment: process.env.NODE_ENV || 'development',
-            version: process.env.npm_package_version || '1.0.0',
             services: {
-                database: dbHealthy ? 'healthy' : 'unhealthy',
-                redis: 'optional', // Will be implemented when Redis is added
-                email: 'mock' // Currently in mock mode
+                database: 'healthy',
+                googleOAuth: googleConfigOk ? 'configured' : 'missing_config'
             },
-            memory: {
-                used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + ' MB',
-                total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024) + ' MB'
-            }
-        };
-
-        res.status(200).json(healthData);
+            timestamp: new Date().toISOString()
+        });
     } catch (error) {
         logger.error('Health check failed:', error);
-        res.status(503).json({
-            success: false,
-            message: 'Service unhealthy',
-            error: {
-                type: 'HEALTH_CHECK_FAILED',
-                details: process.env.NODE_ENV === 'development' ? error.message : 'Internal error'
-            }
-        });
+        res.status(503).json({ success: false, message: 'Service unhealthy' });
     }
 });
 
-// ===== API ROUTES =====
+// OAuth configuration check endpoint
+app.get('/api/oauth/status', (req, res) => {
+    const hasGoogleConfig = !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+
+    res.json({
+        success: true,
+        oauth: {
+            google: {
+                enabled: hasGoogleConfig,
+                clientId: process.env.GOOGLE_CLIENT_ID ? '✓ Set' : '✗ Missing',
+                clientSecret: process.env.GOOGLE_CLIENT_SECRET ? '✓ Set' : '✗ Missing',
+                redirectUri: process.env.GOOGLE_REDIRECT_URI || '/api/auth/google/callback'
+            }
+        }
+    });
+});
+
+// Main API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/spaces', spaceRoutes);
@@ -280,178 +171,171 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/manager', managerRoutes);
 
-// ===== API INFO ENDPOINT =====
-app.get('/api', (req, res) => {
-    res.json({
-        success: true,
-        message: 'CoWorkSpace API v1.0',
-        documentation: process.env.ENABLE_SWAGGER === 'true' ? '/api/docs' : 'disabled',
-        endpoints: {
-            health: '/api/health',
-            auth: '/api/auth',
-            users: '/api/users',
-            spaces: '/api/spaces',
-            bookings: '/api/bookings',
-            payments: '/api/payments',
-            analytics: '/api/analytics'
-        },
-        environment: process.env.NODE_ENV || 'development',
-        frontend: process.env.FRONTEND_URL || 'http://localhost:3001',
-        cors: {
-            allowedOrigins: (process.env.CORS_ORIGIN || 'http://localhost:3001').split(',')
-        }
-    });
-});
-
-// ===== SWAGGER DOCUMENTATION (OPZIONALE) =====
+// ===== SWAGGER DOCUMENTATION (Optional) =====
 if (process.env.ENABLE_SWAGGER === 'true') {
     try {
         const swaggerUi = require('swagger-ui-express');
         const swaggerDocument = require('./docs/swagger.json');
-
-        app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, {
-            customCss: '.swagger-ui .topbar { display: none }',
-            customSiteTitle: 'CoWorkSpace API Documentation'
-        }));
-
+        app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
         logger.info('📚 Swagger documentation available at /api/docs');
     } catch (error) {
         logger.warn('Swagger documentation not available:', error.message);
     }
 }
 
-// ===== 404 HANDLER =====
-app.use('*', notFoundHandler);
+// =============================
+// ===== ERROR HANDLING =====
+// =============================
+app.use(notFoundHandler); // Handle 404 for routes not found
+app.use(errorHandler);    // General error handler
 
-// ===== ERROR HANDLER =====
-app.use(errorHandler);
+// ======================================
+// ===== DATABASE & SERVER STARTUP =====
+// ======================================
 
-// ===== DATABASE CONNECTION =====
-const initializeDatabase = async () => {
-    logger.info('🔄 Initializing database connection...');
-
+/**
+ * Checks if a default admin user exists, and creates one if not.
+ */
+async function ensureDefaultAdmin() {
     try {
-        const isConnected = await db.connectDatabase();
-
-        if (isConnected) {
-            // Verify tables exist
-            const tablesQuery = `
-                SELECT table_name 
-                FROM information_schema.tables 
-                WHERE table_schema = 'public' 
-                AND table_name IN ('users', 'spaces', 'bookings', 'payments')
-                ORDER BY table_name
-            `;
-
-            const result = await db.query(tablesQuery);
-            const existingTables = result.rows.map(row => row.table_name);
-
-            logger.info('📋 Database tables found:', existingTables);
-
-            if (existingTables.length === 0) {
-                logger.warn('⚠️ No tables found. Run database migrations first.');
-                logger.info('💡 Use: npm run db:migrate');
-            } else {
-                logger.info('✅ Database initialized successfully');
-            }
-
-            return true;
-        }
-    } catch (error) {
-        logger.error('❌ Database initialization failed:', error);
-        return false;
-    }
-};
-
-// ===== SERVER START =====
-const PORT = process.env.PORT || 3000;
-const HOST = process.env.HOST || '0.0.0.0';
-
-const startServer = async () => {
-    // Initialize database first
-    const dbInitialized = await initializeDatabase();
-
-    if (!dbInitialized && process.env.REQUIRE_DB !== 'false') {
-        logger.error('❌ Cannot start server without database connection');
-        process.exit(1);
-    }
-
-    // Assicura che esista un admin predefinito
-    try {
-        await ensureDefaultAdmin();
-    } catch (error) {
-        logger.error('Failed to ensure admin exists:', error);
-    }
-
-    // Start HTTP server
-    const server = app.listen(PORT, HOST, () => {
-        logger.info(`🚀 CoWorkSpace API Server started`);
-        logger.info(`📍 Server running on: http://${HOST}:${PORT}`);
-        logger.info(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-        logger.info(`💾 Database: ${dbInitialized ? 'Connected' : 'Disabled'}`);
-        logger.info(`📊 Health check: http://${HOST}:${PORT}/api/health`);
-
-        if (process.env.FRONTEND_URL) {
-            logger.info(`🎨 Frontend URL: ${process.env.FRONTEND_URL}`);
-        }
-    });
-
-    // ... resto del codice graceful shutdown ...
-
-    // Graceful shutdown handling
-    const gracefulShutdown = (signal) => {
-        logger.info(`📴 Received ${signal}. Starting graceful shutdown...`);
-
-        server.close(() => {
-            logger.info('✅ HTTP server closed');
-
-            // Close database connection
-            if (db.closeDatabase) {
-                db.closeDatabase()
-                    .then(() => {
-                        logger.info('✅ Database connection closed');
-                        process.exit(0);
-                    })
-                    .catch((error) => {
-                        logger.error('❌ Error closing database:', error);
-                        process.exit(1);
-                    });
-            } else {
-                process.exit(0);
-            }
+        const existingAdmins = await User.findAll({
+            where: { role: 'admin' },
+            limit: 1
         });
 
-        // Force close after 10 seconds
-        setTimeout(() => {
-            logger.error('❌ Forceful shutdown after 10 seconds');
-            process.exit(1);
-        }, 10000);
-    };
+        if (existingAdmins.length === 0) {
+            logger.info('Nessun admin trovato, creazione admin predefinito...');
 
-    // Handle shutdown signals
-    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+            const ADMIN_CREDENTIALS = {
+                email: process.env.ADMIN_EMAIL || 'admin@coworkspace.test',
+                password: process.env.ADMIN_PASSWORD || 'Admin123',
+                first_name: 'Admin',
+                last_name: 'CoWorkSpace'
+            };
 
-    // Handle uncaught exceptions
-    process.on('uncaughtException', (error) => {
-        logger.error('💥 Uncaught Exception:', error);
-        gracefulShutdown('uncaughtException');
-    });
+            const hashedPassword = await bcrypt.hash(ADMIN_CREDENTIALS.password, 12);
 
-    process.on('unhandledRejection', (reason, promise) => {
-        logger.error('💥 Unhandled Rejection at:', promise, 'reason:', reason);
-        gracefulShutdown('unhandledRejection');
-    });
+            await User.create({
+                email: ADMIN_CREDENTIALS.email,
+                password_hash: hashedPassword,
+                first_name: ADMIN_CREDENTIALS.first_name,
+                last_name: ADMIN_CREDENTIALS.last_name,
+                role: 'admin',
+                status: 'active',
+                email_verified: true,
+                company: 'CoWorkSpace System',
+                google_id: null,
+                avatar_url: null
+            });
 
-    return server;
-};
+            logger.info('✅ Admin predefinito creato con email:', ADMIN_CREDENTIALS.email);
+        } else {
+            logger.info('Admin già esistente nel sistema');
+        }
+    } catch (error) {
+        logger.error('❌ Errore durante la verifica/creazione dell\'admin:', error);
+        throw error;
+    }
+}
 
-// Start the server only if this file is run directly
-if (require.main === module) {
-    startServer().catch((error) => {
+/**
+ * Validates OAuth configuration
+ */
+function validateOAuthConfig() {
+    const requiredVars = [
+        'GOOGLE_CLIENT_ID',
+        'GOOGLE_CLIENT_SECRET'
+    ];
+
+    const missing = requiredVars.filter(varName => !process.env[varName]);
+
+    if (missing.length > 0) {
+        logger.warn('⚠️  Google OAuth configuration incomplete:');
+        missing.forEach(varName => {
+            logger.warn(`   - ${varName}: Missing`);
+        });
+        logger.warn('   Google OAuth will not work until these are configured.');
+        return false;
+    }
+
+    logger.info('✅ Google OAuth configuration validated');
+    logger.info('   - Client ID: Set');
+    logger.info('   - Client Secret: Set');
+    logger.info('   - Redirect URI:', process.env.GOOGLE_REDIRECT_URI || '/api/auth/google/callback');
+    return true;
+}
+
+/**
+ * Initializes database and starts the Express server.
+ */
+const startServer = async () => {
+    try {
+        // 1. Initialize database connection
+        logger.info('🔄 Initializing database connection...');
+        await db.connectDatabase();
+        logger.info('✅ Database connection successful');
+
+        // 2. Validate OAuth configuration
+        const oauthConfigOk = validateOAuthConfig();
+
+        // 3. Ensure default admin exists
+        await ensureDefaultAdmin();
+
+        // 4. Start HTTP server
+        const PORT = process.env.PORT || 3000;
+        const HOST = process.env.HOST || '0.0.0.0';
+
+        const server = app.listen(PORT, HOST, () => {
+            logger.info('🚀 CoWorkSpace API Server started successfully!');
+            logger.info(`🔗 Listening on: http://${HOST}:${PORT}`);
+            logger.info(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+
+            if (oauthConfigOk) {
+                logger.info('🔐 Google OAuth: Ready');
+                logger.info(`   Login URL: http://${HOST}:${PORT}/api/auth/google`);
+            } else {
+                logger.warn('🔐 Google OAuth: Not configured (see warnings above)');
+            }
+
+            logger.info('🏥 Health check: /api/health');
+            logger.info('🔧 OAuth status: /api/oauth/status');
+        });
+
+        // Graceful shutdown handling
+        const gracefulShutdown = (signal) => {
+            logger.info(`🔴 Received ${signal}. Starting graceful shutdown...`);
+            server.close(() => {
+                logger.info('✅ HTTP server closed');
+                db.closeDatabase().then(() => {
+                    logger.info('✅ Database connection closed');
+                    process.exit(0);
+                });
+            });
+        };
+
+        process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+        process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+    } catch (error) {
         logger.error('❌ Failed to start server:', error);
         process.exit(1);
-    });
+    }
+};
+
+// Handle uncaught exceptions globally
+process.on('uncaughtException', (error) => {
+    logger.error('💥 Uncaught Exception:', error);
+    process.exit(1); // Exit immediately on uncaught exceptions
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    logger.error('💥 Unhandled Rejection at:', promise, 'reason:', reason);
+    process.exit(1);
+});
+
+// Start the server if this file is run directly
+if (require.main === module) {
+    startServer();
 }
 
 module.exports = app;

@@ -59,6 +59,12 @@ window.User = {
         });
 
         console.log('✅ User module initialized');
+
+        setTimeout(() => {
+            if (window.User && window.User.updateAuthUI) {
+                window.User.updateAuthUI();
+            }
+        }, 100);
     },
 
     // ==================== CARICAMENTO PROFILO ====================

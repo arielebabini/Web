@@ -89,7 +89,7 @@ class User {
      * @returns {Promise<Object>} Utente aggiornato
      */
     static async updateProfile(userId, updateData) {
-        const allowedFields = ['first_name', 'last_name', 'phone', 'company', 'profile_image'];
+        const allowedFields = ['first_name', 'last_name', 'phone', 'company', 'profile_image', 'google_id', 'avatar_url'];
         const updates = [];
         const values = [];
         let paramIndex = 1;
@@ -111,13 +111,13 @@ class User {
 
         try {
             const result = await query(`
-                UPDATE users
-                SET ${updates.join(', ')}, updated_at = CURRENT_TIMESTAMP
-                WHERE id = $${paramIndex}
-                    RETURNING id, email, first_name, last_name, phone, 
-                         company, role, status, email_verified,
-                         profile_image, created_at, updated_at
-            `, values);
+            UPDATE users
+            SET ${updates.join(', ')}, updated_at = NOW()
+            WHERE id = $${paramIndex}
+            RETURNING id, email, first_name, last_name, phone,
+                     company, role, status, email_verified, google_id,
+                     profile_image, created_at, updated_at
+        `, values);
 
             return result.rows[0];
         } catch (error) {

@@ -330,6 +330,24 @@
                                 <i class="fas fa-sign-in-alt me-2"></i>Accedi
                             </button>
                         </div>
+                        <!-- NUOVO: Divider -->
+                        <div class="text-center my-3">
+                            <hr class="my-2">
+                            <span class="text-muted bg-white px-3">oppure</span>
+                        </div>
+
+                        <!-- NUOVO: Google Login Button -->
+                        <div class="d-grid mb-3">
+                            <a href="http://localhost:3000/api/auth/google" target="_self"  class="btn btn-outline-danger google-login-btn">
+                                <svg class="me-2" width="18" height="18" viewBox="0 0 24 24">
+                                    <path fill="#4285f4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                                    <path fill="#34a853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                                    <path fill="#fbbc05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                                    <path fill="#ea4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                                </svg>
+                                Continua con Google
+                            </a>
+                        </div>
                     </form>
                     <div class="text-center mt-3">
                         <p class="mb-0">Non hai un account?
@@ -918,27 +936,108 @@
         }
     }
 
-
     document.addEventListener('DOMContentLoaded', function() {
-        // Verifica se l'utente è già loggato e aggiorna l'UI
-        if (window.User && window.User.getCurrentUser()) {
-            updateUserMenuDisplay();
+        const urlParams = new URLSearchParams(window.location.search);
+
+        // Gestione Google OAuth callback
+        if (urlParams.get('login_success') === 'true' || urlParams.get('success') === '1') {
+            console.log('OAuth redirect detected. Processing tokens...');
+
+            const token = urlParams.get('token');
+            const refreshToken = urlParams.get('refresh');
+            const userData = urlParams.get('user');
+
+            if (token && userData) {
+                try {
+                    // Salva i token con i nomi che il tuo sistema si aspetta
+                    localStorage.setItem('auth_token', token);  // NON accessToken
+                    localStorage.setItem('refresh_token', refreshToken);
+                    localStorage.setItem('user_data', userData);  // NON user
+
+                    // Decodifica i dati utente
+                    const user = JSON.parse(decodeURIComponent(userData));
+                    console.log('User data decoded:', user);
+
+                    // Pulisci l'URL
+                    window.history.replaceState({}, document.title, window.location.pathname);
+
+                    // Aggiorna l'UI per mostrare l'utente loggato
+                    updateAuthUI(true, user);
+
+                    // Mostra notifica
+                    setTimeout(() => {
+                        if (window.coworkspaceApp && window.coworkspaceApp.showNotification) {
+                            window.coworkspaceApp.showNotification(`Benvenuto ${user.firstName}! Login completato.`, 'success');
+                        } else {
+                            alert(`Benvenuto ${user.firstName}! Login completato.`);
+                        }
+                    }, 500);
+
+                } catch (error) {
+                    console.error('Failed to process OAuth data:', error);
+                    alert('Si è verificato un errore durante il login.');
+                }
+            }
         }
 
-        // Ascolta gli eventi di login/logout per aggiornare l'UI
-        document.addEventListener('userLoggedIn', function(event) {
-            updateUserMenuDisplay();
-        });
+        // Verifica se l'utente è già loggato al caricamento della pagina
+        checkExistingAuth();
+    });
 
-        document.addEventListener('userLoggedOut', function(event) {
-            // Reset dell'UI quando si fa logout
-            const authButtons = document.getElementById('authButtons');
-            const userMenu = document.getElementById('userMenu');
+    function updateAuthUI(isLoggedIn, user = null) {
+        const authButtons = document.getElementById('authButtons');
+        const userMenu = document.getElementById('userMenu');
 
+        console.log('Updating UI:', { isLoggedIn, user });
+
+        if (isLoggedIn && user) {
+            // Nascondi bottoni login/register
+            if (authButtons) authButtons.style.display = 'none';
+            if (userMenu) userMenu.style.display = 'block';
+
+            // Aggiorna informazioni utente - usa i campi corretti dal backend
+            const userFullName = document.getElementById('userFullName');
+            const userEmail = document.getElementById('userEmail');
+            const userInitial = document.getElementById('userInitial');
+
+            if (userFullName) userFullName.textContent = `${user.firstName || user.first_name} ${user.lastName || user.last_name}`;
+            if (userEmail) userEmail.textContent = user.email;
+            if (userInitial) {
+                const firstName = user.firstName || user.first_name || user.email;
+                userInitial.textContent = firstName.charAt(0).toUpperCase();
+            }
+
+            console.log('UI updated successfully');
+
+        } else {
+            // Mostra bottoni login/register
             if (authButtons) authButtons.style.display = 'block';
             if (userMenu) userMenu.style.display = 'none';
-        });
-    });
+        }
+    }
+
+    function checkExistingAuth() {
+        // Usa i nomi corretti che il backend salva
+        const token = localStorage.getItem('auth_token');  // Non 'accessToken'
+        const userData = localStorage.getItem('user_data'); // Non 'user'
+
+        console.log('Checking auth:', { hasToken: !!token, hasUserData: !!userData });
+
+        if (token && userData) {
+            try {
+                const user = JSON.parse(userData);
+                console.log('User data found:', user);
+                updateAuthUI(true, user);
+            } catch (error) {
+                console.error('Error parsing stored user data:', error);
+                // Pulisci dati corrotti
+                localStorage.removeItem('auth_token');
+                localStorage.removeItem('refresh_token');
+                localStorage.removeItem('user_data');
+            }
+        }
+    }
+
 </script>
 
 <!-- Scripts -->

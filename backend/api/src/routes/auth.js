@@ -1,8 +1,9 @@
-// src/routes/auth.js - Authentication routes CORRETTO
+// src/routes/auth.js - Authentication routes with Google OAuth
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const passport = require('passport');
 const { body, validationResult } = require('express-validator');
 const rateLimit = require('express-rate-limit');
 
@@ -78,6 +79,168 @@ const generateTokens = (user) => {
     return { accessToken, refreshToken };
 };
 
+// ==================== GOOGLE OAUTH ROUTES ====================
+
+/**
+ * @route   GET /api/auth/google
+ * @desc    Redirect to Google OAuth
+ * @access  Public
+ */
+router.get('/google', passport.authenticate('google', {
+    scope: ['profile', 'email']
+}));
+
+/**
+ * @route   GET /api/auth/google/callback
+ * @desc    Google OAuth callback
+ * @access  Public
+ */
+// file: auth.js
+
+router.get('/google/callback',
+    passport.authenticate('google', {
+        session: false,
+        failureRedirect: '/login.html?error=oauth_failed' // Anche questo andrebbe reso assoluto
+    }),
+    async (req, res) => {
+        try {
+            const user = req.user;
+
+            if (!user) {
+                // ... (codice esistente)
+            }
+
+            const { accessToken, refreshToken } = generateTokens(user);
+
+            const userData = {
+                id: user.id,
+                email: user.email,
+                firstName: user.first_name,
+                lastName: user.last_name,
+                role: user.role,
+                avatar: user.avatar_url,
+                status: user.status
+            };
+
+            // ==================== MODIFICA CHIAVE QUI ====================
+            // 1. Definisci l'URL del tuo frontend (da una variabile d'ambiente)
+            const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001'; // O la porta corretta
+
+            // 2. Costruisci l'URL di redirect completo
+            const redirectUrl = `${frontendUrl}/index.html?login_success=true&token=${accessToken}&refresh=${refreshToken}&user=${encodeURIComponent(JSON.stringify(userData))}`;
+            // Ho usato "login-success.html" per chiarezza, puoi usare anche "login.html"
+
+            logger.info('Google OAuth successful login, redirecting to frontend', {
+                userId: user.id,
+                redirectTarget: redirectUrl
+            });
+
+            // 3. Esegui il redirect all'URL assoluto del frontend
+            res.redirect(redirectUrl);
+            // ==========================================================
+
+        } catch (error) {
+            logger.error('Google OAuth callback error:', error);
+            const errorRedirectUrl = `${process.env.FRONTEND_URL || 'http://localhost:3001'}/login.html?error=oauth_callback_failed`;
+            res.redirect(errorRedirectUrl);
+        }
+    }
+);
+
+
+/**
+ * @route   POST /api/auth/google/mobile
+ * @desc    Mobile Google OAuth (for future mobile app)
+ * @access  Public
+ */
+router.post('/google/mobile', async (req, res) => {
+    try {
+        const { googleToken } = req.body;
+
+        if (!googleToken) {
+            return res.status(400).json({
+                success: false,
+                message: 'Google token richiesto'
+            });
+        }
+
+        // Import Google Auth Library
+        const { OAuth2Client } = require('google-auth-library');
+        const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+        // Verify Google token
+        const ticket = await client.verifyIdToken({
+            idToken: googleToken,
+            audience: process.env.GOOGLE_CLIENT_ID
+        });
+
+        const payload = ticket.getPayload();
+
+        // Find or create user
+        let user = await User.findOne({ where: { email: payload.email } });
+
+        if (!user) {
+            // Create new user from Google data
+            user = await User.create({
+                google_id: payload.sub,
+                email: payload.email,
+                first_name: payload.given_name || 'User',
+                last_name: payload.family_name || '',
+                avatar_url: payload.picture,
+                status: 'active',
+                role: 'client',
+                email_verified: true,
+                password_hash: null // No password for OAuth users
+            });
+
+            logger.info('New user created via Google Mobile OAuth:', {
+                userId: user.id,
+                email: user.email
+            });
+        } else if (!user.google_id) {
+            // Link existing account with Google
+            await user.update({
+                google_id: payload.sub,
+                avatar_url: payload.picture || user.avatar_url
+            });
+
+            logger.info('Existing user linked with Google:', {
+                userId: user.id,
+                email: user.email
+            });
+        }
+
+        const { accessToken, refreshToken } = generateTokens(user);
+
+        res.json({
+            success: true,
+            message: 'Login Google completato',
+            data: {
+                token: accessToken,
+                refreshToken,
+                user: {
+                    id: user.id,
+                    email: user.email,
+                    firstName: user.first_name,
+                    lastName: user.last_name,
+                    role: user.role,
+                    avatar: user.avatar_url,
+                    status: user.status
+                }
+            }
+        });
+
+    } catch (error) {
+        logger.error('Mobile Google OAuth error:', error);
+        res.status(400).json({
+            success: false,
+            message: 'Token Google non valido'
+        });
+    }
+});
+
+// ==================== EXISTING ROUTES ====================
+
 /**
  * @route   GET /api/auth/setup-status
  * @desc    Verifica se esiste già un admin nel sistema
@@ -140,6 +303,8 @@ router.post('/create-default-admin', async (req, res) => {
             email_verified: true,
             phone: null,
             company: 'CoWorkSpace System',
+            google_id: null,
+            avatar_url: null,
             created_at: new Date(),
             updated_at: new Date()
         });
@@ -270,7 +435,9 @@ router.post('/register', registerValidation, async (req, res) => {
             company: company || null,
             role: 'client', // Default role
             status: 'active',
-            email_verified: false
+            email_verified: false,
+            google_id: null,
+            avatar_url: null
         };
 
         const user = await User.create(userData);
@@ -343,7 +510,14 @@ router.post('/login', loginValidation, async (req, res) => {
             });
         }
 
-        // Verifica password
+        // Verifica password (solo per utenti non OAuth)
+        if (!user.password_hash) {
+            return res.status(401).json({
+                success: false,
+                message: 'Account creato tramite Google. Usa il login Google.'
+            });
+        }
+
         const isValidPassword = await bcrypt.compare(password, user.password_hash);
         if (!isValidPassword) {
             logger.warn('Invalid password attempt:', {
@@ -374,6 +548,7 @@ router.post('/login', loginValidation, async (req, res) => {
         logger.info('User logged in successfully:', {
             userId: user.id,
             email: user.email,
+            loginMethod: user.google_id ? 'google' : 'password',
             ip: req.ip
         });
 
@@ -519,6 +694,14 @@ router.post('/forgot-password', [
             });
         }
 
+        // Non permettere reset per utenti OAuth
+        if (!user.password_hash) {
+            return res.json({
+                success: true,
+                message: 'Se l\'email esiste, riceverai istruzioni per il reset'
+            });
+        }
+
         // Genera token reset (semplificato per demo)
         const resetToken = jwt.sign(
             { userId: user.id, type: 'reset' }, // ✅ Qui può rimanere userId per differenziarlo
@@ -574,7 +757,9 @@ router.get('/me', requireAuth, async (req, res) => {
 
         res.json({
             success: true,
-            user: userResponse
+            message: 'Google OAuth successful!',
+            user: userData,
+            tokens: { accessToken, refreshToken }
         });
 
     } catch (error) {
