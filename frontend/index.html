@@ -5,16 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CoWorkSpace - Gestione Spazi Condivisi</title>
 
-    <!-- Meta Tags -->
     <meta name="description" content="Piattaforma per la prenotazione di spazi di coworking in Italia">
     <meta name="keywords" content="coworking, spazi, uffici, prenotazioni, lavoro">
 
-    <!-- Bootstrap CSS -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 
-    <!-- Custom CSS Files - PERCORSI CORRETTI -->
     <link rel="stylesheet" href="assets/css/variables.css">
     <link rel="stylesheet" href="assets/css/components.css">
     <link rel="stylesheet" href="assets/css/layout.css">
@@ -24,7 +20,6 @@
 </head>
 
 <body>
-<!-- Navigation -->
 <nav class="navbar navbar-expand-lg navbar-light fixed-top">
     <div class="container">
         <a class="navbar-brand" href="#" onclick="showSection('home')">
@@ -99,7 +94,6 @@
     </div>
 </nav>
 
-<!-- Profilo Utente -->
 <div class="modal fade" id="profileModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -170,9 +164,7 @@
     }
 </style>
 
-<!-- Main Content Container -->
 <div id="mainContent">
-    <!-- Home Section -->
     <section id="homeSection" class="hero-section">
         <div class="hero-background"></div>
         <div class="container">
@@ -270,14 +262,11 @@
         </div>
     </section>
 
-    <!-- Contenitore per le altre sezioni -->
     <div id="dynamicContent">
-        <!-- Sezione Spazi -->
         <section id="spacesSection" class="py-5" style="display: none;">
             <div class="container">
                 <h1 class="text-center mb-5">Spazi di Coworking</h1>
 
-                <!-- Container per gli spazi -->
                 <div class="row" id="spacesContainer">
                     <div class="col-12 text-center">
                         <p>Caricamento spazi...</p>
@@ -299,9 +288,7 @@
     </div>
 </div>
 
-<!-- Modals Container -->
 <div id="modals-container">
-    <!-- Modal Login -->
     <div class="modal fade" id="loginModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -330,13 +317,11 @@
                                 <i class="fas fa-sign-in-alt me-2"></i>Accedi
                             </button>
                         </div>
-                        <!-- NUOVO: Divider -->
                         <div class="text-center my-3">
                             <hr class="my-2">
                             <span class="text-muted bg-white px-3">oppure</span>
                         </div>
 
-                        <!-- NUOVO: Google Login Button -->
                         <div class="d-grid mb-3">
                             <a href="http://localhost:3000/api/auth/google" target="_self"  class="btn btn-outline-danger google-login-btn">
                                 <svg class="me-2" width="18" height="18" viewBox="0 0 24 24">
@@ -359,7 +344,6 @@
         </div>
     </div>
 
-    <!-- Modal Register -->
     <div class="modal fade" id="registerModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -432,10 +416,8 @@
     </div>
 </div>
 
-<!-- Notification Container -->
 <div id="notificationContainer" class="notification-container"></div>
 
-<!-- Loading Overlay -->
 <div id="loadingOverlay" class="loading-overlay" style="display: none;">
     <div class="loading-spinner">
         <div class="spinner-border text-primary" role="status">
@@ -445,7 +427,6 @@
     </div>
 </div>
 
-<!-- Footer -->
 <footer class="bg-dark text-white py-5 mt-5">
     <div class="container">
         <div class="row">
@@ -506,7 +487,6 @@
             </div>
         </div>
 
-        <!-- Newsletter Subscription -->
         <div class="row mt-4 pt-4 border-top border-secondary">
             <div class="col-lg-6 mb-4">
                 <h6>📧 Resta aggiornato</h6>
@@ -555,7 +535,6 @@
     </div>
 </footer>
 
-<!-- Cookie Banner -->
 <div id="cookieBanner" class="cookie-banner" style="display: none;">
     <div class="container">
         <div class="row align-items-center">
@@ -573,477 +552,12 @@
     </div>
 </div>
 
-<!-- Back to Top Button -->
 <button id="backToTop" class="back-to-top" style="display: none;" onclick="scrollToTop()">
     <i class="fas fa-chevron-up"></i>
 </button>
 
-
-<script>
-
-    const resetPasswordForm = document.getElementById('resetPasswordForm');
-    if (resetPasswordForm) {
-        resetPasswordForm.addEventListener('submit', function(event) {
-            event.preventDefault();
-
-            const email = document.getElementById('resetEmail').value;
-            const newPassword = document.getElementById('newPassword').value;
-            const confirmNewPassword = document.getElementById('confirmNewPassword').value;
-
-            // --- Validazione Frontend ---
-            if (!email || !newPassword || !confirmNewPassword) {
-                alert('Per favore, compila tutti i campi.');
-                return;
-            }
-
-            if (newPassword !== confirmNewPassword) {
-                alert('Le password non coincidono. Riprova.');
-                return;
-            }
-
-            // --- SIMULAZIONE QUERY DATABASE ---
-            // ATTENZIONE: Questa è solo una simulazione a scopo di sviluppo.
-            // La password non dovrebbe mai essere gestita o inviata in chiaro in questo modo.
-            console.log('--- 🚀 SIMULAZIONE AGGIORNAMENTO DATABASE ---');
-            console.log(`UPDATE users SET password = '[HASHED_PASSWORD]' WHERE email = '${email}';`);
-            console.log('Password in chiaro da "hashare":', newPassword);
-            console.log('-----------------------------------------');
-
-            // Chiudi il modal
-            const resetModal = bootstrap.Modal.getInstance(document.getElementById('resetPasswordModal'));
-            resetModal.hide();
-
-            // Mostra notifica di successo
-            if (window.coworkspaceApp && window.coworkspaceApp.showNotification) {
-                window.coworkspaceApp.showNotification('Password aggiornata con successo!', 'success');
-            } else {
-                alert('Password aggiornata con successo!');
-            }
-
-            // Pulisci i campi del form
-            resetPasswordForm.reset();
-        });
-    }
-
-    function showProfile() {
-        console.log('🔍 Opening profile modal...');
-
-        let currentUser = null;
-
-        // Verifica coworkspaceApp
-        console.log('🔍 Checking coworkspaceApp:', {
-            exists: !!window.coworkspaceApp,
-            hasState: !!(window.coworkspaceApp && window.coworkspaceApp.state),
-            hasCurrentUser: !!(window.coworkspaceApp && window.coworkspaceApp.state && window.coworkspaceApp.state.currentUser)
-        });
-
-        if (window.coworkspaceApp && window.coworkspaceApp.state && window.coworkspaceApp.state.currentUser) {
-            currentUser = window.coworkspaceApp.state.currentUser;
-            console.log('✅ User found from coworkspaceApp:', currentUser);
-        }
-        else {
-            console.log('⚠️ User not found in coworkspaceApp, trying localStorage...');
-            try {
-                const userJson = localStorage.getItem('user');
-                console.log('🔍 localStorage user JSON:', userJson);
-
-                if (userJson) {
-                    currentUser = JSON.parse(userJson);
-                    console.log('✅ User found from localStorage:', currentUser);
-                } else {
-                    console.log('❌ No user data in localStorage');
-                }
-            } catch (error) {
-                console.error('❌ Error parsing user data:', error);
-            }
-        }
-
-        // CONTROLLO CRITICO
-        if (!currentUser) {
-            console.log('❌ No user found anywhere!');
-            alert('Devi essere loggato per vedere il tuo profilo.');
-            return;
-        }
-
-        console.log('🎯 About to call populateProfileModal with user:', currentUser);
-
-        // Mostra il modal
-        const profileModal = new bootstrap.Modal(document.getElementById('profileModal'));
-        profileModal.show();
-
-        // Popola con un piccolo delay per essere sicuri che il modal sia visibile
-        setTimeout(() => {
-            populateProfileModal(currentUser);
-        }, 200);
-    }
-
-    function populateProfileModal(user) {
-        console.log('📝 Populating profile modal with user:', user);
-
-        if (!user) {
-            console.error('❌ User object is null or undefined!');
-            alert('Errore: dati utente non disponibili');
-            return;
-        }
-
-        if (typeof user !== 'object') {
-            console.error('❌ User is not an object:', typeof user, user);
-            alert('Errore: formato dati utente non valido');
-            return;
-        }
-
-        console.log('✅ User object is valid, proceeding with mapping...');
-
-        // Mappatura dei campi (gestisce diverse varianti)
-        const userData = {
-            firstName: user.first_name || user.firstName || user.name || '',
-            lastName: user.last_name || user.lastName || user.surname || '',
-            email: user.email || '',
-            phone: user.phone || user.phoneNumber || '',
-            company: user.company || user.company_name || '',
-            role: user.role || 'user'
-        };
-
-        console.log('🔄 Mapped user data:', userData);
-
-        // Popola campi di visualizzazione (read-only)
-        const profileName = document.getElementById('profileName');
-        const profileSurname = document.getElementById('profileSurname');
-        const profileEmail = document.getElementById('profileEmail');
-        const profilePhone = document.getElementById('profilePhone');
-        const profileCompany = document.getElementById('profileCompany');
-
-        if (profileName) {
-            profileName.textContent = userData.firstName || '-';
-            console.log('✅ Set profileName:', userData.firstName);
-        }
-        if (profileSurname) {
-            profileSurname.textContent = userData.lastName || '-';
-            console.log('✅ Set profileSurname:', userData.lastName);
-        }
-        if (profileEmail) {
-            profileEmail.textContent = userData.email || '-';
-            console.log('✅ Set profileEmail:', userData.email);
-        }
-        if (profilePhone) {
-            profilePhone.textContent = userData.phone || '-';
-            console.log('✅ Set profilePhone:', userData.phone);
-        }
-        if (profileCompany) {
-            profileCompany.textContent = userData.company || '-';
-            console.log('✅ Set profileCompany:', userData.company);
-        }
-
-        // Popola campi di input per la modifica
-        const profileNameInput = document.getElementById('profileNameInput');
-        const profileSurnameInput = document.getElementById('profileSurnameInput');
-        const profilePhoneInput = document.getElementById('profilePhoneInput');
-        const profileCompanyInput = document.getElementById('profileCompanyInput');
-        const profileEmailStatic = document.getElementById('profileEmailStatic');
-
-        if (profileNameInput) {
-            profileNameInput.value = userData.firstName;
-            console.log('✅ Set profileNameInput:', userData.firstName);
-        }
-        if (profileSurnameInput) {
-            profileSurnameInput.value = userData.lastName;
-            console.log('✅ Set profileSurnameInput:', userData.lastName);
-        }
-        if (profilePhoneInput) {
-            profilePhoneInput.value = userData.phone;
-            console.log('✅ Set profilePhoneInput:', userData.phone);
-        }
-        if (profileCompanyInput) {
-            profileCompanyInput.value = userData.company;
-            console.log('✅ Set profileCompanyInput:', userData.company);
-        }
-        if (profileEmailStatic) {
-            profileEmailStatic.textContent = userData.email;
-            console.log('✅ Set profileEmailStatic:', userData.email);
-        }
-
-        // Popola statistiche (opzionale - dati mockup per ora)
-        populateUserStats(user);
-    }
-
-    function populateUserStats(user) {
-        // Trova gli elementi delle statistiche
-        const statElements = document.querySelectorAll('.profile-stats .stat-number');
-
-        if (statElements.length >= 4) {
-            // Usa dati reali se disponibili, altrimenti mockup
-            statElements[0].textContent = user.total_bookings || '0'; // Prenotazioni
-            statElements[1].textContent = user.total_favorites || '0'; // Preferiti
-            statElements[2].textContent = user.total_spent ? `€${user.total_spent}` : '€0'; // Speso
-
-            // Calcola giorni di membership
-            let memberDays = 0;
-            if (user.created_at || user.createdAt || user.registration_date) {
-                const createdDate = new Date(user.created_at || user.createdAt || user.registration_date);
-                const now = new Date();
-                memberDays = Math.floor((now - createdDate) / (1000 * 60 * 60 * 24));
-            }
-            statElements[3].textContent = memberDays > 0 ? memberDays.toString() : '0';
-
-            console.log('✅ Stats populated');
-        }
-    }
-
-    function saveProfile() {
-        console.log('💾 Saving profile changes...');
-
-        // Ottieni l'utente corrente
-        let currentUser = null;
-        if (window.coworkspaceApp && window.coworkspaceApp.state && window.coworkspaceApp.state.currentUser) {
-            currentUser = window.coworkspaceApp.state.currentUser;
-        } else {
-            try {
-                const userJson = localStorage.getItem('user');
-                if (userJson) {
-                    currentUser = JSON.parse(userJson);
-                }
-            } catch (error) {
-                console.error('❌ Error getting current user:', error);
-                alert('Errore nel caricamento dei dati utente');
-                return;
-            }
-        }
-
-        if (!currentUser) {
-            alert('Errore: utente non trovato');
-            return;
-        }
-
-        // Raccogli i dati dai campi di input
-        const updatedData = {
-            first_name: document.getElementById('profileNameInput')?.value || currentUser.first_name,
-            last_name: document.getElementById('profileSurnameInput')?.value || currentUser.last_name,
-            phone: document.getElementById('profilePhoneInput')?.value || currentUser.phone,
-            company: document.getElementById('profileCompanyInput')?.value || currentUser.company,
-            email: currentUser.email // L'email non si può modificare
-        };
-
-        console.log('📤 Sending updated data:', updatedData);
-
-        // Per ora salva solo localmente (in attesa del backend)
-        const mergedUser = { ...currentUser, ...updatedData };
-
-        try {
-            // Aggiorna localStorage
-            localStorage.setItem('user', JSON.stringify(mergedUser));
-
-            // Aggiorna lo stato dell'app se disponibile
-            if (window.coworkspaceApp && window.coworkspaceApp.state) {
-                window.coworkspaceApp.state.currentUser = mergedUser;
-            }
-
-            // Mostra messaggio di successo
-            if (window.coworkspaceApp && window.coworkspaceApp.showNotification) {
-                window.coworkspaceApp.showNotification('Profilo aggiornato con successo!', 'success');
-            } else {
-                alert('Profilo aggiornato con successo!');
-            }
-
-            // Chiudi il modal
-            const profileModal = bootstrap.Modal.getInstance(document.getElementById('profileModal'));
-            if (profileModal) profileModal.hide();
-
-            // Aggiorna l'UI del menu utente
-            updateUserMenuDisplay();
-
-            console.log('✅ Profile saved successfully');
-
-        } catch (error) {
-            console.error('❌ Error saving profile:', error);
-            if (window.coworkspaceApp && window.coworkspaceApp.showNotification) {
-                window.coworkspaceApp.showNotification('Errore durante il salvataggio del profilo', 'error');
-            } else {
-                alert('Errore durante il salvataggio del profilo');
-            }
-        }
-    }
-
-    function updateUserMenuDisplay() {
-        console.log('🔄 Updating user menu display...');
-
-        let currentUser = null;
-        if (window.coworkspaceApp && window.coworkspaceApp.state && window.coworkspaceApp.state.currentUser) {
-            currentUser = window.coworkspaceApp.state.currentUser;
-        } else {
-            try {
-                const userJson = localStorage.getItem('user');
-                if (userJson) {
-                    currentUser = JSON.parse(userJson);
-                }
-            } catch (error) {
-                console.error('❌ Error getting current user:', error);
-            }
-        }
-
-        if (currentUser) {
-            // Aggiorna elementi nel navbar
-            const userFullName = document.getElementById('userFullName');
-            const userEmail = document.getElementById('userEmail');
-            const userInitial = document.getElementById('userInitial');
-
-            if (userFullName) {
-                const fullName = `${currentUser.first_name || ''} ${currentUser.last_name || ''}`.trim();
-                userFullName.textContent = fullName || 'Utente';
-            }
-            if (userEmail) {
-                userEmail.textContent = currentUser.email || '';
-            }
-            if (userInitial) {
-                const name = currentUser.first_name || currentUser.email || 'U';
-                userInitial.textContent = name.charAt(0).toUpperCase();
-            }
-
-            console.log('✅ User menu display updated');
-        }
-    }
-
-    // DEBUG: Funzione per verificare lo stato dell'utente
-    function debugProfileModal() {
-        console.log('🔍 DEBUG PROFILE MODAL:');
-
-        const modal = document.getElementById('profileModal');
-        console.log('profileModal exists:', !!modal);
-
-        if (modal) {
-            const elements = {
-                profileName: document.getElementById('profileName'),
-                profileSurname: document.getElementById('profileSurname'),
-                profileEmail: document.getElementById('profileEmail'),
-                profilePhone: document.getElementById('profilePhone'),
-                profileCompany: document.getElementById('profileCompany'),
-                profileNameInput: document.getElementById('profileNameInput'),
-                profileSurnameInput: document.getElementById('profileSurnameInput'),
-                profilePhoneInput: document.getElementById('profilePhoneInput'),
-                profileCompanyInput: document.getElementById('profileCompanyInput'),
-                profileEmailStatic: document.getElementById('profileEmailStatic')
-            };
-
-            console.log('Modal elements found:');
-            Object.entries(elements).forEach(([key, element]) => {
-                console.log(`- ${key}:`, !!element, element ? `(${element.tagName})` : '');
-                if (element) {
-                    console.log(`  Content: "${element.textContent || element.value || 'empty'}"`);
-                }
-            });
-
-            // Mostra la struttura HTML del modal
-            console.log('Modal HTML structure:', modal.innerHTML.substring(0, 500) + '...');
-        }
-    }
-
-    document.addEventListener('DOMContentLoaded', function() {
-        const urlParams = new URLSearchParams(window.location.search);
-
-        // Gestione Google OAuth callback
-        if (urlParams.get('login_success') === 'true' || urlParams.get('success') === '1') {
-            console.log('OAuth redirect detected. Processing tokens...');
-
-            const token = urlParams.get('token');
-            const refreshToken = urlParams.get('refresh');
-            const userData = urlParams.get('user');
-
-            if (token && userData) {
-                try {
-                    // Salva i token con i nomi che il tuo sistema si aspetta
-                    localStorage.setItem('auth_token', token);  // NON accessToken
-                    localStorage.setItem('refresh_token', refreshToken);
-                    localStorage.setItem('user_data', userData);  // NON user
-
-                    // Decodifica i dati utente
-                    const user = JSON.parse(decodeURIComponent(userData));
-                    console.log('User data decoded:', user);
-
-                    // Pulisci l'URL
-                    window.history.replaceState({}, document.title, window.location.pathname);
-
-                    // Aggiorna l'UI per mostrare l'utente loggato
-                    updateAuthUI(true, user);
-
-                    // Mostra notifica
-                    setTimeout(() => {
-                        if (window.coworkspaceApp && window.coworkspaceApp.showNotification) {
-                            window.coworkspaceApp.showNotification(`Benvenuto ${user.firstName}! Login completato.`, 'success');
-                        } else {
-                            alert(`Benvenuto ${user.firstName}! Login completato.`);
-                        }
-                    }, 500);
-
-                } catch (error) {
-                    console.error('Failed to process OAuth data:', error);
-                    alert('Si è verificato un errore durante il login.');
-                }
-            }
-        }
-
-        // Verifica se l'utente è già loggato al caricamento della pagina
-        checkExistingAuth();
-    });
-
-    function updateAuthUI(isLoggedIn, user = null) {
-        const authButtons = document.getElementById('authButtons');
-        const userMenu = document.getElementById('userMenu');
-
-        console.log('Updating UI:', { isLoggedIn, user });
-
-        if (isLoggedIn && user) {
-            // Nascondi bottoni login/register
-            if (authButtons) authButtons.style.display = 'none';
-            if (userMenu) userMenu.style.display = 'block';
-
-            // Aggiorna informazioni utente - usa i campi corretti dal backend
-            const userFullName = document.getElementById('userFullName');
-            const userEmail = document.getElementById('userEmail');
-            const userInitial = document.getElementById('userInitial');
-
-            if (userFullName) userFullName.textContent = `${user.firstName || user.first_name} ${user.lastName || user.last_name}`;
-            if (userEmail) userEmail.textContent = user.email;
-            if (userInitial) {
-                const firstName = user.firstName || user.first_name || user.email;
-                userInitial.textContent = firstName.charAt(0).toUpperCase();
-            }
-
-            console.log('UI updated successfully');
-
-        } else {
-            // Mostra bottoni login/register
-            if (authButtons) authButtons.style.display = 'block';
-            if (userMenu) userMenu.style.display = 'none';
-        }
-    }
-
-    function checkExistingAuth() {
-        // Usa i nomi corretti che il backend salva
-        const token = localStorage.getItem('auth_token');  // Non 'accessToken'
-        const userData = localStorage.getItem('user_data'); // Non 'user'
-
-        console.log('Checking auth:', { hasToken: !!token, hasUserData: !!userData });
-
-        if (token && userData) {
-            try {
-                const user = JSON.parse(userData);
-                console.log('User data found:', user);
-                updateAuthUI(true, user);
-            } catch (error) {
-                console.error('Error parsing stored user data:', error);
-                // Pulisci dati corrotti
-                localStorage.removeItem('auth_token');
-                localStorage.removeItem('refresh_token');
-                localStorage.removeItem('user_data');
-            }
-        }
-    }
-
-</script>
-
-<!-- Scripts -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
 
-<!-- Custom Scripts - PERCORSI CORRETTI -->
 <script src="assets/js/app.js"></script>
 <script src="assets/js/user.js"></script>
 <script src="assets/js/booking.js"></script>

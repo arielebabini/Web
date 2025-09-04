@@ -932,9 +932,6 @@ window.Navigation = {
                                     <p>Non hai un account? 
                                         <a href="#" onclick="App.navigation.showSection('register')">Registrati</a>
                                     </p>
-                                    <a href="#" onclick="alert('Funzione di recupero password in arrivo!')">
-                                        Hai dimenticato la password?
-                                    </a>
                                 </div>
                             </div>
                         </div>

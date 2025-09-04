@@ -184,9 +184,6 @@
                         <p class="mb-0">Non hai un account?
                             <a href="#" onclick="switchToRegister()">Registrati qui</a>
                         </p>
-                        <a href="#" class="text-muted small" onclick="alert('Funzione di recupero password in arrivo!')">
-                            Hai dimenticato la password?
-                        </a>
                     </div>
                 </div>
             </div>
@@ -444,9 +441,6 @@
                 </div>
 
                 <div class="space-actions">
-                    <button class="btn btn-outline-primary btn-details" onclick="viewSpaceDetails('${space.id}')">
-                        Dettagli
-                    </button>
                     <button class="btn btn-primary btn-book" onclick="bookSpace('${space.id}')">
                         Prenota
                     </button>
@@ -510,14 +504,6 @@
 
         console.log('✅ Spaces page ready');
     });
-
-    window.viewSpaceDetails = function(spaceId) {
-        console.log('👁️ Viewing details for space:', spaceId);
-        if (window.showNotification) {
-            window.showNotification('Dettagli spazio in arrivo...', 'info');
-        }
-        // Qui implementerai il modal dei dettagli
-    };
 
     // Override della funzione bookSpace esistente
     window.bookSpace = function(spaceId) {
