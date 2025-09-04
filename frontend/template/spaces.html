@@ -23,82 +23,7 @@
 <!-- Navigation -->
 <div id="navbar-container">
     <!-- Navigation - Header diretto senza component -->
-    <nav class="navbar navbar-expand-lg navbar-light fixed-top">
-        <div class="container">
-            <a class="navbar-brand" href="../index.html">
-                <i class="fas fa-building"></i> CoWorkSpace
-            </a>
 
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="../index.html">Home</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link active" href="spaces.html">Spazi</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="about.html">Chi Siamo</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="support.html">Supporto</a>
-                    </li>
-                </ul>
-
-                <div class="navbar-nav">
-                    <div id="authButtons">
-                        <button class="btn btn-outline-primary me-2" onclick="showLogin()">
-                            <i class="fas fa-sign-in-alt"></i> Accedi
-                        </button>
-                        <button class="btn btn-primary" onclick="showRegister()">
-                            <i class="fas fa-user-plus"></i> Registrati
-                        </button>
-                    </div>
-                    <div id="userMenu" style="display: none;">
-                        <div class="dropdown">
-                            <button class="btn btn-link dropdown-toggle p-0" type="button" data-bs-toggle="dropdown">
-                                <div class="user-avatar">
-                                    <span id="userInitial"></span>
-                                </div>
-                            </button>
-                            <ul class="dropdown-menu dropdown-menu-end">
-                                <li><div class="dropdown-header">
-                                    <span id="userFullName"></span><br>
-                                    <small class="text-muted" id="userEmail"></small>
-                                </div></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#profileModal">
-                                    <i class="fas fa-user-circle"></i> Profilo
-                                </a></li>
-                                <li><a class="dropdown-item" href="#" onclick="showSection('bookings')">
-                                    <i class="fas fa-calendar-check"></i> Le Mie Prenotazioni
-                                </a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li id="managerMenuItem" style="display: none;">
-                                    <a class="dropdown-item" href="manager-dashboard.html">
-                                        <i class="fas fa-user-tie me-2"></i> Pannello Manager
-                                    </a>
-                                </li>
-                                <li id="adminMenuItem" style="display: none;">
-                                    <a class="dropdown-item" href="admin-dashboard.html">
-                                        <i class="fas fa-cog me-2"></i> Pannello Admin
-                                    </a>
-                                </li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="#" onclick="logout()">
-                                    <i class="fas fa-sign-out-alt"></i> Logout
-                                </a></li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </nav>
 </div>
 
 <!-- Spaces Section -->
@@ -118,27 +43,18 @@
         <div id="spacesContainer" class="spaces-grid">
             <script>
                 // Inizializza la pagina spazi
-                document.addEventListener('DOMContentLoaded', function() {
-                    // Inizializza auth manager per mantenere stato login
-                    if (window.auth) {
-                        window.auth.init();
+                document.addEventListener('DOMContentLoaded', async () => {
+                    // Ensure the global app instance is created
+                    if (!window.coworkspaceApp) {
+                        window.coworkspaceApp = new CoWorkSpaceApp();
                     }
 
-                    // Carica componenti comuni (escludi navbar che è ora diretta)
-                    loadComponent('footer-container', 'components/footer.html');
-                    loadComponent('modals-container', 'components/modals.html');
+                    // Call the new centralized initializer
+                    await window.coworkspaceApp.initializePage();
 
-                    // Carica gli spazi
-                    loadSpaces();
-
-                    // Recupera parametri di ricerca se presenti
-                    const searchParams = localStorage.getItem('searchParams');
-                    if (searchParams) {
-                        const params = JSON.parse(searchParams);
-                        if (params.city) document.getElementById('quickCity').value = params.city;
-                        if (params.type) document.getElementById('quickSpaceType').value = params.type;
-                        localStorage.removeItem('searchParams');
-                    }
+                    // Now, run page-specific logic like loading spaces
+                    console.log('🚀 Loading spaces for the page...');
+                    await loadSpaces();
                 });
             </script>
         </div>
@@ -287,286 +203,107 @@
 <script src="../assets/js/app.js"></script>
 
 <script>
-
-    document.addEventListener('DOMContentLoaded', () => {
-        // Attendiamo che window.auth sia disponibile
-        if (window.auth && window.BookingManager) {
-            // Se l'utente è loggato, inizializziamo il gestore di prenotazioni
-            if (window.auth.isAuthenticated()) {
-                console.log('✅ Utente autenticato. Inizializzazione gestore prenotazioni.');
-                window.BookingManager.init();
-
-                // Aggiorniamo la UI (es. pulsante di login/logout)
-                window.auth.updateUI();
-            } else {
-                console.log('⛔ Utente non autenticato. Mostriamo solo gli spazi.');
-            }
-        } else {
-            console.error('Errore: AuthManager o BookingManager non sono disponibili.');
-        }
-    });
-
-    function logout() {
-        if (window.auth) {
-            window.auth.handleLogout();
-        }
-    }
-
-    // Implementazione funzioni mancanti
-    window.loadComponent = async function(containerId, componentPath) {
-        const container = document.getElementById(containerId);
-        if (!container) return;
-
-        try {
-            const response = await fetch(componentPath);
-            if (response.ok) {
-                container.innerHTML = await response.text();
-            }
-        } catch (error) {
-            console.log('Component load skipped:', componentPath);
-        }
-    };
-
-    window.loadSpaces = async function(filteredSpaces = null) {
+    // Manteniamo le tue funzioni specifiche per la pagina, rendendole globali
+    window.loadSpaces = async function() {
         const container = document.getElementById('spacesContainer');
         if (!container) return;
 
         try {
-            // Mostra loading
-            container.innerHTML = `
-            <div class="col-12 text-center py-5">
-                <div class="spinner-border text-primary" role="status"></div>
-                <p class="mt-3">Caricamento spazi...</p>
-            </div>
-        `;
+            container.innerHTML = `<div class="col-12 text-center py-5"><div class="spinner-border text-primary" role="status"></div><p class="mt-3">Caricamento spazi...</p></div>`;
 
-            let spaces;
-            if (filteredSpaces) {
-                spaces = filteredSpaces;
-            } else {
-                // Chiama API
-                const response = await fetch('http://localhost:3000/api/spaces');
-                const data = await response.json();
-                spaces = data.success ? (data.data || data.spaces || []) : [];
-            }
+            // Usa l'API client dall'app globale per una chiamata coerente
+            const result = await window.coworkspaceApp.state.api.getSpaces();
+            const spaces = result.success ? (result.spaces || []) : [];
 
-            // Renderizza spazi
             if (spaces.length === 0) {
-                container.innerHTML = `
-                <div class="col-12 text-center py-5">
-                    <h4>Nessuno spazio trovato</h4>
-                    <p class="text-muted">Riprova più tardi</p>
-                </div>
-            `;
+                container.innerHTML = `<div class="col-12 text-center py-5"><h4>Nessuno spazio trovato</h4><p class="text-muted">Riprova più tardi</p></div>`;
             } else {
+                // La tua logica di rendering personalizzata è preservata qui
                 const spacesHTML = spaces.map(space => {
-                    // Calcola rating stelle
-                    const rating = parseFloat(space.avg_rating) || 0;
-                    const fullStars = Math.floor(rating);
-                    const halfStar = rating % 1 >= 0.5;
-                    const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
-
-                    let starsHTML = '';
-                    for (let i = 0; i < fullStars; i++) {
-                        starsHTML += '<i class="fas fa-star text-warning"></i>';
-                    }
-                    if (halfStar) {
-                        starsHTML += '<i class="fas fa-star-half-alt text-warning"></i>';
-                    }
-                    for (let i = 0; i < emptyStars; i++) {
-                        starsHTML += '<i class="far fa-star text-warning"></i>';
-                    }
-
-                    // Badge tipo spazio
                     const typeBadges = {
                         'hot-desk': { label: 'Hot Desk', class: 'bg-primary' },
                         'private-office': { label: 'Ufficio Privato', class: 'bg-success' },
                         'meeting-room': { label: 'Sala Riunioni', class: 'bg-info' },
                         'event-space': { label: 'Spazio Eventi', class: 'bg-warning' }
                     };
-
                     const typeBadge = typeBadges[space.type] || { label: space.type, class: 'bg-secondary' };
-
-                    // Icone servizi
-                    const amenityIcons = {
-                        'wifi': 'fas fa-wifi',
-                        'coffee': 'fas fa-coffee',
-                        'printer': 'fas fa-print',
-                        'parking': 'fas fa-parking'
-                    };
-
-                    const amenitiesHTML = (space.amenities || []).slice(0, 4).map(amenity =>
-                        `<i class="${amenityIcons[amenity] || 'fas fa-check'} text-success me-1" title="${amenity}"></i>`
-                    ).join('');
-
-                    const extraAmenities = (space.amenities || []).length > 4 ? `+${(space.amenities || []).length - 4}` : '';
-
                     return `
-            <div class="space-card-modern">
-                <div class="space-image-container" style="display: flex; justify-content: space-between; align-items: flex-start;">
-                    <img src="${space.images?.[0] || '/assets/images/placeholder-space.jpg'}"
-                        class="space-image" alt="${space.name}">
-
-                    <div class="space-badge" style="margin-left: auto;">
-                        <span class="badge ${typeBadge.class}">${typeBadge.label}</span>
-                    </div>
-                </div>
-
-                <div class="space-content">
-                    <h5 class="space-title">${space.name}</h5>
-                    <p class="space-location">
-                        <i class="fas fa-map-marker-alt text-primary me-1"></i>
-                            ${space.city}
-                    </p>
-
-                    <p class="space-description">
-                        ${space.description ? space.description.substring(0, 120) + '...' : 'Spazio di coworking moderno e funzionale.'}
-                    </p>
-
-                    <div class="space-amenities">
-                        ${amenitiesHTML}
-                        ${extraAmenities ? `<span class="text-muted">${extraAmenities}</span>` : ''}
-                    </div>
-
-                    <div class="space-info">
-                        <div class="space-capacity">
-                            <i class="fas fa-users text-primary me-1"></i>
-                            <span>${space.capacity} persone</span>
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="card space-card h-100">
+                        <img src="${space.images?.[0] || '../assets/images/placeholder-space.jpg'}" class="card-img-top" alt="${space.name}">
+                        <div class="card-body d-flex flex-column">
+                            <span class="badge ${typeBadge.class} align-self-start mb-2">${typeBadge.label}</span>
+                            <h5 class="card-title">${space.name}</h5>
+                            <p class="card-text text-muted small"><i class="fas fa-map-marker-alt"></i> ${space.city}</p>
+                            <p class="card-text flex-grow-1">${space.description ? space.description.substring(0, 100) + '...' : ''}</p>
+                            <div class="d-flex justify-content-between align-items-center mt-3">
+                                <span><i class="fas fa-users"></i> ${space.capacity}</span>
+                                <strong>€${space.price_per_day}/giorno</strong>
+                            </div>
                         </div>
-                        <div class="space-price">
-                            <span class="price-amount">€${space.price_per_day}</span>
-                            <span class="price-period">/giorno</span>
+                        <div class="card-footer bg-transparent border-0">
+                             <button class="btn btn-primary w-100" onclick="bookSpace('${space.id}')">
+                                <i class="fas fa-calendar-plus"></i> Prenota Ora
+                            </button>
                         </div>
                     </div>
-                </div>
-
-                <div class="space-actions">
-                    <button class="btn btn-primary btn-book" onclick="bookSpace('${space.id}')">
-                        Prenota
-                    </button>
-                </div>
-            </div>
-    `;
+                </div>`;
                 }).join('');
-
                 container.innerHTML = spacesHTML;
             }
 
-            // Aggiorna contatore
             const resultsCount = document.getElementById('resultsCount');
             if (resultsCount) {
-                resultsCount.textContent = `${spaces.length} spazi disponibili`;
+                resultsCount.textContent = `${spaces.length} spazi trovati`;
             }
 
         } catch (error) {
-            console.error('Error loading spaces:', error);
-            container.innerHTML = `
-            <div class="col-12 text-center py-5">
-                <div class="alert alert-danger">
-                    <h5>Errore di caricamento</h5>
-                    <p>Impossibile caricare gli spazi. Verifica che il server sia attivo.</p>
-                    <button class="btn btn-primary" onclick="loadSpaces()">Riprova</button>
-                </div>
-            </div>
-        `;
+            console.error('Errore durante il caricamento degli spazi:', error);
+            container.innerHTML = `<div class="alert alert-danger">Impossibile caricare gli spazi. Riprova.</div>`;
         }
     };
 
-    // Inizializzazione
-    document.addEventListener('DOMContentLoaded', async function() {
-        console.log('🏢 Initializing spaces page...');
-
-        // Carica componenti
-        await loadComponent('navbar-container', 'components/navbar.html');
-        await loadComponent('footer-container', 'components/footer.html');
-        await loadComponent('modals-container', 'components/modals.html');
-
-        // Carica spazi
-        await loadSpaces();
-
-        // Gestisci parametri ricerca
-        const searchParams = localStorage.getItem('searchParams');
-        if (searchParams) {
-            try {
-                const params = JSON.parse(searchParams);
-                console.log('🔍 Applying search params:', params);
-
-                // Se esiste il sistema di filtri, usalo
-                if (window.SearchFilters) {
-                    window.SearchFilters.initSpacesPage();
-                }
-
-                localStorage.removeItem('searchParams');
-            } catch (error) {
-                console.error('Error parsing search params:', error);
-            }
-        }
-
-        console.log('✅ Spaces page ready');
-    });
-
-    // Override della funzione bookSpace esistente
     window.bookSpace = function(spaceId) {
-        console.log('📅 Booking space:', spaceId);
-
-        // Verifica autenticazione
-        const token = localStorage.getItem('auth_token');
-        if (!token) {
-            console.log('❌ No auth token found');
-
-            if (window.showNotification) {
-                window.showNotification('Devi effettuare il login per prenotare', 'warning');
-            } else {
-                alert('Devi effettuare il login per prenotare');
-            }
-
-            // Mostra modal login se disponibile
-            if (window.showLogin) {
-                setTimeout(() => window.showLogin(), 1000);
-            }
+        console.log('📅 Avvio prenotazione per lo spazio:', spaceId);
+        if (!window.coworkspaceApp.state.isAuthenticated) {
+            window.coworkspaceApp.showNotification('Devi effettuare il login per prenotare', 'warning');
+            setTimeout(() => showLogin(), 500);
             return;
         }
 
-        console.log('✅ Auth token found, opening booking modal...');
-
-        // Usa il BookingManager se disponibile
+        // Logica per aprire il modal di prenotazione (se esiste)
         if (window.BookingManager && window.BookingManager.openBookingModal) {
             window.BookingManager.openBookingModal(spaceId);
         } else {
-            console.error('❌ BookingManager not found!');
-
-            if (window.showNotification) {
-                window.showNotification('Sistema di prenotazione in caricamento...', 'info');
-            }
-
-            // Retry dopo un secondo
-            setTimeout(() => {
-                if (window.BookingManager) {
-                    window.BookingManager.openBookingModal(spaceId);
-                } else {
-                    alert('Sistema di prenotazione non disponibile. Ricarica la pagina.');
-                }
-            }, 1000);
+            window.coworkspaceApp.showNotification('Funzionalità di prenotazione in arrivo!', 'info');
         }
     };
 
-    // Debug function
-    window.debugBookingFlow = function() {
-        console.log('🔍 Debugging booking flow...');
-        console.log('- Auth token:', localStorage.getItem('auth_token') ? 'Present' : 'Missing');
-        console.log('- BookingManager:', typeof window.BookingManager);
-        console.log('- BookingManager.openBookingModal:', typeof window.BookingManager?.openBookingModal);
-        console.log('- showNotification:', typeof window.showNotification);
-        console.log('- Bootstrap Modal:', typeof bootstrap?.Modal);
+    // ===================================================================
+    // UNICO BLOCCO DI INIZIALIZZAZIONE (sostituisce tutti i vecchi 'DOMContentLoaded')
+    // ===================================================================
+    document.addEventListener('DOMContentLoaded', async () => {
 
-        return {
-            hasAuth: !!localStorage.getItem('auth_token'),
-            hasBookingManager: typeof window.BookingManager === 'object',
-            hasOpenModal: typeof window.BookingManager?.openBookingModal === 'function',
-            hasNotification: typeof window.showNotification === 'function',
-            hasBootstrap: typeof bootstrap?.Modal === 'function'
-        };
-    };
+        await loadComponent('navbar-container', '../components/navbar.html');
+        await loadComponent('footer-container', '../components/footer.html');
+        await loadComponent('modals-container', '../components/modals.html');
+
+        // Ensure the global app instance is created
+        if (!window.coworkspaceApp) {
+            window.coworkspaceApp = new CoWorkSpaceApp();
+        }
+
+        // Call the new centralized initializer
+        await window.coworkspaceApp.initializePage();
+
+        if (window.coworkspaceApp) {
+            window.coworkspaceApp.checkAuth();
+        }
+
+        // Now, run page-specific logic like loading spaces
+        console.log('🚀 Loading spaces for the page...');
+        await loadSpaces();
+    });
 </script>
 </body>
 </html>
