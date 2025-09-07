@@ -504,7 +504,7 @@ class SpaceController {
             // Se l'utente è un manager, filtra solo i suoi spazi
             const managerId = req.user && req.user.role === 'manager' ? req.user.id : null;
 
-            const stats = await Space.getStats(managerId);
+            const stats = await Space.getDashboardStats(managerId);
 
             res.json({
                 success: true,

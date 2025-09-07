@@ -15,8 +15,9 @@ const logger = require('../utils/logger');
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: process.env.GOOGLE_REDIRECT_URI || "/api/auth/google/callback"
+    callbackURL: process.env.GOOGLE_REDIRECT_URI || "http://localhost:3000/api/auth/google/callback"
 }, async (accessToken, refreshToken, profile, done) => {
+    console.log('🔍 ACTUAL CALLBACK URL BEING USED:', process.env.GOOGLE_REDIRECT_URI);
     try {
         console.log('🔍 Google OAuth Profile received:', {
             id: profile.id,

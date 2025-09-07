@@ -80,7 +80,7 @@ class Booking {
             console.log('🔍 Loading space data for:', spaceId);
 
             // Chiamata fetch diretta senza dipendere da this.api
-            const token = localStorage.getItem('auth_token');
+            const token = localStorage.getItem('authToken');
             const response = await fetch(`http://localhost:3000/api/spaces/${spaceId}`, {
                 method: 'GET',
                 headers: {
@@ -110,6 +110,36 @@ class Booking {
         const existingModal = document.getElementById('bookingModal');
         if (existingModal) {
             existingModal.remove();
+        }
+
+        // Aggiungi CSS se non già presente
+        if (!document.getElementById('booking-modal-styles')) {
+            const style = document.createElement('style');
+            style.id = 'booking-modal-styles';
+            style.textContent = `
+            .price-breakdown {
+                font-size: 0.9rem;
+            }
+            .price-row {
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 0.25rem;
+            }
+            .price-row.total-row {
+                margin-top: 0.5rem;
+                padding-top: 0.5rem;
+                border-top: 1px solid #dee2e6;
+            }
+            .booking-summary .price-breakdown hr {
+                margin: 0.5rem 0;
+                border-color: #dee2e6;
+            }
+            .space-price small {
+                font-size: 0.75rem;
+                margin-top: 0.25rem;
+            }
+        `;
+            document.head.appendChild(style);
         }
 
         const modalHTML = this.generateBookingModalHTML();
@@ -589,6 +619,171 @@ class Booking {
         this.calculateTotalPrice();
     }
 
+    updatePriceSummary(days, basePrice, fees, totalPrice) {
+        // Aggiorna la durata
+        document.getElementById('bookingDuration').textContent =
+            days > 0 ? `Durata: ${days} giorno${days > 1 ? 'i' : ''}` : 'Durata: -';
+
+        // Aggiorna il numero di persone
+        const peopleCount = document.getElementById('peopleCount').value;
+        document.getElementById('bookingPeople').textContent = `Persone: ${peopleCount}`;
+
+        // Aggiorna il prezzo totale nel footer
+        document.getElementById('totalPrice').textContent = `€${totalPrice.toFixed(2)}`;
+
+        // Aggiorna il dettaglio prezzi nel riepilogo
+        const detailsContainer = document.querySelector('.booking-summary .price-breakdown');
+        if (detailsContainer) {
+            if (totalPrice > 0) {
+                detailsContainer.innerHTML = `
+                <div class="price-row">
+                    <span>Prezzo base (${days} giorn${days > 1 ? 'i' : 'o'}):</span>
+                    <span>€${basePrice.toFixed(2)}</span>
+                </div>
+                <div class="price-row">
+                    <span>Commissioni di servizio (10%):</span>
+                    <span>€${fees.toFixed(2)}</span>
+                </div>
+                <hr class="my-2">
+                <div class="price-row total-row">
+                    <strong>Totale:</strong>
+                    <strong>€${totalPrice.toFixed(2)}</strong>
+                </div>
+            `;
+            } else {
+                detailsContainer.innerHTML = '<div class="text-muted">Seleziona date e orari per vedere il prezzo</div>';
+            }
+        }
+    }
+
+// ===== AGGIORNA IL METODO generateBookingModalHTML =====
+    generateBookingModalHTML() {
+        const space = this.currentSpace;
+
+        return `
+        <div class="modal fade" id="bookingModal" tabindex="-1" aria-labelledby="bookingModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="bookingModalLabel">
+                            <i class="fas fa-calendar-plus me-2"></i>
+                            Prenota: ${space.name}
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    
+                    <div class="modal-body">
+                        <div class="space-info-card mb-4">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <img src="${space.images?.[0] || '/assets/images/placeholder-space.jpg'}" 
+                                         alt="${space.name}" class="img-fluid rounded">
+                                </div>
+                                <div class="col-md-8">
+                                    <h6>${space.name}</h6>
+                                    <p class="text-muted mb-2">
+                                        <i class="fas fa-map-marker-alt me-1"></i>
+                                        ${space.address}, ${space.city}
+                                    </p>
+                                    <p class="mb-2">
+                                        <i class="fas fa-users me-1"></i>
+                                        Capacità: ${space.capacity} persone
+                                    </p>
+                                    <div class="space-price">
+                                        <strong class="text-primary">€${space.price_per_day}/giorno</strong>
+                                        <small class="text-muted d-block">+ 10% commissioni di servizio</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <form id="bookingForm">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="startDate" class="form-label">Data Inizio *</label>
+                                    <input type="date" class="form-control" id="startDate" required>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label for="endDate" class="form-label">Data Fine *</label>
+                                    <input type="date" class="form-control" id="endDate" required>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="startTime" class="form-label">Ora Inizio *</label>
+                                    <select class="form-select" id="startTime" required>
+                                        <option value="">Seleziona ora</option>
+                                    </select>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label for="endTime" class="form-label">Ora Fine *</label>
+                                    <select class="form-select" id="endTime" required>
+                                        <option value="">Seleziona ora</option>
+                                    </select>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="peopleCount" class="form-label">Numero Persone *</label>
+                                <input type="number" class="form-control" id="peopleCount" 
+                                       min="1" max="${space.capacity}" value="1" required>
+                                <div class="form-text">Massimo ${space.capacity} persone</div>
+                                <div class="invalid-feedback"></div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="bookingNotes" class="form-label">Note (facoltativo)</label>
+                                <textarea class="form-control" id="bookingNotes" rows="3" 
+                                          placeholder="Aggiungi eventuali note o richieste speciali..."></textarea>
+                            </div>
+
+                            <div class="booking-summary p-3 bg-light rounded">
+                                <h6>Riepilogo Prenotazione</h6>
+                                <div class="row">
+                                    <div class="col-sm-7">
+                                        <div id="bookingDuration">Durata: -</div>
+                                        <div id="bookingPeople">Persone: 1</div>
+                                    </div>
+                                    <div class="col-sm-5">
+                                        <div class="price-breakdown">
+                                            <div class="text-muted">Seleziona date e orari per vedere il prezzo</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt-2">
+                                    <div class="col-12 text-end">
+                                        <div class="total-price">
+                                            <strong>Totale: <span id="totalPrice">€0</span></strong>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="fas fa-times me-1"></i>
+                            Annulla
+                        </button>
+                        <button type="button" class="btn btn-primary" id="confirmBookingBtn" disabled>
+                            <i class="fas fa-credit-card me-1"></i>
+                            Procedi al Pagamento
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    }
+
     // ===== CALCOLI E VALIDAZIONE =====
     calculateTotalPrice() {
         const startDate = document.getElementById('startDate').value;
@@ -597,8 +792,7 @@ class Booking {
         const endTime = document.getElementById('endTime').value;
 
         if (!startDate || !endDate || !startTime || !endTime) {
-            document.getElementById('totalPrice').textContent = '€0';
-            document.getElementById('bookingDuration').textContent = 'Durata: -';
+            this.updatePriceSummary(0, 0, 0, 0);
             return;
         }
 
@@ -607,13 +801,19 @@ class Booking {
         const end = new Date(endDate);
         const daysDiff = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
 
-        // Calcola il prezzo totale
+        // Calcola prezzo base
         const dailyPrice = this.currentSpace.price_per_day;
-        const totalPrice = daysDiff * dailyPrice;
+        const basePrice = daysDiff * dailyPrice;
 
-        // Aggiorna UI
-        document.getElementById('bookingDuration').textContent = `Durata: ${daysDiff} giorno${daysDiff > 1 ? 'i' : ''}`;
-        document.getElementById('totalPrice').textContent = `€${totalPrice}`;
+        // Calcola commissioni (10%)
+        const feePercentage = 0.10;
+        const fees = basePrice * feePercentage;
+
+        // Calcola prezzo totale
+        const totalPrice = basePrice + fees;
+
+        // Aggiorna UI con dettaglio prezzi
+        this.updatePriceSummary(daysDiff, basePrice, fees, totalPrice);
 
         this.validateForm();
     }
@@ -685,15 +885,33 @@ class Booking {
         }
     }
 
+
     collectBookingData() {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        const peopleCount = parseInt(document.getElementById('peopleCount').value);
+
+        // Calcola i prezzi
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        const daysDiff = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+
+        const dailyPrice = this.currentSpace.price_per_day;
+        const basePrice = daysDiff * dailyPrice;
+        const fees = basePrice * 0.10; // 10% di commissioni
+        const totalPrice = basePrice + fees;
+
         return {
             space_id: this.currentSpace.id,
-            start_date: document.getElementById('startDate').value,
-            end_date: document.getElementById('endDate').value,
+            start_date: startDate,
+            end_date: endDate,
             start_time: document.getElementById('startTime').value,
             end_time: document.getElementById('endTime').value,
-            people_count: parseInt(document.getElementById('peopleCount').value),
-            notes: document.getElementById('bookingNotes').value.trim()
+            people_count: peopleCount,
+            notes: document.getElementById('bookingNotes').value.trim(),
+            base_price: parseFloat(basePrice.toFixed(2)),
+            fees: parseFloat(fees.toFixed(2)),
+            total_price: parseFloat(totalPrice.toFixed(2))
         };
     }
 
@@ -706,7 +924,7 @@ class Booking {
     async checkAvailability(spaceId, startDate, endDate) {
         console.log(`🔍 Checking availability for space ${spaceId} from ${startDate} to ${endDate}`);
         try {
-            const token = localStorage.getItem('auth_token');
+            const token = localStorage.getItem('authToken');
             const response = await fetch('http://localhost:3000/api/bookings/check-availability', {
                 method: 'POST',
                 headers: {
@@ -747,7 +965,7 @@ class Booking {
             console.log('📝 Creating booking:', bookingData);
 
             // Verifica autenticazione
-            const token = localStorage.getItem('auth_token');
+            const token = localStorage.getItem('authToken');
             if (!token) {
                 throw new Error('Devi effettuare il login per prenotare');
             }
@@ -823,7 +1041,7 @@ class Booking {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+                'Authorization': `Bearer ${localStorage.getItem('authToken')}`
             },
             body: JSON.stringify({
                 payment_intent_id: paymentIntent.id,
@@ -853,7 +1071,7 @@ class Booking {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+                'Authorization': `Bearer ${localStorage.getItem('authToken')}`
             },
             body: JSON.stringify({ bookingId })
         });
@@ -1149,7 +1367,7 @@ class Booking {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+                    'Authorization': `Bearer ${localStorage.getItem('authToken')}`
                 },
                 body: JSON.stringify({
                     payment_intent_id: paymentIntent.id,
@@ -1226,7 +1444,7 @@ class Booking {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+                    'Authorization': `Bearer ${localStorage.getItem('authToken')}`
                 },
                 body: JSON.stringify({
                     bookingId: booking.id
@@ -1367,7 +1585,7 @@ class Booking {
             const response = await fetch(`http://localhost:3000/api/payments/${paymentIntentId}`, {
                 method: 'GET',
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+                    'Authorization': `Bearer ${localStorage.getItem('authToken')}`
                 }
             });
 
@@ -1393,7 +1611,7 @@ class Booking {
     async loadBookings() {
         console.log('Loading user bookings...');
 
-        const token = localStorage.getItem('auth_token');
+        const token = localStorage.getItem('authToken');
         if (!token) {
             console.error('No auth token found');
             this.showError('Devi effettuare il login per vedere le prenotazioni');
@@ -1433,7 +1651,7 @@ class Booking {
     async fetchAndRenderUserBookings() {
         console.log('🔄 Fetching user bookings...');
         try {
-            const token = localStorage.getItem('auth_token');
+            const token = localStorage.getItem('authToken');
             if (!token) {
                 this.showError('Autenticazione richiesta per visualizzare le prenotazioni.');
                 return;
@@ -1551,6 +1769,7 @@ class Booking {
             </div>
         `;
     }
+
 
     /**
      * Renderizza le azioni disponibili per una prenotazione
@@ -1695,7 +1914,7 @@ class Booking {
 // ===== FUNZIONE GLOBALE PER I BOTTONI =====
 window.bookSpace = function(spaceId) {
     // Verifica autenticazione
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem('authToken');
     if (!token) {
         if (window.showNotification) {
             window.showNotification('Devi effettuare il login per prenotare', 'warning');

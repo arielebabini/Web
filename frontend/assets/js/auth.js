@@ -123,7 +123,7 @@ class AuthManager {
     // ==================== AUTHENTICATION STATE ====================
 
     async checkAuthStatus() {
-        const token = localStorage.getItem('auth_token');
+        const token = localStorage.getItem('authToken');
         const userData = localStorage.getItem('user_data');
 
         console.log('🔍 Checking auth status:', {
@@ -170,7 +170,7 @@ class AuthManager {
     }
 
     isAuthenticated() {
-        return !!this.user && !!localStorage.getItem('auth_token');
+        return !!this.user && !!localStorage.getItem('authToken');
     }
 
     getUser() {
@@ -502,7 +502,7 @@ class AuthManager {
         if (!this.isAuthenticated()) return;
 
         try {
-            const token = localStorage.getItem('auth_token');
+            const token = localStorage.getItem('authToken');
             if (token) {
                 // Decode JWT to check expiry (basic check, not cryptographically secure)
                 const payload = this.decodeJWTPayload(token);

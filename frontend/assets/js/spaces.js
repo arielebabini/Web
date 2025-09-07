@@ -33,7 +33,7 @@ window.Spaces = {
 
         async request(endpoint, options = {}) {
             const url = `${this.baseURL}${endpoint}`;
-            const token = localStorage.getItem('auth_token');
+            const token = localStorage.getItem('authToken');
 
             const config = {
                 method: 'GET',
@@ -409,12 +409,16 @@ window.Spaces = {
                 </div>
                 
                 <div class="space-actions">
-                    <button class="btn btn-outline-primary btn-sm" onclick="Spaces.showSpaceDetails('${space.id}')">
-                        Dettagli
-                    </button>
-                    <button class="btn btn-primary btn-sm" onclick="Spaces.bookSpace('${space.id}')">
-                        Prenota
-                    </button>
+                    <div class="d-flex gap-2 w-100">
+                        <button class="btn btn-outline-secondary btn-sm flex-fill" onclick="Spaces.showSpaceDetails('${space.id}')">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Dettagli
+                        </button>
+                        <button class="btn btn-primary btn-sm flex-fill" onclick="Spaces.bookSpace('${space.id}')">
+                            <i class="fas fa-calendar-plus me-1"></i>
+                            Prenota Ora
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1349,7 +1353,7 @@ window.debugBookingSystem = function() {
     console.log('- window.bookSpace:', typeof window.bookSpace);
     console.log('- window.BookingManager:', typeof window.BookingManager);
     console.log('- Bootstrap Modal:', typeof bootstrap?.Modal);
-    console.log('- Auth token:', localStorage.getItem('auth_token') ? 'Present' : 'Missing');
+    console.log('- Auth token:', localStorage.getItem('authToken') ? 'Present' : 'Missing');
 
     const bookingButtons = document.querySelectorAll('[onclick*="bookSpace"]');
     console.log('- Booking buttons found:', bookingButtons.length);
@@ -1361,7 +1365,7 @@ window.debugBookingSystem = function() {
         bookSpaceFunction: typeof window.bookSpace,
         bookingManager: typeof window.BookingManager,
         bootstrapModal: typeof bootstrap?.Modal,
-        authToken: !!localStorage.getItem('auth_token'),
+        authToken: !!localStorage.getItem('authToken'),
         bookingButtons: bookingButtons.length,
         oldButtons: showBookingButtons.length
     };

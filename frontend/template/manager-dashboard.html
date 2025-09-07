@@ -1660,7 +1660,7 @@ Creato: ${new Date(space.created_at).toLocaleDateString('it-IT')}`);
 
             console.log('📤 Dati pronti per l\'invio:', { ...spaceData, images: `${imagesArray.length} immagini` });
 
-            const token = localStorage.getItem('auth_token');
+            const token = localStorage.getItem('authToken');
             if (!token) throw new Error('Token di autenticazione mancante.');
 
             const spaceId = document.getElementById('spaceId')?.value;
@@ -2191,7 +2191,7 @@ Creato: ${new Date(space.created_at).toLocaleDateString('it-IT')}`);
     }
 
     function getAuthToken() {
-        return localStorage.getItem('auth_token');
+        return localStorage.getItem('authToken');
     }
 
     function getBookingFilters() {

@@ -268,7 +268,7 @@ class Payment {
             const statsQuery = `
                 SELECT 
                     COUNT(*) as total_payments,
-                    COUNT(CASE WHEN p.status = 'completed' THEN 1 END) as completed_payments,
+                    COUNT(CASE WHEN p.status = 'succeeded' THEN 1 END) as completed_payments,
                     COUNT(CASE WHEN p.status = 'pending' THEN 1 END) as pending_payments,
                     COUNT(CASE WHEN p.status = 'failed' THEN 1 END) as failed_payments,
                     COUNT(CASE WHEN p.status = 'canceled' THEN 1 END) as canceled_payments,
@@ -288,8 +288,8 @@ class Payment {
                 SELECT 
                     DATE(p.created_at) as date,
                     COUNT(*) as payments_count,
-                    COUNT(CASE WHEN p.status = 'completed' THEN 1 END) as completed_count,
-                    COALESCE(SUM(CASE WHEN p.status = 'completed' THEN p.amount ELSE 0 END), 0) as daily_revenue
+                    COUNT(CASE WHEN p.status = 'succeeded' THEN 1 END) as completed_count,
+                    COALESCE(SUM(CASE WHEN p.status = 'succeeded' THEN p.amount ELSE 0 END), 0) as daily_revenue
                 FROM payments p
                 WHERE ${whereClause}
                 GROUP BY DATE(p.created_at)
@@ -304,7 +304,7 @@ class Payment {
                 SELECT 
                     COALESCE(p.payment_method->>'type', 'unknown') as payment_method,
                     COUNT(*) as usage_count,
-                    COUNT(CASE WHEN p.status = 'completed' THEN 1 END) as success_count
+                    COUNT(CASE WHEN p.status = 'succeeded' THEN 1 END) as success_count
                 FROM payments p
                 WHERE ${whereClause}
                 GROUP BY p.payment_method->>'type'
@@ -356,7 +356,7 @@ class Payment {
      */
     static async getRevenue(startDate = null, endDate = null) {
         try {
-            const conditions = [`p.status = 'completed'`, 'p.deleted_at IS NULL'];
+            const conditions = [`p.status = 'succeeded'`, 'p.deleted_at IS NULL'];
             const params = [];
             let paramIndex = 1;
 

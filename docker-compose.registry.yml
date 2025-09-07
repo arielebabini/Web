@@ -1,0 +1,8 @@
+version: '3.8'
+services:
+  backend:
+    image: fedebotta971/coworkspace-backend:latest
+    # resto configurazione uguale...
+  frontend:
+    image: fedebotta971/coworkspace-frontend:latest
+    # resto configurazione uguale...
