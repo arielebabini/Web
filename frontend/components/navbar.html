@@ -54,12 +54,12 @@
                             </a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li id="managerMenuItem" style="display: none;">
-                                <a class="dropdown-item" href="template/manager-dashboard.html">
+                                <a class="dropdown-item" href="/template/manager-dashboard.html">
                                     <i class="fas fa-user-tie me-2"></i> Pannello Manager
                                 </a>
                             </li>
                             <li id="adminMenuItem" style="display: none;">
-                                <a class="dropdown-item" href="template/admin-dashboard.html">
+                                <a class="dropdown-item" href="/template/admin-dashboard.html">
                                     <i class="fas fa-cog me-2"></i> Pannello Admin
                                 </a>
                             </li>
@@ -74,3 +74,51 @@
         </div>
     </div>
 </nav>
+<div id="mainContent">
+    <div id="dynamicContent">
+        <section id="bookingsSection" class="py-5" style="display: none;">
+            <div class="container">
+                <h2 class="text-center mb-5">Le Mie Prenotazioni</h2>
+                    <div class="row" id="bookingsContainer">
+                        <div class="col-12 text-center">
+                            <p>Caricamento prenotazioni...</p>
+                        </div>
+                    </div>
+            </div>
+        </section>
+    </div>
+</div>
+
+<script src="/assets/js/booking.js"></script>
+<script>
+    function showSection(sectionId) {
+        if (sectionId === 'bookings') {
+            const mainContent = document.querySelector('.main-page-section');
+            if (mainContent) {
+                mainContent.style.display = 'none'; // Nasconde il contenuto principale
+            }
+
+            const bookingsView = document.getElementById('bookingsSection');
+            if (bookingsView) {
+                bookingsView.style.display = 'block'; // Mostra la vista prenotazioni
+                window.scrollTo(0, 0);
+                if (typeof window.loadBookings === 'function') {
+                    window.loadBookings();
+                }
+            }
+        }
+    }
+
+    // Funzione per nascondere la vista prenotazioni e tornare alla pagina
+    function hideBookingsView() {
+        const bookingsView = document.getElementById('bookingsSection');
+        if (bookingsView) {
+            bookingsView.style.display = 'none'; // Nasconde la vista prenotazioni
+        }
+
+        const mainContent = document.querySelector('.main-page-section');
+        if (mainContent) {
+            mainContent.style.display = 'block'; // Mostra di nuovo il contenuto principale
+        }
+    }
+</script>
