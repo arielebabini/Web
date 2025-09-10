@@ -1251,7 +1251,7 @@
                     });
 
                     // Invia richiesta al server
-                    const token = localStorage.getItem('auth_token');
+                    const token = localStorage.getItem('authToken');
                     if (!token) {
                         throw new Error('Token di autenticazione mancante. Effettua il login.');
                     }
@@ -1492,6 +1492,7 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="/js/admin-dashboard-loader.js"></script>
+<script src="../assets/js/booking.js"></script>
 
 <script>
     // Admin Dashboard JavaScript
@@ -1512,7 +1513,7 @@
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
             const value = localStorage.getItem(key);
-            console.log(`  ${key}:`, key.includes('token') ? value.substring(0, 20) + '...' : value);
+            console.log(`  ${key}:`, key.includes('authToken') ? value.substring(0, 20) + '...' : value);
         }
 
         // Verifica token all'avvio
@@ -1602,7 +1603,7 @@
     async function loadDashboardStats() {
         try {
             console.log('🚀 Loading dashboard stats...');
-            const token = localStorage.getItem('auth_token');
+            const token = localStorage.getItem('authToken');
 
             if (!token) {
                 console.error('❌ No auth token found');
@@ -1805,7 +1806,7 @@
                 return; // La validazione ha già gestito l'errore
             }
 
-            const token = localStorage.getItem('auth_token');
+            const token = localStorage.getItem('authToken');
 
             // Mostra loading
             showUsersLoading();
@@ -1874,7 +1875,7 @@
     }
 
     function validateAuthToken() {
-        const token = localStorage.getItem('auth_token');
+        const token = localStorage.getItem('authToken');
         const userJson = localStorage.getItem('user');  // Verifica 'user' invece di 'user_data'
 
         console.log('🔍 Checking auth token:', {
@@ -1946,7 +1947,7 @@
     // 2. Funzione per pulire l'autenticazione e reindirizzare
     function clearAuthAndRedirect(reason) {
         console.log('🚪 Clearing auth and redirecting:', reason);
-        localStorage.removeItem('auth_token');
+        localStorage.removeItem('authToken');
         localStorage.removeItem('user');
         localStorage.removeItem('refresh_token'); // Se presente
 
@@ -2128,7 +2129,7 @@
         }
 
         try {
-            const token = localStorage.getItem('auth_token');
+            const token = localStorage.getItem('authToken');
             if (!token) {
                 throw new Error('Token mancante');
             }
@@ -2164,7 +2165,7 @@
         }
 
         try {
-            const token = localStorage.getItem('auth_token');
+            const token = localStorage.getItem('authToken');
             const response = await fetch(`http://localhost:3000/api/users/${userId}/status`, {
                 method: 'PUT',
                 headers: {
@@ -2197,7 +2198,7 @@
         }
 
         try {
-            const token = localStorage.getItem('auth_token');
+            const token = localStorage.getItem('authToken');
             const response = await fetch(`http://localhost:3000/api/users/${userId}/status`, {
                 method: 'PUT',
                 headers: {
@@ -2405,7 +2406,7 @@
         console.log('User data to save:', userData);
 
         try {
-            const token = localStorage.getItem('auth_token');
+            const token = localStorage.getItem('authToken');
             if (!token) {
                 alert('Token di accesso mancante');
                 return;
@@ -2485,7 +2486,7 @@
         }
 
         try {
-            const token = localStorage.getItem('auth_token');
+            const token = localStorage.getItem('authToken');
             if (!token) {
                 throw new Error('Token di accesso mancante');
             }
@@ -2528,7 +2529,7 @@
     async function confirmUserDeletion(userId) {
         try {
             // Carica dettagli utente aggiuntivi se necessario
-            const token = localStorage.getItem('auth_token');
+            const token = localStorage.getItem('authToken');
             const response = await fetch(`http://localhost:3000/api/users/${userId}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -2674,7 +2675,7 @@
             console.log('👋 Logging out...');
 
             // Pulisci tutto lo storage
-            localStorage.removeItem('auth_token');
+            localStorage.removeItem('authToken');
             localStorage.removeItem('user');
             localStorage.removeItem('refresh_token');
             sessionStorage.clear();
@@ -2687,6 +2688,13 @@
     function setupGlobalAuthInterceptor() {
         // Override del fetch globale per gestire automaticamente i 401
         const originalFetch = window.fetch;
+
+        console.log('🔍 DEBUG TOKEN INFO:');
+        const token = localStorage.getItem('authToken');
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        console.log('📋 Token:', token ? token.substring(0, 50) + '...' : 'MISSING');
+        console.log('👤 User data:', user);
+        console.log('🎭 User role:', user.role);
 
         window.fetch = async function(...args) {
             try {
@@ -2920,7 +2928,7 @@
     async function loadSpaces(filters = {}) {
         showLoadingState();
         try {
-            const token = localStorage.getItem('auth_token'); // Recupera il token da localStorage
+            const token = localStorage.getItem('authToken'); // Recupera il token da localStorage
             if (!token) {
                 console.error('Token di autenticazione mancante.');
                 showErrorState('Accesso negato. Effettua il login.');
@@ -2952,7 +2960,7 @@
 
     async function loadTopSpaces() {
         try {
-            const token = localStorage.getItem('token');
+            const token = localStorage.getItem('authToken');
             if (!token) {
                 console.error('Token non trovato. Impossibile caricare i top spazi.');
                 return;
@@ -3016,7 +3024,18 @@
         errorEl.style.display = 'none';
 
         try {
-            const response = await fetch('/api/spaces/stats');
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                throw new Error('Token mancante');
+            }
+
+            const response = await fetch('http://localhost:3000/api/spaces/stats', {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
             const data = await response.json();
 
             if (data.success) {
@@ -3256,7 +3275,7 @@
         }
 
         try {
-            const token = localStorage.getItem('auth_token');
+            const token = localStorage.getItem('authToken');
             if (!token) {
                 throw new Error('Token di autenticazione mancante. Effettua il login.');
             }
@@ -3464,7 +3483,7 @@
 
     async function deleteSpace(spaceId) {
         try {
-            const token = localStorage.getItem('auth_token');
+            const token = localStorage.getItem('authToken');
             if (!token) {
                 alert('Token di autenticazione non trovato');
                 return;
@@ -3506,7 +3525,7 @@
 
     async function loadSpacesStats() {
         try {
-            const token = localStorage.getItem('token');
+            const token = localStorage.getItem('authToken');
             if (!token) {
                 console.warn('⚠️ Token mancante');
                 showErrorState('Accesso negato. Effettua il login.');
@@ -3891,7 +3910,7 @@
         showLoading(sectionId);
 
         try {
-            const token = localStorage.getItem('auth_token');
+            const token = localStorage.getItem('authToken');
             if (!token) {
                 showError(sectionId, 'Autenticazione richiesta. Ricarica la pagina e accedi.');
                 return;
@@ -3968,7 +3987,7 @@
                 <td><strong>€${parseFloat(booking.total_price).toFixed(2)}</strong></td>
                 <td>
                     <div class="d-flex gap-2">
-                        <button class="btn btn-sm btn-outline-info show-details-btn" data-bs-toggle="modal" data-bs-target="#bookingDetailsModal" data-booking-index="${index}" title="Dettagli">
+                        <button class="btn btn-sm btn-outline-info" onclick="viewBookingDetails('${booking.id}')" title="Dettagli">
                             <i class="fas fa-eye"></i>
                         </button>
                         <button class="btn btn-sm btn-outline-danger delete-btn" data-bs-toggle="modal" data-bs-target="#deleteBookingModal" data-booking-id="${booking.id}" title="Cancella">
@@ -4067,7 +4086,7 @@
      */
     async function deleteBooking(bookingId) {
         try {
-            const token = localStorage.getItem('auth_token');
+            const token = localStorage.getItem('authToken');
             const response = await fetch(`http://localhost:3000/api/bookings/${bookingId}`, {
                 method: 'DELETE',
                 headers: {
@@ -4077,7 +4096,7 @@
 
             if (response.status === 401) {
                 // Gestione dell'autenticazione come nelle altre funzioni
-                localStorage.removeItem('auth_token');
+                localStorage.removeItem('authToken');
                 window.location.href = '/login.html';
                 return;
             }

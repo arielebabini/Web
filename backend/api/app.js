@@ -41,27 +41,29 @@ const app = express();
 app.set('trust proxy', 1);
 
 // ===== CORS CONFIGURATION (UNIFIED) =====
+
 const corsOptions = {
     origin: function (origin, callback) {
-        // List of allowed origins from environment
+        // Lista base di origins consentiti
         let allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3001,http://localhost:8080')
             .split(',')
             .map(url => url.trim())
             .filter(Boolean);
 
-        // In development, you can be more permissive or add more origins
-        if (process.env.NODE_ENV !== 'production') {
-            allowedOrigins = [
-                ...allowedOrigins,
-                'http://127.0.0.1:3001',
-                'http://127.0.0.1:8080',
-                'http://localhost:5000',
-                // Add other development origins if needed
-            ];
-        }
+        // Aggiungi sempre questi origins (anche in production per il reset password)
+        allowedOrigins = [
+            ...allowedOrigins,
+            'http://localhost:3000',     // Per reset password
+            'http://127.0.0.1:3000',
+            'http://localhost:3001',
+            'http://127.0.0.1:3001',
+            'http://localhost:8080',
+            'http://127.0.0.1:8080',
+            'http://localhost:5000'
+        ];
 
-        // Allow requests with no origin (like Postman, mobile apps, etc.) or if origin is in the list
-        if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+        // Permetti richieste senza origin (come richieste dirette) o se origin è nella lista
+        if (!origin || allowedOrigins.includes(origin)) {
             callback(null, true);
         } else {
             logger.warn('CORS blocked origin:', origin);
@@ -73,6 +75,7 @@ const corsOptions = {
     credentials: true,
     optionsSuccessStatus: 200,
 };
+
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions)); // Enable pre-flight requests for all routes
 
@@ -116,6 +119,7 @@ app.use(passport.initialize());
 // ===== STATIC FILES (for uploaded content) =====
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+
 // ======================================
 // ===== API ROUTES & HEALTH CHECKS =====
 // ======================================
@@ -158,6 +162,14 @@ app.get('/api/oauth/status', (req, res) => {
                 redirectUri: process.env.GOOGLE_REDIRECT_URI || '/api/auth/google/callback'
             }
         }
+    });
+});
+
+// Rotta di benvenuto per la radice (/)
+app.get('/', (req, res) => {
+    res.status(200).json({
+        status: 'success',
+        message: 'Benvenuto nella API di CoWorkSpace!'
     });
 });
 

@@ -1,5 +1,10 @@
 // src/routes/auth.js - Authentication routes with Google OAuth
 const express = require('express');
+
+const crypto = require('crypto');
+const nodemailer = require('nodemailer');
+const { Op } = require('sequelize'); // ✅ AGGIUNTO: Import mancante
+
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -12,6 +17,8 @@ const User = require('../models/User');
 const logger = require('../utils/logger');
 const emailService = require('../services/emailService');
 const { requireAuth } = require('../middleware/auth');
+
+let transporter = null;
 
 // Rate limiting per autenticazione
 /*const authLimiter = rateLimit({
@@ -100,7 +107,7 @@ router.get('/google', passport.authenticate('google', {
 router.get('/google/callback',
     passport.authenticate('google', {
         session: false,
-        failureRedirect: '/login.html?error=oauth_failed' // Anche questo andrebbe reso assoluto
+        failureRedirect: '/login.html?error=oauth_failed'
     }),
     async (req, res) => {
         try {
@@ -124,11 +131,11 @@ router.get('/google/callback',
 
             // ==================== MODIFICA CHIAVE QUI ====================
             // 1. Definisci l'URL del tuo frontend (da una variabile d'ambiente)
-            const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001'; // O la porta corretta
+            const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
+
 
             // 2. Costruisci l'URL di redirect completo
-            const redirectUrl = `${frontendUrl}/index.html?login_success=true&token=${accessToken}&refresh=${refreshToken}&user=${encodeURIComponent(JSON.stringify(userData))}`;
-            // Ho usato "login-success.html" per chiarezza, puoi usare anche "login.html"
+            const redirectUrl = `${frontendUrl}/?login_success=true&token=${accessToken}&refresh=${refreshToken}&user=${encodeURIComponent(JSON.stringify(userData))}`;
 
             logger.info('Google OAuth successful login, redirecting to frontend', {
                 userId: user.id,
@@ -147,6 +154,55 @@ router.get('/google/callback',
     }
 );
 
+function initializeEmailTransporter() {
+    const emailUser = process.env.EMAIL_USER;
+    const emailPass = process.env.EMAIL_PASS;
+
+    if (!emailUser || !emailPass) {
+        logger.warn('Email configuration missing - EMAIL_USER or EMAIL_PASS not set. Email features will be disabled.');
+        return null;
+    }
+
+    try {
+        // ✅ CORRETTO: createTransport (NON createTransporter)
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: emailUser,
+                pass: emailPass
+            }
+        });
+
+        logger.info('Email transporter initialized successfully');
+        return transporter;
+    } catch (error) {
+        logger.error('Failed to initialize email transporter:', error);
+        return null;
+    }
+}
+transporter = initializeEmailTransporter();
+
+async function sendEmail(to, subject, html) {
+    if (!transporter) {
+        logger.warn('Email sending skipped - transporter not initialized');
+        return { success: false, error: 'Email service not configured' };
+    }
+
+    try {
+        await transporter.sendMail({
+            from: `"CoWorkSpace" <${process.env.EMAIL_USER}>`,
+            to,
+            subject,
+            html
+        });
+
+        logger.info(`Email sent successfully to: ${to}`);
+        return { success: true };
+    } catch (error) {
+        logger.error('Failed to send email:', error);
+        return { success: false, error: error.message };
+    }
+}
 
 /**
  * @route   POST /api/auth/google/mobile
@@ -199,10 +255,7 @@ router.post('/google/mobile', async (req, res) => {
             });
         } else if (!user.google_id) {
             // Link existing account with Google
-            await user.update({
-                google_id: payload.sub,
-                avatar_url: payload.picture || user.avatar_url
-            });
+            await user.update({ google_id: payload.sub, avatar_url: payload.picture || user.avatar_url });
 
             logger.info('Existing user linked with Google:', {
                 userId: user.id,
@@ -357,7 +410,7 @@ router.post('/fix-admin-role', async (req, res) => {
         console.log('Cercando utente con email:', email);
 
         // Trova l'utente - adatta questo alla tua struttura del modello
-        const user = await User.findOne({ where: { email } });
+        const user = await User.findByEmail(email);
 
         if (!user) {
             console.log('Utente non trovato');
@@ -662,11 +715,7 @@ router.post('/logout', requireAuth, async (req, res) => {
     }
 });
 
-/**
- * @route   POST /api/auth/forgot-password
- * @desc    Richiesta reset password
- * @access  Public
- */
+// CORREZIONE 1: Nel route forgot-password, cambia come generi il resetToken
 router.post('/forgot-password', [
     body('email').isEmail().normalizeEmail().withMessage('Email non valida')
 ], async (req, res) => {
@@ -675,56 +724,109 @@ router.post('/forgot-password', [
         if (!errors.isEmpty()) {
             return res.status(400).json({
                 success: false,
-                message: 'Email non valida',
-                errors: errors.array()
+                message: 'Email non valida'
             });
         }
 
         const { email } = req.body;
-
-        // Trova utente
         const user = await User.findByEmail(email);
 
-        // Per sicurezza, restituiamo sempre successo anche se l'utente non esiste
         if (!user) {
-            logger.warn('Password reset requested for non-existent email:', email);
             return res.json({
                 success: true,
-                message: 'Se l\'email esiste, riceverai istruzioni per il reset'
+                message: 'Se l\'email esiste, riceverai un link per il reset'
             });
         }
 
-        // Non permettere reset per utenti OAuth
         if (!user.password_hash) {
             return res.json({
                 success: true,
-                message: 'Se l\'email esiste, riceverai istruzioni per il reset'
+                message: 'Se l\'email esiste, riceverai un link per il reset'
             });
         }
 
-        // Genera token reset (semplificato per demo)
-        const resetToken = jwt.sign(
-            { userId: user.id, type: 'reset' }, // ✅ Qui può rimanere userId per differenziarlo
-            process.env.JWT_SECRET || 'fallback-secret-key',
-            { expiresIn: '1h' }
+        // ✅ CORREZIONE: Usa crypto invece di JWT per il token
+        const resetToken = crypto.randomBytes(32).toString('hex');
+        const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 ora
+
+        // Salva il token nel database
+        await User.updateResetToken(email, resetToken, resetTokenExpiry);
+
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
+
+        // ✅ CORREZIONE: Link diretto alla pagina di reset
+        const resetLink = `http://localhost:3000/api/auth/reset-password?token=${resetToken}`;
+
+        const emailHTML = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                .container { max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif; }
+                .header { background: #6366f1; color: white; padding: 20px; text-align: center; }
+                .content { padding: 30px; background: #f8fafc; }
+                .button { 
+                    display: inline-block; 
+                    background: #6366f1; 
+                    color: white; 
+                    padding: 12px 24px; 
+                    text-decoration: none; 
+                    border-radius: 8px;
+                    margin: 20px 0;
+                }
+                .footer { padding: 20px; text-align: center; color: #64748b; font-size: 12px; }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>🔑 Reset Password - CoWorkSpace</h1>
+                </div>
+                
+                <div class="content">
+                    <h2>Ciao ${user.first_name || 'Utente'}!</h2>
+                    
+                    <p>Hai richiesto di reimpostare la password del tuo account CoWorkSpace.</p>
+                    
+                    <p>Clicca sul pulsante qui sotto per creare una nuova password:</p>
+                    
+                    <a href="${resetLink}" class="button">🔓 Reimposta Password</a>
+                    
+                    <p><strong>Importante:</strong></p>
+                    <ul>
+                        <li>Questo link è valido per 1 ora</li>
+                        <li>Se non hai richiesto questo reset, ignora questa email</li>
+                        <li>Il link può essere usato una sola volta</li>
+                    </ul>
+                    
+                    <p>Se il pulsante non funziona, copia e incolla questo link:</p>
+                    <p style="word-break: break-all; color: #6366f1;">${resetLink}</p>
+                </div>
+                
+                <div class="footer">
+                    <p>CoWorkSpace - La tua piattaforma di coworking</p>
+                    <p>Questa email è stata inviata automaticamente, non rispondere.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        `;
+
+        const emailResult = await sendEmail(
+            email,
+            '🔑 Reset Password - CoWorkSpace',
+            emailHTML
         );
 
-        // Invia email reset (modalità mock) - ✅ CORRETTO
-        try {
-            await emailService.sendPasswordReset(user, resetToken);
-        } catch (emailError) {
-            logger.error('Failed to send reset email:', emailError);
+        if (emailResult.success) {
+            logger.info(`Password reset email sent to: ${email}`);
+        } else {
+            logger.error(`Failed to send reset email to ${email}:`, emailResult.error);
         }
-
-        logger.info('Password reset requested:', {
-            userId: user.id,
-            email: user.email,
-            ip: req.ip
-        });
 
         res.json({
             success: true,
-            message: 'Se l\'email esiste, riceverai istruzioni per il reset'
+            message: 'Email di reset inviata con successo'
         });
 
     } catch (error) {
@@ -732,6 +834,271 @@ router.post('/forgot-password', [
         res.status(500).json({
             success: false,
             message: 'Errore interno del server'
+        });
+    }
+});
+
+router.get('/reset-password', async (req, res) => {
+    try {
+        const { token } = req.query;
+
+        // ✅ CONTROLLO ESSENZIALE: Verifica che il token sia presente
+        if (!token) {
+            return res.status(400).send(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Errore - CoWorkSpace</title>
+                    <meta charset="UTF-8">
+                    <style>
+                        body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #f8fafc; }
+                        .error { background: white; padding: 40px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); max-width: 400px; margin: 0 auto; }
+                        .error h2 { color: #dc2626; }
+                    </style>
+                </head>
+                <body>
+                    <div class="error">
+                        <h2>❌ Token Mancante</h2>
+                        <p>Il link per il reset della password non è valido.</p>
+                        <p>Richiedi un nuovo link di reset.</p>
+                        <a href="/" style="color: #6366f1;">← Torna alla homepage</a>
+                    </div>
+                </body>
+                </html>
+            `);
+        }
+
+        // ✅ Verifica che il token sia valido nel database
+        const user = await User.findByValidResetToken(token);
+
+        if (!user) {
+            return res.status(400).send(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Token Scaduto - CoWorkSpace</title>
+                    <meta charset="UTF-8">
+                    <style>
+                        body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #f8fafc; }
+                        .error { background: white; padding: 40px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); max-width: 400px; margin: 0 auto; }
+                        .error h2 { color: #dc2626; }
+                    </style>
+                </head>
+                <body>
+                    <div class="error">
+                        <h2>⏰ Token Scaduto</h2>
+                        <p>Il link per il reset della password è scaduto o non valido.</p>
+                        <p>Richiedi un nuovo link di reset.</p>
+                        <a href="/" style="color: #6366f1;">← Torna alla homepage</a>
+                    </div>
+                </body>
+                </html>
+            `);
+        }
+
+        // ✅ AGGIUNGI QUESTI HEADER CSP
+        res.setHeader('Content-Security-Policy', [
+            "default-src 'self'",
+            "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com",
+            "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com",
+            "font-src 'self' https://cdnjs.cloudflare.com",
+            "connect-src 'self'"
+        ].join('; '));
+
+        // ✅ Se il token è valido, serve la pagina HTML per inserire la nuova password
+        res.send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Reset Password - CoWorkSpace</title>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+            <style>
+                body { 
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    min-height: 100vh;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+                .reset-container {
+                    background: white;
+                    padding: 40px;
+                    border-radius: 12px;
+                    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+                    max-width: 400px;
+                    width: 100%;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="reset-container">
+                <div class="text-center mb-4">
+                    <h2>🔑 Nuova Password</h2>
+                    <p class="text-muted">Inserisci la tua nuova password per ${user.first_name || 'il tuo account'}</p>
+                </div>
+                
+                <form id="resetForm">
+                    <div class="mb-3">
+                        <label class="form-label">Nuova Password</label>
+                        <input type="password" class="form-control" id="newPassword" required minlength="8">
+                        <div class="form-text">Almeno 8 caratteri</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Conferma Password</label>
+                        <input type="password" class="form-control" id="confirmPassword" required>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary w-100">
+                        🔓 Reimposta Password
+                    </button>
+                </form>
+                
+                <div id="message" class="mt-3"></div>
+            </div>
+            
+            <script>
+                document.getElementById('resetForm').addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    
+                    const newPassword = document.getElementById('newPassword').value;
+                    const confirmPassword = document.getElementById('confirmPassword').value;
+                    const messageDiv = document.getElementById('message');
+                    
+                    // Mostra stato di caricamento
+                    const submitBtn = e.target.querySelector('button[type="submit"]');
+                    const originalText = submitBtn.innerHTML;
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '⏳ Aggiornamento...';
+                    
+                    if (newPassword !== confirmPassword) {
+                        messageDiv.innerHTML = '<div class="alert alert-danger">Le password non coincidono</div>';
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = originalText;
+                        return;
+                    }
+                    
+                    if (newPassword.length < 8) {
+                        messageDiv.innerHTML = '<div class="alert alert-danger">La password deve essere di almeno 8 caratteri</div>';
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = originalText;
+                        return;
+                    }
+                    
+                    try {
+                        const response = await fetch('/api/auth/reset-password', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ 
+                                token: '${token}', 
+                                newPassword 
+                            })
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (data.success) {
+                            messageDiv.innerHTML = '<div class="alert alert-success">✅ Password reimpostata! Reindirizzamento al login...</div>';
+                            setTimeout(() => {
+                                window.location.href = '${process.env.FRONTEND_URL || 'http://localhost:3001'}/';
+                            }, 2000);
+                        } else {
+                            messageDiv.innerHTML = '<div class="alert alert-danger">' + data.message + '</div>';
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = originalText;
+                        }
+                        
+                    } catch (error) {
+                        console.error('Reset error:', error);
+                        messageDiv.innerHTML = '<div class="alert alert-danger">Errore di connessione</div>';
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = originalText;
+                    }
+                });
+            </script>
+        </body>
+        </html>
+        `);
+
+    } catch (error) {
+        logger.error('Reset password page error:', error);
+        res.status(500).send(`
+            <!DOCTYPE html>
+            <html>
+            <head><title>Errore Server</title></head>
+            <body style="font-family: Arial; text-align: center; padding: 50px;">
+                <h2>❌ Errore del Server</h2>
+                <p>Si è verificato un errore. Riprova più tardi.</p>
+            </body>
+            </html>
+        `);
+    }
+});
+
+router.post('/reset-password', async (req, res) => {
+    try {
+        const { token, newPassword } = req.body;
+        console.log('🔍 Reset password attempt:', { token: token?.substring(0, 20) + '...', passwordLength: newPassword?.length });
+
+        if (!token || !newPassword) {
+            console.log('❌ Missing token or password');
+            return res.status(400).json({
+                success: false,
+                message: 'Token e nuova password richiesti'
+            });
+        }
+
+        // Debug: Trova utente con token valido
+        console.log('🔍 Looking for user with token...');
+        const user = await User.findByValidResetToken(token);
+        console.log('👤 User found:', user ? { id: user.id, email: user.email } : 'NULL');
+
+        if (!user) {
+            console.log('❌ User not found or token invalid');
+            return res.status(400).json({
+                success: false,
+                message: 'Token non valido o scaduto'
+            });
+        }
+
+        if (newPassword.length < 8) {
+            console.log('❌ Password too short');
+            return res.status(400).json({
+                success: false,
+                message: 'La password deve essere di almeno 8 caratteri'
+            });
+        }
+
+        // Hash della nuova password
+        console.log('🔐 Hashing password...');
+        const hashedPassword = await bcrypt.hash(newPassword, 12);
+        console.log('✅ Password hashed successfully');
+
+        // Aggiorna password e cancella token
+        console.log('💾 Updating password in database...');
+        const updateResult = await User.updatePasswordAndClearResetToken(user.id, hashedPassword);
+        console.log('📝 Update result:', updateResult);
+
+        logger.info(`Password reset completed for user: ${user.email}`);
+        console.log('✅ Password reset completed successfully');
+
+        res.json({
+            success: true,
+            message: 'Password reimpostata con successo'
+        });
+
+    } catch (error) {
+        console.error('💥 FULL RESET ERROR DETAILS:', {
+            message: error.message,
+            stack: error.stack,
+            name: error.name
+        });
+        logger.error('Reset password error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Errore interno del server: ' + error.message
         });
     }
 });
@@ -752,14 +1119,11 @@ router.get('/me', requireAuth, async (req, res) => {
             });
         }
 
-        // Rimuovi password_hash dalla risposta
         const { password_hash: _, ...userResponse } = user;
 
         res.json({
             success: true,
-            message: 'Google OAuth successful!',
-            user: userData,
-            tokens: { accessToken, refreshToken }
+            user: userResponse
         });
 
     } catch (error) {

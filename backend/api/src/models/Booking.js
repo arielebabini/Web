@@ -21,21 +21,42 @@ class Booking {
         } = bookingData;
 
         try {
-            // Verifica disponibilità prima di creare
-            const isAvailable = await Space.checkAvailability(
-                space_id, start_date, end_date, start_time, end_time
-            );
-
-            if (!isAvailable) {
-                throw new Error('Lo spazio non è disponibile per le date selezionate');
+            // Verifica disponibilità (la logica esistente va bene)
+            const conflicts = await this.checkConflicts(bookingData);
+            if (conflicts.length > 0) {
+                throw new Error('Lo spazio non è disponibile per le date e gli orari selezionati');
             }
 
-            // Calcola il prezzo
-            const pricing = await Space.calculatePrice(space_id, start_date, end_date, people_count);
+            // --- INIZIO BLOCCO MODIFICATO ---
 
-            const start = new Date(start_date);
-            const end = new Date(end_date);
-            const total_days = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+            const space = await Space.findById(space_id);
+            if (!space) throw new Error('Spazio non trovato');
+
+            let pricing;
+            const startDate = new Date(start_date);
+            const endDate = new Date(end_date);
+
+            // Se la prenotazione è nello stesso giorno, calcola il prezzo a ore
+            if (startDate.toISOString().split('T')[0] === endDate.toISOString().split('T')[0] && start_time && end_time && space.price_per_hour) {
+                const start = new Date(`1970-01-01T${start_time}`);
+                const end = new Date(`1970-01-01T${end_time}`);
+                const hours = (end - start) / (1000 * 60 * 60);
+
+                const basePrice = hours * space.price_per_hour;
+                const fees = basePrice * 0.10; // Commissione del 10%
+                pricing = {
+                    basePrice: parseFloat(basePrice.toFixed(2)),
+                    fees: parseFloat(fees.toFixed(2)),
+                    totalPrice: parseFloat((basePrice + fees).toFixed(2))
+                };
+            } else {
+                // Altrimenti, usa la logica di calcolo giornaliera esistente
+                pricing = await Space.calculatePrice(space_id, start_date, end_date, people_count);
+            }
+
+            const total_days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+
+            // --- FINE BLOCCO MODIFICATO ---
 
             const result = await query(`
                 INSERT INTO bookings (
@@ -512,43 +533,41 @@ class Booking {
     }
 
     /**
-     * Verifica conflitti per una prenotazione
+     * Verifica conflitti per una prenotazione, gestendo correttamente gli orari.
      * @param {Object} bookingData - Dati della prenotazione da verificare
-     * @param {string} excludeBookingId - ID prenotazione da escludere
-     * @returns {Promise<Array>} Conflitti trovati
+     * @param {string} excludeBookingId - ID prenotazione da escludere (per gli aggiornamenti)
+     * @returns {Promise<Array>} Elenco dei conflitti trovati
      */
     static async checkConflicts(bookingData, excludeBookingId = null) {
         const { space_id, start_date, end_date, start_time, end_time } = bookingData;
 
+        // Query di base: trova prenotazioni attive per lo stesso spazio con date sovrapposte.
         let queryText = `
-            SELECT b.*, u.first_name, u.last_name, u.email
-            FROM bookings b
-                     LEFT JOIN users u ON b.user_id = u.id
-            WHERE b.space_id = $1
-              AND b.status IN ('confirmed', 'pending')
-              AND (
-                (b.start_date <= $3 AND b.end_date >= $2)
+            SELECT id, start_date, end_date, start_time, end_time
+            FROM bookings
+            WHERE space_id = $1
+              AND status IN ('confirmed', 'pending')
+              AND start_date <= $3 AND end_date >= $2
         `;
-
         const params = [space_id, start_date, end_date];
         let paramIndex = 4;
 
-        // Se sono specificate ore, controlla anche sovrapposizioni orarie
+        // Se la NUOVA prenotazione ha un orario specifico, il controllo è più dettagliato.
         if (start_time && end_time) {
             queryText += ` AND (
-                (b.start_time IS NULL OR b.end_time IS NULL) OR
-                (b.start_time < $${paramIndex + 1} AND b.end_time > $${paramIndex})
+                start_time IS NULL
+                OR
+                (start_time < $${paramIndex + 1} AND end_time > $${paramIndex})
             )`;
             params.push(start_time, end_time);
             paramIndex += 2;
         }
 
-        queryText += ')';
-
-        // Escludi una prenotazione specifica
+        // Se stiamo aggiornando una prenotazione, la escludiamo dal controllo.
         if (excludeBookingId) {
-            queryText += ` AND b.id != $${paramIndex}`;
+            queryText += ` AND id != $${paramIndex}`;
             params.push(excludeBookingId);
+            paramIndex++;
         }
 
         try {

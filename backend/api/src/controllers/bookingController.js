@@ -71,6 +71,21 @@ class BookingController {
                 });
             }
 
+            const conflicts = await Booking.checkConflicts({
+                space_id,
+                start_date,
+                end_date,
+                start_time, // Passiamo gli orari
+                end_time
+            });
+
+            if (conflicts.length > 0) {
+                return res.status(409).json({ // 409 Conflict
+                    success: false,
+                    message: 'Lo spazio non è disponibile per le date e gli orari selezionati a causa di una sovrapposizione.'
+                });
+            }
+
             const bookingData = {
                 user_id: req.user.id,
                 space_id,
