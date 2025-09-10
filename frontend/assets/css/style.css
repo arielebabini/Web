@@ -2300,3 +2300,18 @@ mark {
 .summary-card {
     border-left: 4px solid #28a745;
 }
+
+/* Stile per sezioni che devono comportarsi come pagine intere */
+.page-view-section {
+    display: none; /* Inizialmente nascosta */
+    position: fixed; /* La fissa sulla finestra per coprire tutto */
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #f8f9fa; /* Sfondo opaco (puoi usare 'white' se preferisci) */
+    z-index: 1020; /* Sotto la navbar (che di solito ha z-index 1030) ma sopra tutto il resto */
+    overflow-y: auto; /* Permette di scrollare se il contenuto è lungo */
+    padding-top: 80px; /* Spazio per non finire sotto la navbar fissa */
+    padding-bottom: 2rem;
+}
