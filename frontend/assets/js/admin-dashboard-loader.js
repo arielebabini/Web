@@ -31,7 +31,7 @@ class AdminDashboardLoader {
     async loadDashboardData(timeRange = '30d') {
         if (this.isLoading) return;
 
-        const token = localStorage.getItem('auth_token');
+        const token = localStorage.getItem('authToken');
         if (!token) {
             console.error('❌ Token non trovato. Reindirizzamento alla pagina di login.');
             window.location.href = '/login.html';
@@ -428,7 +428,7 @@ document.addEventListener('click', async (event) => {
         const userId = button.dataset.userId;
         if (confirm(`Sei sicuro di voler eliminare l'utente con ID: ${userId}?`)) {
             try {
-                const token = localStorage.getItem('auth_token');
+                const token = localStorage.getItem('authToken');
                 const response = await fetch(`http://localhost:3000/api/admin/users/${userId}`, {
                     method: 'DELETE',
                     headers: { 'Authorization': `Bearer ${token}` }

@@ -7,8 +7,8 @@ const dbConfig = {
     host: process.env.DB_HOST || 'localhost',
     port: parseInt(process.env.DB_PORT) || 5432,
     database: process.env.DB_NAME || 'coworkspace',
-    user: process.env.DB_USER || 'coworkspace_user',
-    password: process.env.DB_PASSWORD || 'coworkspace_password',
+    user: process.env.DB_USER || 'postgres',
+    password: process.env.DB_PASSWORD || 'postgress',
 
     // Configurazioni pool connessioni
     min: parseInt(process.env.DB_POOL_MIN) || 2,
@@ -21,7 +21,7 @@ const dbConfig = {
     createRetryIntervalMillis: 200,
 
     // SSL configuration (per produzione)
-    ssl: process.env.NODE_ENV === 'production' ? {
+    ssl: process.env.DB_SSL === 'true' ? {
         rejectUnauthorized: false
     } : false,
 

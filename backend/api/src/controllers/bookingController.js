@@ -3,6 +3,9 @@ const Space = require('../models/Space');
 const { validationResult } = require('express-validator');
 const logger = require('../utils/logger');
 const { query } = require('../config/database');
+const User = require('../models/User');
+//const { requireAuth } = require('../middleware/auth');
+//const logger = require('../utils/logger');
 
 /**
  * Controller per la gestione delle prenotazioni
@@ -71,6 +74,21 @@ class BookingController {
                 });
             }
 
+            const conflicts = await Booking.checkConflicts({
+                space_id,
+                start_date,
+                end_date,
+                start_time, // Passiamo gli orari
+                end_time
+            });
+
+            if (conflicts.length > 0) {
+                return res.status(409).json({ // 409 Conflict
+                    success: false,
+                    message: 'Lo spazio non è disponibile per le date e gli orari selezionati a causa di una sovrapposizione.'
+                });
+            }
+
             const bookingData = {
                 user_id: req.user.id,
                 space_id,
@@ -89,6 +107,21 @@ class BookingController {
                 message: 'Prenotazione creata con successo',
                 booking: newBooking
             });
+
+            try {
+                const user = req.user;
+
+                if (user && space) {
+                    await EmailService.sendBookingConfirmationEmail(user, newBooking, space);
+                    await Booking.update(newBooking.id, {
+                        confirmation_sent_at: new Date()
+                    });
+                }
+            } catch (emailError) {
+                // Non bloccare la prenotazione se l'email fallisce
+                logger.warn('Errore invio email conferma prenotazione:', emailError.message);
+            }
+
         } catch (error) {
             logger.error('Error creating booking:', error);
 
@@ -109,6 +142,136 @@ class BookingController {
             res.status(500).json({
                 success: false,
                 message: 'Errore durante la creazione della prenotazione'
+            });
+        }
+    }
+
+    /**
+     * Invia email di conferma per una prenotazione esistente
+     * @route POST /api/bookings/:bookingId/send-confirmation-email
+     */
+    static async sendConfirmationEmail(req, res) {
+        try {
+            const { bookingId } = req.params;
+            const userId = req.user.id;
+
+            // 1. Verifica che la prenotazione esista e appartenga all'utente
+            const booking = await Booking.findById(bookingId);
+            if (!booking) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Prenotazione non trovata'
+                });
+            }
+
+            // Verifica che la prenotazione appartenga all'utente loggato
+            if (booking.user_id !== userId) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Non hai il permesso di accedere a questa prenotazione'
+                });
+            }
+
+            // 2. Recupera i dati dello spazio
+            const space = await Space.findById(booking.space_id);
+            if (!space) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Spazio associato alla prenotazione non trovato'
+                });
+            }
+
+            // 3. Recupera i dati dell'utente
+            const user = await User.findById(userId);
+            if (!user) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Dati utente non trovati'
+                });
+            }
+
+            // 4. Prepara i dati per l'email
+            const userData = {
+                id: user.id,
+                email: user.email,
+                first_name: user.first_name,
+                last_name: user.last_name,
+                name: user.name || `${user.first_name} ${user.last_name}`,
+                phone: user.phone
+            };
+
+            const bookingData = {
+                id: booking.id,
+                start_date: booking.start_date,
+                end_date: booking.end_date,
+                start_time: booking.start_time,
+                end_time: booking.end_time,
+                people_count: booking.people_count,
+                total_price: booking.total_price,
+                notes: booking.notes,
+                status: booking.status,
+                created_at: booking.created_at
+            };
+
+            const spaceData = {
+                id: space.id,
+                name: space.name,
+                address: space.address,
+                city: space.city,
+                type: space.type
+            };
+
+            // 5. Invia l'email
+            const EmailService = require('../services/emailService');
+            const emailResult = await EmailService.sendBookingConfirmationEmail(
+                userData,
+                bookingData,
+                spaceData
+            );
+
+            // 6. Aggiorna la prenotazione con il timestamp dell'email
+            await Booking.update(bookingId, {
+                confirmation_sent_at: new Date(),
+                email_message_id: emailResult.messageId || null
+            });
+
+            // 7. Log dell'operazione
+            logger.info('Manual booking confirmation email sent:', {
+                bookingId,
+                userId,
+                userEmail: userData.email,
+                spaceName: spaceData.name,
+                messageId: emailResult.messageId
+            });
+
+            res.json({
+                success: true,
+                message: 'Email di conferma inviata con successo',
+                data: {
+                    bookingId,
+                    emailSent: true,
+                    messageId: emailResult.messageId,
+                    sentTo: userData.email,
+                    sentAt: new Date().toISOString()
+                }
+            });
+
+        } catch (error) {
+            logger.error('Error sending manual booking confirmation email:', error);
+
+            // Gestisci errori specifici
+            if (error.code === 'EAUTH' || error.code === 'ENOTFOUND') {
+                return res.status(503).json({
+                    success: false,
+                    message: 'Servizio email temporaneamente non disponibile',
+                    error: 'EMAIL_SERVICE_ERROR'
+                });
+            }
+
+            res.status(500).json({
+                success: false,
+                message: 'Errore durante l\'invio dell\'email di conferma',
+                error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
             });
         }
     }
@@ -984,27 +1147,27 @@ class BookingController {
             }
 
             const result = await query(`
-            SELECT 
-                b.id,
-                b.start_date,
-                b.end_date,
-                b.start_time,
-                b.end_time,
-                b.people_count,
-                b.total_price,
-                s.id as space_id,
-                s.name as space_name,
-                s.type as space_type,
-                u.first_name as user_first_name,
-                u.last_name as user_last_name,
-                u.email as user_email
-            FROM bookings b
-            INNER JOIN spaces s ON b.space_id = s.id
-            LEFT JOIN users u ON b.user_id = u.id
-            ${whereClause}
+                SELECT
+                    b.id,
+                    b.start_date,
+                    b.end_date,
+                    b.start_time,
+                    b.end_time,
+                    b.people_count,
+                    b.total_price,
+                    s.id as space_id,
+                    s.name as space_name,
+                    s.type as space_type,
+                    u.first_name as user_first_name,
+                    u.last_name as user_last_name,
+                    u.email as user_email
+                FROM bookings b
+                         INNER JOIN spaces s ON b.space_id = s.id
+                         LEFT JOIN users u ON b.user_id = u.id
+                    ${whereClause}
             AND b.status IN ('confirmed', 'pending', 'completed')
-            ORDER BY b.start_date, b.start_time
-        `, params);
+                ORDER BY b.start_date, b.start_time
+            `, params);
 
             return result.rows;
         } catch (error) {

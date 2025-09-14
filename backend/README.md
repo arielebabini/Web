@@ -35,6 +35,7 @@ Strumenti:
 - **CRUD spazi di coworking** con immagini e disponibilità
 - **Sistema prenotazioni** con controllo conflitti
 - **Pagamenti Stripe** integrati (modalità test)
+- **Autenticazione Google** login attraverso account google
 - **Dashboard Analytics** con metriche in tempo reale
 
 ### Architettura & Security
@@ -64,6 +65,11 @@ Strumenti:
 │   └── init/                    # SQL migration files
 ├── docker-compose.yml           # Multi-container setup
 ├── .env                         # Environment variables
+├── Dockerfile.test 
+├── jest.config.js 
+├── package.json 
+├── package-lock.json 
+├── playwright.config.js 
 └── README.md
 ```
 
@@ -72,6 +78,7 @@ Strumenti:
 - **Framework**: Express.js
 - **Database**: PostgreSQL 15
 - **Payments**: Stripe API
+- **JWT**: Autenticazione Google
 - **Validation**: express-validator
 - **Documentation**: Swagger/OpenAPI
 
@@ -449,6 +456,66 @@ docker-compose down -v && docker-compose up --build
 ## 🧪 Test
 La nostra strategia di test si basa sull'isolamento dei componenti e sulla simulazione delle dipendenze esterne. Questo ci permette di eseguire test unitari e di
 integrazione in un ambiente controllato, veloce e prevedibile, senza la necessità di un backend o di un database attivi.
+
+### Struttura Progetto
+
+```
+api/test/
+├── helpers/
+│   ├── auth.js                  # Connessione PostgreSQL
+│   ├── database.js              # Cache (opzionale)
+│   └── TestDataSeeder.js        # Configurazione per pagamento con Stripe
+├── integration/
+│   ├── admin-integration.test.js            # Test funzionalità admin
+│   ├── auth-api.test.js                     # Test api di autenticazione 
+│   ├── auth-integration.test.js             # Test funzionalità di autenticazione
+│   ├── booking-api.test.js                  # Test api prenotazioni  
+│   ├── notification-integration.test.js     # Test notifiche
+│   ├── payment-integration.test.js          # Test pagamenti
+│   ├── search-filter-integration.test.js    # Test di metodi per filtraggio e ricerca
+│   ├── setup.js                             # Test di setup
+│   ├── simple-docker.test.js                # Test funzionalità docker
+│   ├── spaces-api.test.js                   # Test api di gestione spazi
+│   ├── user-profile-integration.test.js     # Test per funzionalità dei profili
+│   └── users.test.js                        # Test funzionalità user
+├── setup/
+│   ├── global.setup.js                      # Setup variabili globali per test
+│   ├── global.teardown.js                   
+│   ├── jest.setup.js                        # Setup per test
+│   └── setEnvVars.js                        # Variabili globali per env
+├── unit/
+│   ├── conrtollers/                         # Test dei controller
+│   │    ├── AnalyticsController.test.js     
+│   │    ├── AuthController.test.js          
+│   │    ├── BookingController.test.js       
+│   │    ├── PaymentController.test.js       
+│   │    ├── SpaceController.test.js         
+│   │    └── UserController.test.js          
+│   ├── middleware/                          # Test dei middleware
+│   │    ├── auth.test.js                    
+│   │    ├── errorHandler.test.js            
+│   │    ├── roleAuth.test.js                
+│   │    └── routeAdapter.test.js            
+│   ├── models/                              # Test dei model
+│   │    ├── Booking.test.js                  
+│   │    ├── Payment.test.js                  
+│   │    ├── Space.test.js                   
+│   │    └── User.test.js                    
+│   ├── routes/                              # Test delle routes
+│   │    ├── admin.test.js                   
+│   │    ├── analytics.test.js               
+│   │    ├── auth.test.js                    
+│   │    ├── health.test.js                  
+│   │    ├── manager.test.js                 
+│   │    ├── payments.test.js                
+│   │    ├── spaces.test.js                  
+│   │    └── user.test.js                    
+│   ├── services/                            # Test dei service
+│   │    ├── analyticsService.test.js       
+│   │    ├── emailService.test.js            
+│   │    └── stripeService.test.js           
+│   └── basic.test.js                        # Test di base
+```
 
 ### 💡 Il Sistema di Mocking
 Ogni file di logica principale (es. user.js) ha un corrispondente file di mock (tests/mocks/user-mock.js). Questi file non contengono test, ma forniscono tutti

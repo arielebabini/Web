@@ -54,41 +54,96 @@ class StripeService {
      */
     static async confirmPaymentIntent(paymentIntentId, paymentData) {
         try {
-            // In ambiente test, simula la conferma
+            console.log('🔄 Confirming payment intent:', paymentIntentId);
+
+            // Recupera il Payment Intent da Stripe
             const paymentIntent = await stripeClient.paymentIntents.retrieve(paymentIntentId);
 
-            // Simula successo del pagamento
+            if (!paymentIntent) {
+                throw new Error('Payment Intent non trovato su Stripe');
+            }
+
+            console.log('📋 Payment Intent retrieved:', {
+                id: paymentIntent.id,
+                status: paymentIntent.status,
+                amount: paymentIntent.amount
+            });
+
+            // Trova il pagamento nel database
+            const payment = await Payment.findByStripeIntent(paymentIntentId);
+
+            if (!payment) {
+                console.warn('⚠️ Payment not found in database, creating new record');
+                const bookingId = paymentIntent.metadata?.booking_id;
+                if (bookingId) {
+                    await Payment.create({
+                        booking_id: bookingId,
+                        stripe_payment_intent_id: paymentIntentId,
+                        amount: paymentIntent.amount / 100,
+                        currency: paymentIntent.currency.toUpperCase(),
+                        status: 'pending',
+                        payment_method: {}
+                    });
+                }
+            }
+
+            // Simula successo del pagamento per ambiente test
             const mockPaymentMethod = {
                 id: `pm_test_${Date.now()}`,
                 type: 'card',
                 card: {
                     brand: 'visa',
-                    last4: paymentData.cardNumber.slice(-4),
-                    exp_month: parseInt(paymentData.expiry.split('/')[0]),
-                    exp_year: parseInt('20' + paymentData.expiry.split('/')[1])
+                    last4: paymentData.cardNumber ? paymentData.cardNumber.slice(-4) : '4242',
+                    exp_month: paymentData.expiry ? parseInt(paymentData.expiry.split('/')[0]) : 12,
+                    exp_year: paymentData.expiry ? parseInt('20' + paymentData.expiry.split('/')[1]) : 2025
                 }
             };
 
-            // Aggiorna il pagamento nel database
+            console.log('💳 Mock payment method created:', mockPaymentMethod);
+
             await Payment.updateByStripeIntent(paymentIntentId, {
-                status: 'completed',
+                status: 'succeeded',  // ← Questo è il valore corretto!
                 payment_method: mockPaymentMethod,
                 completed_at: new Date()
             });
 
-            // Simula response di Stripe
-            return {
+            console.log('✅ Payment updated in database with status: succeeded');
+
+            // Conferma automaticamente la prenotazione
+            try {
+                const updatedPayment = await Payment.findByStripeIntent(paymentIntentId);
+                if (updatedPayment && updatedPayment.booking_id) {
+                    await Booking.confirm(updatedPayment.booking_id);
+                    console.log(`✅ Booking ${updatedPayment.booking_id} confirmed automatically`);
+                }
+            } catch (bookingError) {
+                console.error('❌ Error confirming booking:', bookingError);
+                // Non bloccare il flusso per errori di conferma prenotazione
+            }
+
+            // Ritorna response simulata di successo
+            const response = {
                 id: paymentIntentId,
                 status: 'succeeded',
                 amount: paymentIntent.amount,
                 currency: paymentIntent.currency,
                 metadata: paymentIntent.metadata,
-                payment_method: mockPaymentMethod
+                payment_method: mockPaymentMethod,
+                created: Math.floor(Date.now() / 1000),
+                succeeded_at: Math.floor(Date.now() / 1000)
             };
 
+            console.log('🎉 Payment confirmation completed successfully');
+            return response;
+
         } catch (error) {
-            logger.error('Error confirming payment intent:', error);
-            throw error;
+            console.error('❌ Error in confirmPaymentIntent:', error);
+            logger.error('Error confirming payment intent:', {
+                paymentIntentId,
+                error: error.message,
+                stack: error.stack
+            });
+            throw new Error(`Errore nella conferma del pagamento: ${error.message}`);
         }
     }
 
@@ -141,7 +196,7 @@ class StripeService {
         try {
             // Aggiorna pagamento
             await Payment.updateByStripeIntent(paymentIntent.id, {
-                status: 'completed',
+                status: 'succeeded',
                 completed_at: new Date()
             });
 

@@ -1,0 +1,175 @@
+# docker-compose.yml completo per CoWorkSpace
+# Include tutti i servizi: Nginx, Frontend, Backend, Database PostgreSQL, Redis
+
+services:
+  # ---------------------------------------------------------
+  # NGINX REVERSE PROXY (PUNTO DI INGRESSO PRINCIPALE)
+  # ---------------------------------------------------------
+  nginx:
+    image: nginx:alpine
+    container_name: coworkspace_nginx_proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - coworkspace_network
+    depends_on:
+      - frontend
+      - backend
+
+  # ---------------------------------------------------------
+  # SERVIZIO FRONTEND (App Express)
+  # ---------------------------------------------------------
+  frontend:
+    build:
+      context: .
+      dockerfile: ./frontend/Dockerfile
+    container_name: coworkspace_frontend_app
+    restart: unless-stopped
+    environment:
+      API_URL: http://localhost/api
+      NODE_ENV: production
+      PORT: 3001
+    networks:
+      - coworkspace_network
+    depends_on:
+      - backend
+
+  # ---------------------------------------------------------
+  # SERVIZIO BACKEND (API Express)
+  # ---------------------------------------------------------
+  backend:
+    build:
+      context: .
+      dockerfile: ./backend/Dockerfile
+    container_name: coworkspace_backend_api
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      FRONTEND_URL: http://localhost
+      # Database PostgreSQL Docker
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: coworkspace
+      DB_USER: coworkspace_user
+      DB_PASSWORD: postgress
+      DB_SSL: 'false'
+
+
+      # Redis
+      REDIS_URL: redis://:redis_password@redis:6379
+      REDIS_PASSWORD: redis_password
+
+      # Server
+      NODE_ENV: production
+      PORT: 3000
+
+      # JWT
+      JWT_SECRET: your_super_secret_jwt_key_change_in_production
+      JWT_EXPIRES_IN: 7d
+
+      # Admin predefinito
+      ADMIN_EMAIL: admin@coworkspace.test
+      ADMIN_PASSWORD: Admin123
+
+      # OAuth Google
+      GOOGLE_CLIENT_ID: 551799283977-2rpv9ahgm8726gge2uldstu0q3ps5cd1.apps.googleusercontent.com
+      GOOGLE_CLIENT_SECRET: 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
+      GOOGLE_REDIRECT_URI: http://localhost:3000/api/auth/google/callback
+
+      EMAIL_USER: arielebabini04@gmail.com
+      EMAIL_PASS: iozw wbwl wujo wpvb
+
+      # Email
+      SMTP_HOST: smtp.gmail.com
+      SMTP_PORT: 587
+      SMTP_SECURE: false
+      SMTP_USER: your_email@gmail.com
+      SMTP_PASS: your_app_password
+
+      # Stripe
+      STRIPE_SECRET_KEY: sk_test_51Rs7kdJ9mfmkNGem3Z2rpkEDzfgNdVPCV4ba5ReuqcBz6cFmTbZD8GHEyzlk1Xj3E87FiToiLuyKOgKLAGkY7pWD005nXB4n1P
+      STRIPE_PUBLISHABLE_KEY: pk_test_51Rs7kdJ9mfmkNGem1gP2uTZlLw6POAlDwMAlnFPxhINseQfj7nAPL7O0YDgsslmC5htPU47wIbx88IkfGktkB59q00Ua9AmYBj
+      STRIPE_WEBHOOK_SECRET: whsec_test_webhook_secret
+
+      # Uploads
+      UPLOAD_MAX_SIZE: 5MB
+      UPLOAD_ALLOWED_TYPES: image/jpeg,image/png,image/gif,application/pdf
+
+      # CORS
+      CORS_ORIGIN: http://localhost,http://localhost:80
+
+      # Logging
+      LOG_LEVEL: info
+
+      # Features
+      ENABLE_SWAGGER: true
+    volumes:
+      - app_logs:/app/logs
+    networks:
+      - coworkspace_network
+
+  # ---------------------------------------------------------
+  # SERVIZIO DATABASE POSTGRESQL
+  # ---------------------------------------------------------
+  db:
+    image: postgres:15-alpine
+    container_name: coworkspace_postgres_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: coworkspace
+      POSTGRES_USER: coworkspace_user
+      POSTGRES_PASSWORD: postgress
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "5432:5432"
+    networks:
+      - coworkspace_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U coworkspace_user -d coworkspace"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # ---------------------------------------------------------
+  # SERVIZIO REDIS (Cache/Sessioni)
+  # ---------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: coworkspace_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass redis_password
+    volumes:
+      - redis_data:/data
+    networks:
+      - coworkspace_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "redis_password", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+# --- RETE E VOLUMI ---
+networks:
+  coworkspace_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  app_logs:
+    driver: local

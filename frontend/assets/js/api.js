@@ -139,7 +139,7 @@ class ApiClient {
 
     getStoredToken() {
         try {
-            return localStorage.getItem('auth_token');
+            return localStorage.getItem('authToken');
         } catch (error) {
             console.warn('Could not access localStorage:', error);
             return null;

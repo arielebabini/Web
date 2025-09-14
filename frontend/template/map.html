@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mappa Spazi - CoWorkSpace</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Leaflet CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" rel="stylesheet">
+
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        .main-container {
+            min-height: 100vh;
+            padding: 20px 0;
+        }
+
+        .map-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            border-radius: 15px;
+        }
+
+        .controls-panel {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .map-container {
+            position: relative;
+            height: 600px;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+            border: 2px solid #e9ecef;
+        }
+
+        .map-controls {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .map-control-btn {
+            background: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+            transition: all 0.3s ease;
+            color: #495057;
+        }
+
+        .map-control-btn:hover {
+            background: #f8f9fa;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .filter-group {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .filter-group h6 {
+            color: #495057;
+            margin-bottom: 0.75rem;
+            font-weight: 600;
+        }
+
+        .legend {
+            background: white;
+            border-radius: 10px;
+            padding: 1rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+            padding: 0.25rem 0;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            margin-right: 0.75rem;
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .stats-panel {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            opacity: 0.9;
+        }
+
+        /* Custom Leaflet Popup Styles */
+        .custom-popup .leaflet-popup-content-wrapper {
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        .space-popup {
+            min-width: 280px;
+            padding: 0;
+        }
+
+        .popup-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem;
+            margin: -12px -20px 1rem -20px;
+            border-radius: 12px 12px 0 0;
+        }
+
+        .popup-badge {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .popup-info {
+            padding: 0 1rem 0.5rem 1rem;
+        }
+
+        .popup-price {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: #28a745;
+        }
+
+        .popup-actions {
+            padding: 1rem;
+            margin: 0 -20px -12px -20px;
+            border-top: 1px solid #e9ecef;
+            background: #f8f9fa;
+            border-radius: 0 0 12px 12px;
+        }
+
+        .search-box {
+            position: relative;
+        }
+
+        .search-box input {
+            padding-right: 45px;
+        }
+
+        .search-btn {
+            position: absolute;
+            right: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+            border: none;
+            background: #667eea;
+            color: white;
+            border-radius: 6px;
+            padding: 6px 12px;
+        }
+
+        @media (max-width: 768px) {
+            .map-container {
+                height: 450px;
+            }
+
+            .controls-panel {
+                margin-bottom: 1rem;
+            }
+
+            .map-controls {
+                top: 10px;
+                right: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="main-container">
+    <div class="container-fluid">
+        <!-- Header -->
+        <div class="map-header text-center">
+            <h1><i class="fas fa-map-marked-alt me-3"></i>Mappa Spazi CoWorking</h1>
+            <p class="lead mb-0">Esplora tutti gli spazi disponibili sulla mappa interattiva</p>
+        </div>
+
+        <div class="row">
+            <!-- Pannello Controlli Sinistra -->
+            <div class="col-lg-3">
+                <!-- Statistiche -->
+                <div class="stats-panel text-center">
+                    <div class="stat-number" id="totalSpaces">28</div>
+                    <div class="stat-label">Spazi Totali</div>
+                    <hr style="border-color: rgba(255,255,255,0.3);">
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="stat-number" id="availableSpaces">24</div>
+                            <div class="stat-label">Disponibili</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="stat-number" id="occupiedSpaces">4</div>
+                            <div class="stat-label">Occupati</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ricerca -->
+                <div class="controls-panel">
+                    <h5><i class="fas fa-search me-2"></i>Ricerca</h5>
+                    <div class="search-box mb-3">
+                        <input type="text" class="form-control" id="searchInput"
+                               placeholder="Cerca per nome o città...">
+                        <button class="search-btn" onclick="searchSpaces()">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+
+                    <!-- Filtri Veloci -->
+                    <div class="filter-group">
+                        <h6><i class="fas fa-filter me-2"></i>Filtri Rapidi</h6>
+                        <select class="form-select mb-2" id="cityFilter" onchange="filterByCity()">
+                            <option value="">Tutte le città</option>
+                            <option value="Milano">Milano</option>
+                            <option value="Roma">Roma</option>
+                            <option value="Torino">Torino</option>
+                            <option value="Bologna">Bologna</option>
+                            <option value="Firenze">Firenze</option>
+                        </select>
+
+                        <select class="form-select" id="typeFilter" onchange="filterByType()">
+                            <option value="">Tutti i tipi</option>
+                            <option value="hot-desk">Hot Desk</option>
+                            <option value="private-office">Ufficio Privato</option>
+                            <option value="meeting-room">Sala Riunioni</option>
+                            <option value="event-space">Spazio Eventi</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Legenda -->
+                <div class="legend">
+                    <h6><i class="fas fa-info-circle me-2"></i>Legenda</h6>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #28a745;"></div>
+                        <span>Hot Desk</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #007bff;"></div>
+                        <span>Ufficio Privato</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #ffc107;"></div>
+                        <span>Sala Riunioni</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #dc3545;"></div>
+                        <span>Spazio Eventi</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #6c757d;"></div>
+                        <span>Non Disponibile</span>
+                    </div>
+                </div>
+
+                <!-- Layer Controls -->
+                <div class="controls-panel">
+                    <h6><i class="fas fa-layer-group me-2"></i>Livelli Mappa</h6>
+                    <div class="form-check form-switch mb-2">
+                        <input class="form-check-input" type="checkbox" id="showAvailable" checked onchange="toggleLayer('available')">
+                        <label class="form-check-label" for="showAvailable">Spazi Disponibili</label>
+                    </div>
+                    <div class="form-check form-switch mb-2">
+                        <input class="form-check-input" type="checkbox" id="showOccupied" onchange="toggleLayer('occupied')">
+                        <label class="form-check-label" for="showOccupied">Spazi Occupati</label>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="showClusters" checked onchange="toggleClusters()">
+                        <label class="form-check-label" for="showClusters">Raggruppa Marker</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mappa Principale -->
+            <div class="col-lg-9">
+                <div class="map-container">
+                    <div id="map"></div>
+
+                    <!-- Controlli Mappa -->
+                    <div class="map-controls">
+                        <button class="map-control-btn" onclick="centerMap()" title="Centra Mappa">
+                            <i class="fas fa-crosshairs"></i>
+                        </button>
+                        <button class="map-control-btn" onclick="toggleFullscreen()" title="Schermo Intero">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                        <button class="map-control-btn" onclick="shareLocation()" title="Condividi Posizione">
+                            <i class="fas fa-share-alt"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Info Panel Bottom -->
+                <div class="controls-panel mt-3">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-map-pin text-primary me-2"></i>
+                                <span id="selectedInfo">Seleziona uno spazio sulla mappa per vedere i dettagli</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <button class="btn btn-outline-primary me-2" onclick="clearSelection()">
+                                <i class="fas fa-times me-1"></i>Pulisci Selezione
+                            </button>
+                            <button class="btn btn-primary" onclick="goToSpacesPage()">
+                                <i class="fas fa-list me-1"></i>Vista Lista
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.4.1/leaflet.markercluster.js"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.4.1/MarkerCluster.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.4.1/MarkerCluster.Default.css" rel="stylesheet">
+
+<script>
+    // ==================== VARIABLES GLOBALI ====================
+    let map;
+    let markersLayer;
+    let clusterGroup;
+    let allSpaces = [];
+    let filteredSpaces = [];
+    let selectedMarker = null;
+
+    // ==================== DATI MOCK SPAZI ====================
+    const mockSpaces = [
+        {
+            id: '1',
+            name: 'Hub Milano Centro',
+            type: 'hot-desk',
+            city: 'Milano',
+            address: 'Via Dante 15',
+            lat: 45.4642,
+            lng: 9.1900,
+            capacity: 50,
+            price_per_day: 25,
+            available: true,
+            rating: 4.5,
+            total_reviews: 128,
+            description: 'Spazio moderno nel cuore di Milano con vista sul Castello Sforzesco.',
+            amenities: ['wifi', 'coffee', 'printer', 'parking'],
+            images: ['https://images.unsplash.com/photo-1497366216548-37526070297c?w=400']
+        },
+        {
+            id: '2',
+            name: 'Business Center Roma',
+            type: 'private-office',
+            city: 'Roma',
+            address: 'Via del Corso 301',
+            lat: 41.9028,
+            lng: 12.4964,
+            capacity: 20,
+            price_per_day: 80,
+            available: true,
+            rating: 4.8,
+            total_reviews: 95,
+            description: 'Uffici privati di lusso nel centro storico di Roma.',
+            amenities: ['wifi', 'coffee', 'printer', 'ac', '24h'],
+            images: ['https://images.unsplash.com/photo-1541746972996-4e0b0f93e586?w=400']
+        },
+        {
+            id: '3',
+            name: 'Creative Space Torino',
+            type: 'meeting-room',
+            city: 'Torino',
+            address: 'Via Po 25',
+            lat: 45.0703,
+            lng: 7.6869,
+            capacity: 12,
+            price_per_day: 45,
+            available: false,
+            rating: 4.2,
+            total_reviews: 67,
+            description: 'Sala riunioni tecnologica per meeting creativi.',
+            amenities: ['wifi', 'coffee', 'printer', 'ac'],
+            images: ['https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400']
+        },
+        {
+            id: '4',
+            name: 'Event Hall Bologna',
+            type: 'event-space',
+            city: 'Bologna',
+            address: 'Piazza Maggiore 6',
+            lat: 44.4949,
+            lng: 11.3426,
+            capacity: 100,
+            price_per_day: 150,
+            available: true,
+            rating: 4.6,
+            total_reviews: 42,
+            description: 'Spazio eventi nel cuore di Bologna, ideale per conferenze.',
+            amenities: ['wifi', 'coffee', 'printer', 'ac', 'parking'],
+            images: ['https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=400']
+        },
+        {
+            id: '5',
+            name: 'Cowork Firenze',
+            type: 'hot-desk',
+            city: 'Firenze',
+            address: 'Borgo San Lorenzo 12',
+            lat: 43.7696,
+            lng: 11.2558,
+            capacity: 30,
+            price_per_day: 22,
+            available: true,
+            rating: 4.3,
+            total_reviews: 89,
+            description: 'Ambiente creativo vicino al Duomo di Firenze.',
+            amenities: ['wifi', 'coffee', 'printer'],
+            images: ['https://images.unsplash.com/photo-1524758631624-e2822e304c36?w=400']
+        },
+        // Aggiungiamo più spazi per Milano per testare il clustering
+        {
+            id: '6',
+            name: 'StartUp Hub Milano',
+            type: 'private-office',
+            city: 'Milano',
+            address: 'Corso Buenos Aires 77',
+            lat: 45.4755,
+            lng: 9.2026,
+            capacity: 15,
+            price_per_day: 60,
+            available: true,
+            rating: 4.4,
+            total_reviews: 156,
+            description: 'Hub per startup innovative in zona Porta Venezia.',
+            amenities: ['wifi', 'coffee', 'printer', 'ac'],
+            images: ['https://images.unsplash.com/photo-1556075798-4825dfaaf498?w=400']
+        },
+        {
+            id: '7',
+            name: 'Design Studio Milano',
+            type: 'meeting-room',
+            city: 'Milano',
+            address: 'Via Brera 28',
+            lat: 45.4722,
+            lng: 9.1889,
+            capacity: 8,
+            price_per_day: 55,
+            available: false,
+            rating: 4.7,
+            total_reviews: 73,
+            description: 'Studio di design nel quartiere artistico di Brera.',
+            amenities: ['wifi', 'coffee', 'printer', 'ac'],
+            images: ['https://images.unsplash.com/photo-1497366858526-0766cadbe8fa?w=400']
+        }
+    ];
+
+    // ==================== INIZIALIZZAZIONE MAPPA ====================
+    function initMap() {
+        // Inizializza la mappa centrata sull'Italia
+        map = L.map('map').setView([41.8719, 12.5674], 6);
+
+        // Aggiungi tile layer (OpenStreetMap)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Inizializza i layer
+        markersLayer = L.layerGroup().addTo(map);
+        clusterGroup = L.markerClusterGroup({
+            chunkedLoading: true,
+            maxClusterRadius: 80
+        });
+
+        // Carica i dati
+        loadSpacesData();
+        createMarkers();
+        updateStats();
+
+        console.log('✅ Mappa inizializzata con successo');
+    }
+
+    // ==================== GESTIONE DATI ====================
+    function loadSpacesData() {
+        allSpaces = [...mockSpaces];
+        filteredSpaces = [...allSpaces];
+        console.log(`📍 Caricati ${allSpaces.length} spazi`);
+    }
+
+    // ==================== CREAZIONE MARKER ====================
+    function createMarkers() {
+        // Pulisci marker esistenti
+        markersLayer.clearLayers();
+        clusterGroup.clearLayers();
+
+        const markerIcons = {
+            'hot-desk': createCustomIcon('#28a745'),
+            'private-office': createCustomIcon('#007bff'),
+            'meeting-room': createCustomIcon('#ffc107'),
+            'event-space': createCustomIcon('#dc3545'),
+            'unavailable': createCustomIcon('#6c757d')
+        };
+
+        filteredSpaces.forEach(space => {
+            const iconType = space.available ? space.type : 'unavailable';
+            const icon = markerIcons[iconType];
+
+            const marker = L.marker([space.lat, space.lng], { icon })
+                .bindPopup(createPopupContent(space), {
+                    className: 'custom-popup',
+                    maxWidth: 300,
+                    closeButton: true
+                });
+
+            // Event listeners per il marker
+            marker.on('click', () => selectSpace(space, marker));
+            marker.spaceData = space;
+
+            // Aggiungi al cluster group
+            clusterGroup.addLayer(marker);
+        });
+
+        // Aggiungi cluster alla mappa se l'opzione è attiva
+        if (document.getElementById('showClusters').checked) {
+            map.addLayer(clusterGroup);
+        } else {
+            clusterGroup.eachLayer(layer => markersLayer.addLayer(layer));
+        }
+    }
+
+    function createCustomIcon(color) {
+        return L.divIcon({
+            html: `<div style="
+                    background-color: ${color};
+                    width: 20px;
+                    height: 20px;
+                    border-radius: 50%;
+                    border: 3px solid white;
+                    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+                "></div>`,
+            className: 'custom-marker',
+            iconSize: [20, 20],
+            iconAnchor: [10, 10]
+        });
+    }
+
+    function createPopupContent(space) {
+        const typeLabels = {
+            'hot-desk': 'Hot Desk',
+            'private-office': 'Ufficio Privato',
+            'meeting-room': 'Sala Riunioni',
+            'event-space': 'Spazio Eventi'
+        };
+
+        const stars = '★'.repeat(Math.floor(space.rating)) + '☆'.repeat(5 - Math.floor(space.rating));
+
+        return `
+                <div class="space-popup">
+                    <div class="popup-header">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="mb-0 text-white">${space.name}</h6>
+                            <span class="popup-badge">${typeLabels[space.type]}</span>
+                        </div>
+                        <div class="small text-white-50">
+                            <i class="fas fa-map-marker-alt me-1"></i>${space.city}, ${space.address}
+                        </div>
+                    </div>
+
+                    <div class="popup-info">
+                        <div class="row g-2 mb-2">
+                            <div class="col-6">
+                                <small class="text-muted">Capacità</small><br>
+                                <strong><i class="fas fa-users me-1"></i>${space.capacity} persone</strong>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted">Prezzo</small><br>
+                                <span class="popup-price">€${space.price_per_day}/giorno</span>
+                            </div>
+                        </div>
+
+                        <div class="mb-2">
+                            <div class="text-warning mb-1">${stars} <span class="text-muted">(${space.total_reviews} recensioni)</span></div>
+                            <p class="small mb-0">${space.description}</p>
+                        </div>
+                    </div>
+
+                    <div class="popup-actions">
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-outline-primary btn-sm flex-fill" onclick="showSpaceDetails('${space.id}')">
+                                <i class="fas fa-info-circle me-1"></i>Dettagli
+                            </button>
+                            <button class="btn btn-primary btn-sm flex-fill" onclick="bookSpace('${space.id}')" ${!space.available ? 'disabled' : ''}>
+                                <i class="fas fa-calendar-plus me-1"></i>${space.available ? 'Prenota' : 'Non Disponibile'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+    }
+
+    // ==================== SELEZIONE SPAZIO ====================
+    function selectSpace(space, marker) {
+        // Reset marker precedente
+        if (selectedMarker) {
+            selectedMarker.setIcon(createCustomIcon(getMarkerColor(selectedMarker.spaceData)));
+        }
+
+        // Seleziona nuovo marker
+        selectedMarker = marker;
+        marker.setIcon(createCustomIcon('#ff6b6b')); // Colore selezione
+
+        // Aggiorna info panel
+        document.getElementById('selectedInfo').innerHTML = `
+                <strong>${space.name}</strong> - ${space.city}
+                <span class="badge bg-primary ms-2">€${space.price_per_day}/giorno</span>
+            `;
+
+        // Centra mappa sul marker
+        map.setView([space.lat, space.lng], 14);
+
+        console.log('📍 Spazio selezionato:', space.name);
+    }
+
+    function getMarkerColor(space) {
+        if (!space.available) return '#6c757d';
+
+        const colors = {
+            'hot-desk': '#28a745',
+            'private-office': '#007bff',
+            'meeting-room': '#ffc107',
+            'event-space': '#dc3545'
+        };
+        return colors[space.type] || '#6c757d';
+    }
+
+    // ==================== FILTRI E RICERCA ====================
+    function filterByCity() {
+        const selectedCity = document.getElementById('cityFilter').value;
+        applyFilters();
+    }
+
+    function filterByType() {
+        const selectedType = document.getElementById('typeFilter').value;
+        applyFilters();
+    }
+
+    function applyFilters() {
+        const cityFilter = document.getElementById('cityFilter').value;
+        const typeFilter = document.getElementById('typeFilter').value;
+        const showAvailable = document.getElementById('showAvailable').checked;
+        const showOccupied = document.getElementById('showOccupied').checked;
+
+        filteredSpaces = allSpaces.filter(space => {
+            if (cityFilter && space.city !== cityFilter) return false;
+            if (typeFilter && space.type !== typeFilter) return false;
+            if (!showAvailable && space.available) return false;
+            if (!showOccupied && !space.available) return false;
+            return true;
+        });
+
+        createMarkers();
+        updateStats();
+
+        console.log(`🔍 Filtri applicati: ${filteredSpaces.length} spazi mostrati`);
+    }
+
+    function searchSpaces() {
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+
+        if (!searchTerm) {
+            filteredSpaces = [...allSpaces];
+        } else {
+            filteredSpaces = allSpaces.filter(space =>
+                space.name.toLowerCase().includes(searchTerm) ||
+                space.city.toLowerCase().includes(searchTerm) ||
+                space.address.toLowerCase().includes(searchTerm)
+            );
+        }
+
+        createMarkers();
+        updateStats();
+
+        if (filteredSpaces.length > 0) {
+            // Adatta la vista per mostrare tutti i risultati
+            const group = new L.featureGroup(clusterGroup.getLayers());
+            map.fitBounds(group.getBounds().pad(0.1));
+        }
+
+        console.log(`🔍 Ricerca "${searchTerm}": ${filteredSpaces.length} risultati`);
+    }
+
+    // ==================== GESTIONE LAYER ====================
+    function toggleLayer(layerType) {
+        applyFilters();
+    }
+
+    function toggleClusters() {
+        const showClusters = document.getElementById('showClusters').checked;
+
+        // Rimuovi layer esistenti
+        map.removeLayer(clusterGroup);
+        markersLayer.clearLayers();
+
+        if (showClusters) {
+            // Aggiungi cluster group
+            map.addLayer(clusterGroup);
+        } else {
+            // Aggiungi marker individuali
+            clusterGroup.eachLayer(layer => markersLayer.addLayer(layer));
+        }
+    }
+
+    // ==================== CONTROLLI MAPPA ====================
+    function centerMap() {
+        if (filteredSpaces.length > 0) {
+            const group = new L.featureGroup(clusterGroup.getLayers());
+            map.fitBounds(group.getBounds().pad(0.1));
+        } else {
+            map.setView([41.8719, 12.5674], 6);
+        }
+    }
+
+    function toggleFullscreen() {
+        const mapContainer = document.querySelector('.map-container');
+
+        if (!document.fullscreenElement) {
+            mapContainer.requestFullscreen().then(() => {
+                // Aggiorna dimensioni mappa dopo fullscreen
+                setTimeout(() => map.invalidateSize(), 100);
+            });
+        } else {
+            document.exitFullscreen().then(() => {
+                setTimeout(() => map.invalidateSize(), 100);
+            });
+        }
+    }
+
+    function shareLocation() {
+        const center = map.getCenter();
+        const zoom = map.getZoom();
+        const url = `${window.location.origin}${window.location.pathname}?lat=${center.lat.toFixed(6)}&lng=${center.lng.toFixed(6)}&zoom=${zoom}`;
+
+        if (navigator.share) {
+            navigator.share({
+                title: 'Mappa Spazi CoWorkSpace',
+                text: 'Guarda questa posizione sulla mappa degli spazi',
+                url: url
+            });
+        } else {
+            navigator.clipboard.writeText(url).then(() => {
+                showNotification('Link della mappa copiato negli appunti!', 'success');
+            });
+        }
+    }
+
+    function clearSelection() {
+        if (selectedMarker) {
+            selectedMarker.setIcon(createCustomIcon(getMarkerColor(selectedMarker.spaceData)));
+            selectedMarker = null;
+        }
+
+        document.getElementById('selectedInfo').textContent = 'Seleziona uno spazio sulla mappa per vedere i dettagli';
+        map.closePopup();
+    }
+
+    // ==================== STATISTICHE ====================
+    function updateStats() {
+        const total = filteredSpaces.length;
+        const available = filteredSpaces.filter(s => s.available).length;
+        const occupied = total - available;
+
+        document.getElementById('totalSpaces').textContent = total;
+        document.getElementById('availableSpaces').textContent = available;
+        document.getElementById('occupiedSpaces').textContent = occupied;
+    }
+
+    // ==================== AZIONI SPAZI ====================
+    function showSpaceDetails(spaceId) {
+        const space = allSpaces.find(s => s.id === spaceId);
+        if (!space) return;
+
+        // Crea modal dettagli personalizzato
+        const modalHtml = `
+                <div class="modal fade" id="spaceDetailModal" tabindex="-1">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                                <h5 class="modal-title">
+                                    <i class="fas fa-building me-2"></i>${space.name}
+                                </h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <img src="${space.images[0]}" class="img-fluid rounded mb-3" alt="${space.name}">
+
+                                        <h6><i class="fas fa-map-marker-alt text-primary me-2"></i>Posizione</h6>
+                                        <p>${space.address}, ${space.city}</p>
+
+                                        <h6><i class="fas fa-star text-warning me-2"></i>Valutazioni</h6>
+                                        <div class="d-flex align-items-center mb-3">
+                                            <span class="text-warning me-2">${'★'.repeat(Math.floor(space.rating))}${'☆'.repeat(5 - Math.floor(space.rating))}</span>
+                                            <span>${space.rating}/5 (${space.total_reviews} recensioni)</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6><i class="fas fa-info-circle text-primary me-2"></i>Dettagli</h6>
+                                        <ul class="list-unstyled">
+                                            <li><strong>Tipo:</strong> ${getTypeLabel(space.type)}</li>
+                                            <li><strong>Capacità:</strong> ${space.capacity} persone</li>
+                                            <li><strong>Prezzo:</strong> €${space.price_per_day}/giorno</li>
+                                            <li><strong>Stato:</strong>
+                                                <span class="badge ${space.available ? 'bg-success' : 'bg-danger'}">
+                                                    ${space.available ? 'Disponibile' : 'Occupato'}
+                                                </span>
+                                            </li>
+                                        </ul>
+
+                                        <h6><i class="fas fa-cogs text-primary me-2"></i>Servizi Inclusi</h6>
+                                        <div class="d-flex flex-wrap gap-1 mb-3">
+                                            ${space.amenities.map(amenity => `
+                                                <span class="badge bg-light text-dark">${getAmenityLabel(amenity)}</span>
+                                            `).join('')}
+                                        </div>
+
+                                        <p><strong>Descrizione:</strong><br>${space.description}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
+                                <button type="button" class="btn btn-primary" onclick="bookSpace('${space.id}')" ${!space.available ? 'disabled' : ''}>
+                                    <i class="fas fa-calendar-plus me-1"></i>
+                                    ${space.available ? 'Prenota Ora' : 'Non Disponibile'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+        // Rimuovi modal esistente se presente
+        const existingModal = document.getElementById('spaceDetailModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+
+        // Aggiungi nuovo modal
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+        // Mostra modal
+        const modal = new bootstrap.Modal(document.getElementById('spaceDetailModal'));
+        modal.show();
+    }
+
+    function bookSpace(spaceId) {
+        const space = allSpaces.find(s => s.id === spaceId);
+        if (!space || !space.available) {
+            showNotification('Questo spazio non è disponibile per la prenotazione', 'warning');
+            return;
+        }
+
+        // Chiudi modal se aperto
+        const modal = bootstrap.Modal.getInstance(document.getElementById('spaceDetailModal'));
+        if (modal) modal.hide();
+
+        // Simula reindirizzamento alla pagina di prenotazione
+        showNotification(`Reindirizzamento alla prenotazione per ${space.name}...`, 'info');
+
+        // In un'app reale, qui faresti:
+        // window.location.href = `booking.html?spaceId=${spaceId}`;
+
+        setTimeout(() => {
+            alert(`Prenotazione per:\n\n${space.name}\n${space.city}\n€${space.price_per_day}/giorno\n\nFunzionalità in fase di sviluppo!`);
+        }, 1000);
+    }
+
+    function goToSpacesPage() {
+        // Simula navigazione alla pagina lista spazi
+        showNotification('Reindirizzamento alla vista lista...', 'info');
+
+        // In un'app reale:
+        // window.location.href = 'spaces.html';
+
+        setTimeout(() => {
+            alert('Navigazione alla pagina spazi in fase di sviluppo!');
+        }, 1000);
+    }
+
+    // ==================== UTILITY FUNCTIONS ====================
+    function getTypeLabel(type) {
+        const labels = {
+            'hot-desk': 'Hot Desk',
+            'private-office': 'Ufficio Privato',
+            'meeting-room': 'Sala Riunioni',
+            'event-space': 'Spazio Eventi'
+        };
+        return labels[type] || type;
+    }
+
+    function getAmenityLabel(amenity) {
+        const labels = {
+            'wifi': 'WiFi',
+            'coffee': 'Caffè',
+            'printer': 'Stampante',
+            'parking': 'Parcheggio',
+            'ac': 'Aria Condizionata',
+            '24h': '24/7'
+        };
+        return labels[amenity] || amenity;
+    }
+
+    function showNotification(message, type = 'info') {
+        // Crea notification toast
+        const toastHtml = `
+                <div class="toast align-items-center text-white bg-${type === 'success' ? 'success' : type === 'warning' ? 'warning' : type === 'error' ? 'danger' : 'primary'} border-0" role="alert">
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'warning' ? 'exclamation-triangle' : type === 'error' ? 'times-circle' : 'info-circle'} me-2"></i>
+                            ${message}
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                    </div>
+                </div>
+            `;
+
+        // Container per i toast
+        let toastContainer = document.getElementById('toastContainer');
+        if (!toastContainer) {
+            toastContainer = document.createElement('div');
+            toastContainer.id = 'toastContainer';
+            toastContainer.className = 'toast-container position-fixed top-0 end-0 p-3';
+            toastContainer.style.zIndex = '9999';
+            document.body.appendChild(toastContainer);
+        }
+
+        // Aggiungi toast
+        toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+
+        // Mostra toast
+        const toastElement = toastContainer.lastElementChild;
+        const toast = new bootstrap.Toast(toastElement, { delay: 3000 });
+        toast.show();
+
+        // Rimuovi toast dopo la chiusura
+        toastElement.addEventListener('hidden.bs.toast', () => {
+            toastElement.remove();
+        });
+    }
+
+    // ==================== EVENT LISTENERS ====================
+    document.addEventListener('DOMContentLoaded', function() {
+        // Inizializza mappa
+        initMap();
+
+        // Event listeners per i filtri
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchSpaces();
+            }
+        });
+
+        // Event listener per il fullscreen
+        document.addEventListener('fullscreenchange', function() {
+            setTimeout(() => {
+                if (map) map.invalidateSize();
+            }, 100);
+        });
+
+        // Applica filtri da URL se presenti
+        const urlParams = new URLSearchParams(window.location.search);
+        const lat = urlParams.get('lat');
+        const lng = urlParams.get('lng');
+        const zoom = urlParams.get('zoom');
+
+        if (lat && lng && zoom) {
+            setTimeout(() => {
+                map.setView([parseFloat(lat), parseFloat(lng)], parseInt(zoom));
+            }, 500);
+        }
+
+        console.log('🗺️ Mappa interattiva inizializzata completamente');
+    });
+
+    // ==================== FUNZIONI GLOBALI ====================
+    // Rendi le funzioni accessibili globally per gli onclick
+    window.searchSpaces = searchSpaces;
+    window.filterByCity = filterByCity;
+    window.filterByType = filterByType;
+    window.toggleLayer = toggleLayer;
+    window.toggleClusters = toggleClusters;
+    window.centerMap = centerMap;
+    window.toggleFullscreen = toggleFullscreen;
+    window.shareLocation = shareLocation;
+    window.clearSelection = clearSelection;
+    window.showSpaceDetails = showSpaceDetails;
+    window.bookSpace = bookSpace;
+    window.goToSpacesPage = goToSpacesPage;
+</script>
+</body>
+</html>

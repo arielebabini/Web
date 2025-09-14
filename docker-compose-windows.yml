@@ -1,0 +1,240 @@
+# docker-compose.windows.yml
+# Configurazione ottimizzata per Windows con Docker Desktop
+
+services:
+  # ---------------------------------------------------------
+  # NGINX REVERSE PROXY
+  # ---------------------------------------------------------
+  nginx:
+    image: nginx:alpine
+    container_name: coworkspace_nginx_proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      # Windows: usa path relativo
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - coworkspace_network
+    depends_on:
+      - frontend
+      - backend
+    # Windows: timeout maggiore per startup
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ---------------------------------------------------------
+  # SERVIZIO FRONTEND
+  # ---------------------------------------------------------
+  frontend:
+    build:
+      context: .
+      dockerfile: ./frontend/Dockerfile
+    container_name: coworkspace_frontend_app
+    restart: unless-stopped
+    environment:
+      API_URL: http://localhost/api
+      NODE_ENV: production
+      PORT: 3001
+      # Windows specific
+      STARTUP_TIMEOUT: 60000
+    networks:
+      - coworkspace_network
+    depends_on:
+      - backend
+    # Windows: health check più permissivo
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health", "||", "curl", "-f", "http://localhost:3001/"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    # Windows: volumi per logs
+    volumes:
+      - frontend_logs:/app/logs
+
+  # ---------------------------------------------------------
+  # SERVIZIO BACKEND
+  # ---------------------------------------------------------
+  backend:
+    build:
+      context: .
+      dockerfile: ./backend/Dockerfile
+    container_name: coworkspace_backend_api
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      # Windows specific environment
+      FRONTEND_URL: http://localhost
+
+      # Database
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: coworkspace
+      DB_USER: coworkspace_user
+      DB_PASSWORD: postgress
+      DB_SSL: 'false'
+
+      # Windows: pool settings ottimizzati
+      DB_POOL_MIN: 2
+      DB_POOL_MAX: 10
+      DB_IDLE_TIMEOUT: 30000
+
+      # Redis
+      REDIS_URL: redis://:redis_password@redis:6379
+      REDIS_PASSWORD: redis_password
+
+      # Server
+      NODE_ENV: production
+      PORT: 3000
+
+      # Windows: timeout maggiori
+      STARTUP_TIMEOUT: 60000
+      REQUEST_TIMEOUT: 30000
+
+      # JWT
+      JWT_SECRET: your_super_secret_jwt_key_change_in_production
+      JWT_EXPIRES_IN: 7d
+
+      # Admin
+      ADMIN_EMAIL: admin@coworkspace.test
+      ADMIN_PASSWORD: Admin123
+
+      # OAuth Google
+      GOOGLE_CLIENT_ID: 551799283977-2rpv9ahgm8726gge2uldstu0q3ps5cd1.apps.googleusercontent.com
+      GOOGLE_CLIENT_SECRET: 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
+      GOOGLE_REDIRECT_URI: http://localhost:3000/api/auth/google/callback
+
+      # Email
+      EMAIL_USER: arielebabini04@gmail.com
+      EMAIL_PASS: iozw wbwl wujo wpvb
+      SMTP_HOST: smtp.gmail.com
+      SMTP_PORT: 587
+      SMTP_SECURE: false
+
+      # Stripe
+      STRIPE_SECRET_KEY: sk_test_51Rs7kdJ9mfmkNGem3Z2rpkEDzfgNdVPCV4ba5ReuqcBz6cFmTbZD8GHEyzlk1Xj3E87FiToiLuyKOgKLAGkY7pWD005nXB4n1P
+      STRIPE_PUBLISHABLE_KEY: pk_test_51Rs7kdJ9mfmkNGem1gP2uTZlLw6POAlDwMAlnFPxhINseQfj7nAPL7O0YDgsslmC5htPU47wIbx88IkfGktkB59q00Ua9AmYBj
+
+      # CORS ottimizzato per Windows
+      CORS_ORIGIN: http://localhost,http://localhost:80,http://127.0.0.1,http://127.0.0.1:80,http://host.docker.internal
+
+      # Features
+      ENABLE_SWAGGER: true
+      LOG_LEVEL: info
+    volumes:
+      - backend_logs:/app/logs
+      - backend_uploads:/app/uploads
+    networks:
+      - coworkspace_network
+    # Windows: health check ottimizzato
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # ---------------------------------------------------------
+  # DATABASE POSTGRESQL - WINDOWS OPTIMIZED
+  # ---------------------------------------------------------
+  db:
+    image: postgres:15-alpine
+    container_name: coworkspace_postgres_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: coworkspace
+      POSTGRES_USER: coworkspace_user
+      POSTGRES_PASSWORD: postgress
+      PGDATA: /var/lib/postgresql/data/pgdata
+      # Windows: ottimizzazioni specifiche
+      POSTGRES_INITDB_ARGS: --encoding=UTF-8 --lc-collate=C --lc-ctype=C
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # Windows: mount condizionale per init scripts
+      - type: bind
+        source: ./database/init
+        target: /docker-entrypoint-initdb.d
+        read_only: true
+        # Ignora se la cartella non esiste
+        bind:
+          create_host_path: true
+    ports:
+      - "5432:5432"
+    networks:
+      - coworkspace_network
+    # Windows: health check più permissivo
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U coworkspace_user -d coworkspace"]
+      interval: 30s
+      timeout: 15s
+      retries: 5
+      start_period: 60s
+    # Windows: limiti di memoria
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # ---------------------------------------------------------
+  # REDIS - WINDOWS OPTIMIZED
+  # ---------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: coworkspace_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass redis_password --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    networks:
+      - coworkspace_network
+    # Windows: health check ottimizzato
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "redis_password", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    # Windows: limiti di memoria
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+# ---------------------------------------------------------
+# NETWORKS & VOLUMES - WINDOWS
+# ---------------------------------------------------------
+networks:
+  coworkspace_network:
+    driver: bridge
+    # Windows: configurazione bridge ottimizzata
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  # Volumi persistenti
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+  # Volumi per logs (Windows)
+  backend_logs:
+    driver: local
+  frontend_logs:
+    driver: local
+
+  # Volumi per uploads
+  backend_uploads:
+    driver: local

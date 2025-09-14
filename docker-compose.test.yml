@@ -1,0 +1,135 @@
+version: '3.8'
+
+services:
+  # Database PostgreSQL per test
+  postgres-test:
+    image: postgres:15-alpine
+    container_name: coworkspace-postgres-test
+    environment:
+      POSTGRES_DB: test_coworkspace
+      POSTGRES_USER: test_user
+      POSTGRES_PASSWORD: test_password
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_test_data:/var/lib/postgresql/data
+      - ./api/tests/fixtures/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test_user -d test_coworkspace"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - test-network
+
+  # Redis per test
+  redis-test:
+    image: redis:7-alpine
+    container_name: coworkspace-redis-test
+    ports:
+      - "6380:6379"
+    command: redis-server --requirepass test_redis_password
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - test-network
+
+  # API per test
+  api-test:
+    build:
+      context: ./api
+      dockerfile: Dockerfile.test
+    container_name: coworkspace-api-test
+    environment:
+      NODE_ENV: test
+      PORT: 3000
+      DB_HOST: postgres-test
+      DB_PORT: 5432
+      DB_NAME: test_coworkspace
+      DB_USER: test_user
+      DB_PASSWORD: test_password
+      REDIS_HOST: redis-test
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: test_redis_password
+      JWT_SECRET: test-jwt-secret-very-long-for-testing-purposes
+      STRIPE_SECRET_KEY: sk_test_fake_key_for_testing
+      EMAIL_MOCK: "true"
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      redis-test:
+        condition: service_healthy
+    volumes:
+      - ./api:/app
+      - /app/node_modules
+    command: npm run dev
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - test-network
+
+  # Frontend per test
+  frontend-test:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.test
+    container_name: coworkspace-frontend-test
+    environment:
+      NODE_ENV: test
+      API_BASE_URL: http://api-test:3000
+    ports:
+      - "3001:3001"
+    depends_on:
+      api-test:
+        condition: service_healthy
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - test-network
+
+  # Test runner
+  test-runner:
+    build:
+      context: ./api
+      dockerfile: Dockerfile.test
+    container_name: coworkspace-test-runner
+    environment:
+      NODE_ENV: test
+      DB_HOST: postgres-test
+      DB_PORT: 5432
+      DB_NAME: test_coworkspace
+      DB_USER: test_user
+      DB_PASSWORD: test_password
+      REDIS_HOST: redis-test
+      REDIS_PORT: 6379
+      API_BASE_URL: http://api-test:3000
+      FRONTEND_URL: http://frontend-test:3001
+    depends_on:
+      api-test:
+        condition: service_healthy
+      frontend-test:
+        condition: service_started
+    volumes:
+      - ./api:/app
+      - ./api/coverage:/app/coverage
+      - /app/node_modules
+    command: ["sh", "-c", "sleep 10 && npm run test:all"]
+    networks:
+      - test-network
+
+volumes:
+  postgres_test_data:
+
+networks:
+  test-network:
+    driver: bridge

@@ -1,0 +1,198 @@
+<div id="modals-container">
+  <div class="modal fade" id="loginModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <i class="fas fa-sign-in-alt me-2"></i>Accedi
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="loginForm">
+            <div class="mb-3">
+              <label for="loginEmail" class="form-label">Email</label>
+              <input type="email" class="form-control" id="loginEmail" name="email" required>
+            </div>
+            <div class="mb-3">
+              <label for="loginPassword" class="form-label">Password</label>
+              <input type="password" class="form-control" id="loginPassword" name="password" required>
+            </div>
+            <div class="mb-3 form-check">
+              <input type="checkbox" class="form-check-input" id="rememberMe" name="rememberMe">
+              <label class="form-check-label" for="rememberMe">Ricordami</label>
+            </div>
+
+            <!-- NUOVO: Link Reset Password -->
+            <div class="text-center mb-3">
+              <a href="#" id="forgotPasswordLink" class="text-decoration-none small text-muted">
+                🔑 Hai dimenticato la password?
+              </a>
+            </div>
+
+            <div class="d-grid">
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-sign-in-alt me-2"></i>Accedi
+              </button>
+            </div>
+            <div class="text-center my-3">
+              <hr class="my-2">
+              <span class="text-muted bg-white px-3">oppure</span>
+            </div>
+
+            <div class="d-grid mb-3">
+              <a href="http://localhost:3000/api/auth/google" target="_self" class="btn btn-outline-danger google-login-btn">
+                <svg class="me-2" width="18" height="18" viewBox="0 0 24 24">
+                  <path fill="#4285f4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                  <path fill="#34a853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                  <path fill="#fbbc05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                  <path fill="#ea4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                </svg>
+                Continua con Google
+              </a>
+            </div>
+          </form>
+          <div class="text-center mt-3">
+            <p class="mb-0">Non hai un account?
+              <a href="#" onclick="switchToRegister()">Registrati qui</a>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="registerModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <i class="fas fa-user-plus me-2"></i>Registrati
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="registerForm">
+            <div class="mb-3">
+              <label for="registerEmail" class="form-label">Email</label>
+              <input type="email" class="form-control" id="registerEmail" name="registerEmail" required>
+            </div>
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label for="registerName" class="form-label">Nome</label>
+                <input type="text" class="form-control" id="registerName" name="registerName" required>
+              </div>
+              <div class="col-md-6">
+                <label for="registerSurname" class="form-label">Cognome</label>
+                <input type="text" class="form-control" id="registerSurname" name="registerSurname" required>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="registerPassword" class="form-label">Password</label>
+              <input type="password" class="form-control" id="registerPassword" name="registerPassword" required>
+              <div class="form-text">Minimo 8 caratteri con una maiuscola, una minuscola e un numero</div>
+            </div>
+            <div class="mb-3">
+              <label for="registerPasswordConfirm" class="form-label">Conferma Password</label>
+              <input type="password" class="form-control" id="registerPasswordConfirm" name="registerPasswordConfirm" required>
+            </div>
+            <div class="mb-3">
+              <label for="registerPhone" class="form-label">Telefono (opzionale)</label>
+              <input type="tel" class="form-control" id="registerPhone" name="registerPhone">
+            </div>
+            <div class="mb-3">
+              <label for="registerCompany" class="form-label">Azienda (opzionale)</label>
+              <input type="text" class="form-control" id="registerCompany" name="registerCompany">
+            </div>
+            <div class="mb-3 form-check">
+              <input type="checkbox" class="form-check-input" id="acceptTerms" name="acceptTerms" required>
+              <label class="form-check-label" for="acceptTerms">
+                Accetto i <a href="#" onclick="alert('Termini e condizioni in arrivo!')">Termini e Condizioni</a>
+                e l'<a href="#" onclick="alert('Informativa Privacy in arrivo!')">Informativa Privacy</a>
+              </label>
+            </div>
+            <div class="mb-3 form-check">
+              <input type="checkbox" class="form-check-input" id="acceptMarketing" name="acceptMarketing">
+              <label class="form-check-label" for="acceptMarketing">
+                Accetto di ricevere comunicazioni marketing (facoltativo)
+              </label>
+            </div>
+            <div class="d-grid">
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-user-plus me-2"></i>Registrati
+              </button>
+            </div>
+          </form>
+          <div class="text-center mt-3">
+            <p class="mb-0">Hai già un account?
+              <a href="#" onclick="switchToLogin()">Accedi qui</a>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="forgotPasswordModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <i class="fas fa-key me-2"></i>Reset Password
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <!-- Form Reset Password -->
+          <div id="resetPasswordForm">
+            <p class="text-muted mb-4">
+              <i class="fas fa-info-circle me-2"></i>
+              Inserisci la tua email e ti invieremo un link per reimpostare la password.
+            </p>
+
+            <form id="forgotPasswordForm">
+              <div class="mb-3">
+                <label for="resetEmail" class="form-label">Email</label>
+                <input type="email" class="form-control" id="resetEmail" required
+                       placeholder="Inserisci la tua email">
+              </div>
+
+              <div class="d-grid mb-3">
+                <button type="submit" class="btn btn-primary">
+                  <i class="fas fa-paper-plane me-2"></i>Invia Link Reset
+                </button>
+              </div>
+
+              <div class="text-center">
+                <a href="#" id="backToLogin" class="text-decoration-none">
+                  <i class="fas fa-arrow-left me-1"></i>Torna al Login
+                </a>
+              </div>
+            </form>
+          </div>
+
+          <!-- Messaggio di Successo -->
+          <div id="resetSuccessMessage" style="display: none;">
+            <div class="text-center">
+              <div class="mb-3">
+                <i class="fas fa-check-circle text-success" style="font-size: 3rem;"></i>
+              </div>
+              <h5 class="text-success mb-3">Email Inviata!</h5>
+              <p class="text-muted mb-4">
+                Controlla la tua casella di posta elettronica.
+                Ti abbiamo inviato un link per reimpostare la password.
+              </p>
+              <div class="alert alert-info">
+                <i class="fas fa-clock me-2"></i>
+                <strong>Importante:</strong> Il link è valido per 1 ora
+              </div>
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                <i class="fas fa-times me-2"></i>Chiudi
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

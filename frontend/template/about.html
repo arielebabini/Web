@@ -18,81 +18,57 @@
     <link rel="stylesheet" href="../assets/css/style.css">
 </head>
 
+<style>
+    /* Stili aggiuntivi per il modal profilo */
+    .profile-stats .stat-number {
+        font-size: 1.5rem;
+        font-weight: bold;
+    }
+
+    /* ===== BACK TO TOP BUTTON MODERNO ===== */
+    .back-to-top {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        width: 56px;
+        height: 56px;
+        background: var(--primary);
+        color: white;
+        border: none;
+        border-radius: var(--radius-xl);
+        font-size: 1.5rem;
+        box-shadow: var(--shadow-xl);
+        transition: all var(--transition-base);
+        z-index: 9997;
+        cursor: pointer;
+    }
+
+    .back-to-top:hover {
+        background: var(--primary);
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-2xl);
+    }
+
+    .profile-stats .stat-label {
+        font-size: 0.875rem;
+    }
+
+    .form-control-plaintext {
+        background-color: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 0.375rem;
+        padding: 0.375rem 0.75rem;
+        min-height: 1.5rem;
+    }
+
+    .modal-header .modal-title i {
+        color: var(--bs-primary);
+    }
+</style>
+
 <body>
 <!-- Navigation -->
-<div id="navbar-container">
-    <nav class="navbar navbar-expand-lg navbar-light fixed-top">
-        <div class="container">
-            <a class="navbar-brand" href="../index.html">
-                <i class="fas fa-building"></i> CoWorkSpace
-            </a>
-
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="../index.html">Home</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="spaces.html">Spazi</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link active" href="about.html">Chi Siamo</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="support.html">Supporto</a>
-                    </li>
-                </ul>
-
-                <div class="navbar-nav">
-                    <div id="authButtons">
-                        <button class="btn btn-outline-primary me-2" onclick="showLogin()">
-                            <i class="fas fa-sign-in-alt"></i> Accedi
-                        </button>
-                        <button class="btn btn-primary" onclick="showRegister()">
-                            <i class="fas fa-user-plus"></i> Registrati
-                        </button>
-                    </div>
-                    <div id="userMenu" style="display: none;">
-                        <div class="dropdown">
-                            <button class="btn btn-link dropdown-toggle p-0" type="button" data-bs-toggle="dropdown">
-                                <div class="user-avatar">
-                                    <span id="userInitial"></span>
-                                </div>
-                            </button>
-                            <ul class="dropdown-menu dropdown-menu-end">
-                                <li><div class="dropdown-header">
-                                    <span id="userFullName"></span><br>
-                                    <small class="text-muted" id="userEmail"></small>
-                                </div></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="#" onclick="showProfile()">
-                                    <i class="fas fa-user-circle"></i> Profilo
-                                </a></li>
-                                <li><a class="dropdown-item" href="#" onclick="showBookings()">
-                                    <i class="fas fa-calendar-check"></i> Le Mie Prenotazioni
-                                </a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li id="adminMenuItem" style="display: none;">
-                                    <a class="dropdown-item" href="template/admin-dashboard.html">
-                                        <i class="fas fa-cog me-2"></i> Pannello Admin
-                                    </a>
-                                </li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="#" onclick="logout()">
-                                    <i class="fas fa-sign-out-alt"></i> Logout
-                                </a></li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </nav>
-</div>
+<div id="navbar-container"></div>
 
 <!-- About Section -->
 <section class="section-padding" style="margin-top: 80px;">
@@ -247,36 +223,36 @@
                 <div class="col-lg-4 col-md-6 mb-4">
                     <div class="team-card h-100 text-center">
                         <div class="team-avatar mb-3">
-                            <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=300&h=300&fit=crop&crop=face"
-                                 alt="Marco Rossi" class="img-fluid rounded-circle shadow-sm">
+                            <img src="img/Ari.jpeg"
+                                 alt="Ariele Babini" class="img-fluid rounded-circle shadow-sm">
                             <div class="team-badge">
                                 <i class="fas fa-crown text-warning"></i>
                             </div>
                         </div>
-                        <h5 class="text-dark">Marco Rossi</h5>
-                        <p class="team-role text-primary fw-bold">CEO & Founder</p>
+                        <h5 class="text-dark">Ariele Babini</h5>
+                        <p class="team-role text-primary fw-bold">Admin</p>
                         <p class="team-bio text-muted small">
-                            Esperto in tecnologia e workspace innovation con oltre 10 anni
-                            di esperienza nel settore. Visionario e appassionato di innovazione.
+                            Esperto in tecnologia sviluppatore di coworkspace
+                            Visionario ed appassionato di innovazione
                         </p>
                         <div class="team-stats mb-3">
                             <div class="row text-center">
                                 <div class="col-4">
                                     <small class="text-muted d-block">Esperienza</small>
-                                    <strong class="text-primary">10+ anni</strong>
+                                    <strong class="text-primary">5 anni</strong>
                                 </div>
                                 <div class="col-4">
-                                    <small class="text-muted d-block">Startup</small>
-                                    <strong class="text-success">3 fondate</strong>
+                                    <small class="text-muted d-block">Progetti</small>
+                                    <strong class="text-success">3</strong>
                                 </div>
                                 <div class="col-4">
-                                    <small class="text-muted d-block">Awards</small>
-                                    <strong class="text-warning">5 vinti</strong>
+                                    <small class="text-muted d-block">Linguaggi</small>
+                                    <strong class="text-warning">10</strong>
                                 </div>
                             </div>
                         </div>
                         <div class="team-social">
-                            <a href="#" class="social-link"><i class="fab fa-linkedin"></i></a>
+                            <a href="https://www.linkedin.com/in/ariele-babini-a849941b7/" class="social-link"><i class="fab fa-linkedin"></i></a>
                             <a href="#" class="social-link"><i class="fab fa-twitter"></i></a>
                             <a href="#" class="social-link"><i class="fas fa-envelope"></i></a>
                         </div>
@@ -285,17 +261,17 @@
                 <div class="col-lg-4 col-md-6 mb-4">
                     <div class="team-card h-100 text-center">
                         <div class="team-avatar mb-3">
-                            <img src="https://images.unsplash.com/photo-1494790108755-2616b612b647?w=300&h=300&fit=crop&crop=face"
-                                 alt="Sara Bianchi" class="img-fluid rounded-circle shadow-sm">
+                            <img src="img/Bot.jpeg"
+                                 alt="Federico Bottaro" class="img-fluid rounded-circle shadow-sm">
                             <div class="team-badge">
                                 <i class="fas fa-code text-info"></i>
                             </div>
                         </div>
-                        <h5 class="text-dark">Sara Bianchi</h5>
-                        <p class="team-role text-info fw-bold">CTO</p>
+                        <h5 class="text-dark">Federico Bottaro</h5>
+                        <p class="team-role text-info fw-bold">CEO</p>
                         <p class="team-bio text-muted small">
                             Lead developer con passione per l'innovazione tecnologica e l'user experience.
-                            Esperta in architetture scalabili e AI.
+                            Esperto in architetture scalabili e AI.
                         </p>
                         <div class="team-stats mb-3">
                             <div class="row text-center">
@@ -316,44 +292,6 @@
                         <div class="team-social">
                             <a href="#" class="social-link"><i class="fab fa-linkedin"></i></a>
                             <a href="#" class="social-link"><i class="fab fa-github"></i></a>
-                            <a href="#" class="social-link"><i class="fas fa-envelope"></i></a>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-lg-4 col-md-6 mb-4">
-                    <div class="team-card h-100 text-center">
-                        <div class="team-avatar mb-3">
-                            <img src="https://images.unsplash.com/photo-1519244703995-f4e0f30006d5?w=300&h=300&fit=crop&crop=face"
-                                 alt="Luca Verde" class="img-fluid rounded-circle shadow-sm">
-                            <div class="team-badge">
-                                <i class="fas fa-cogs text-success"></i>
-                            </div>
-                        </div>
-                        <h5 class="text-dark">Luca Verde</h5>
-                        <p class="team-role text-success fw-bold">Head of Operations</p>
-                        <p class="team-bio text-muted small">
-                            Specialista in operations e customer success, garantisce la migliore
-                            esperienza utente. Esperto in lean management e process optimization.
-                        </p>
-                        <div class="team-stats mb-3">
-                            <div class="row text-center">
-                                <div class="col-4">
-                                    <small class="text-muted d-block">Efficienza</small>
-                                    <strong class="text-success">+40%</strong>
-                                </div>
-                                <div class="col-4">
-                                    <small class="text-muted d-block">Soddisfazione</small>
-                                    <strong class="text-warning">98%</strong>
-                                </div>
-                                <div class="col-4">
-                                    <small class="text-muted d-block">Processi</small>
-                                    <strong class="text-info">25 creati</strong>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="team-social">
-                            <a href="#" class="social-link"><i class="fab fa-linkedin"></i></a>
-                            <a href="#" class="social-link"><i class="fab fa-twitter"></i></a>
                             <a href="#" class="social-link"><i class="fas fa-envelope"></i></a>
                         </div>
                     </div>
@@ -595,7 +533,6 @@
 
 <!-- Modals -->
 <div id="modals-container">
-    <!-- Modal Login -->
     <div class="modal fade" id="loginModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -619,10 +556,34 @@
                             <input type="checkbox" class="form-check-input" id="rememberMe" name="rememberMe">
                             <label class="form-check-label" for="rememberMe">Ricordami</label>
                         </div>
+
+                        <!-- NUOVO: Link Reset Password -->
+                        <div class="text-center mb-3">
+                            <a href="#" id="forgotPasswordLink" class="text-decoration-none small text-muted">
+                                🔑 Hai dimenticato la password?
+                            </a>
+                        </div>
+
                         <div class="d-grid">
                             <button type="submit" class="btn btn-primary">
                                 <i class="fas fa-sign-in-alt me-2"></i>Accedi
                             </button>
+                        </div>
+                        <div class="text-center my-3">
+                            <hr class="my-2">
+                            <span class="text-muted bg-white px-3">oppure</span>
+                        </div>
+
+                        <div class="d-grid mb-3">
+                            <a href="http://localhost:3000/api/auth/google" target="_self" class="btn btn-outline-danger google-login-btn">
+                                <svg class="me-2" width="18" height="18" viewBox="0 0 24 24">
+                                    <path fill="#4285f4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                                    <path fill="#34a853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                                    <path fill="#fbbc05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                                    <path fill="#ea4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                                </svg>
+                                Continua con Google
+                            </a>
                         </div>
                     </form>
                     <div class="text-center mt-3">
@@ -635,7 +596,6 @@
         </div>
     </div>
 
-    <!-- Modal Register -->
     <div class="modal fade" id="registerModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -706,6 +666,115 @@
             </div>
         </div>
     </div>
+
+    <div class="modal fade" id="profileModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-user-circle text-primary"></i> Il Mio Profilo
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted small">Nome</label>
+                            <div class="form-control-plaintext border rounded p-2 bg-light" id="profileName">-</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted small">Cognome</label>
+                            <div class="form-control-plaintext border rounded p-2 bg-light" id="profileSurname">-</div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label text-muted small">Email</label>
+                            <div class="form-control-plaintext border rounded p-2 bg-light" id="profileEmail">-</div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted small">Telefono</label>
+                            <div class="form-control-plaintext border rounded p-2 bg-light" id="profilePhone">-</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted small">Azienda</label>
+                            <div class="form-control-plaintext border rounded p-2 bg-light" id="profileCompany">-</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Chiudi
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="forgotPasswordModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-key me-2"></i>Reset Password
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Form Reset Password -->
+                    <div id="resetPasswordForm">
+                        <p class="text-muted mb-4">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Inserisci la tua email e ti invieremo un link per reimpostare la password.
+                        </p>
+
+                        <form id="forgotPasswordForm">
+                            <div class="mb-3">
+                                <label for="resetEmail" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="resetEmail" required
+                                       placeholder="Inserisci la tua email">
+                            </div>
+
+                            <div class="d-grid mb-3">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-paper-plane me-2"></i>Invia Link Reset
+                                </button>
+                            </div>
+
+                            <div class="text-center">
+                                <a href="#" id="backToLogin" class="text-decoration-none">
+                                    <i class="fas fa-arrow-left me-1"></i>Torna al Login
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Messaggio di Successo -->
+                    <div id="resetSuccessMessage" style="display: none;">
+                        <div class="text-center">
+                            <div class="mb-3">
+                                <i class="fas fa-check-circle text-success" style="font-size: 3rem;"></i>
+                            </div>
+                            <h5 class="text-success mb-3">Email Inviata!</h5>
+                            <p class="text-muted mb-4">
+                                Controlla la tua casella di posta elettronica.
+                                Ti abbiamo inviato un link per reimpostare la password.
+                            </p>
+                            <div class="alert alert-info">
+                                <i class="fas fa-clock me-2"></i>
+                                <strong>Importante:</strong> Il link è valido per 1 ora
+                            </div>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                <i class="fas fa-times me-2"></i>Chiudi
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Notification Container -->
@@ -731,134 +800,88 @@
 <script src="../assets/js/app.js"></script>
 
 <script>
-    // About page specific functionality
-    document.addEventListener('DOMContentLoaded', function() {
-        // Load common components
-        loadComponent('navbar-container', 'components/navbar.html');
-        loadComponent('footer-container', 'components/footer.html');
-        loadComponent('modals-container', 'components/modals.html');
+    // ==================== FUNZIONI GLOBALI AUTH ====================
 
-        // Initialize about page features
-        initStatsAnimation();
-        initTeamFeatures();
-        initTimelineAnimation();
-        initScrollEffects();
+    function showLogin() {
+        console.log('🔑 showLogin function called');
+        const loginModal = document.getElementById('loginModal');
+        console.log('🔍 Login modal found:', !!loginModal);
 
-        // Add interactive elements
-        addHoverEffects();
-        addClickTracking();
-    });
-
-    // Funzioni per gestire i form dei modali
-    if (typeof switchToRegister === 'undefined') {
-        function switchToRegister() {
-            console.log('🔄 Switching to register modal');
-            const loginModal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
-            if (loginModal) loginModal.hide();
-            setTimeout(() => {
-                const registerModal = new bootstrap.Modal(document.getElementById('registerModal'));
-                registerModal.show();
-            }, 300);
+        if (loginModal) {
+            const modal = new bootstrap.Modal(loginModal);
+            modal.show();
+            console.log('✅ Login modal shown');
+        } else {
+            console.error('❌ Login modal not found!');
         }
     }
 
-    if (typeof switchToLogin === 'undefined') {
-        function switchToLogin() {
-            console.log('🔄 Switching to login modal');
-            const registerModal = bootstrap.Modal.getInstance(document.getElementById('registerModal'));
-            if (registerModal) registerModal.hide();
-            setTimeout(() => {
-                const loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
-                loginModal.show();
-            }, 300);
+    function showRegister() {
+        console.log('📝 showRegister function called');
+        const registerModal = document.getElementById('registerModal');
+        console.log('🔍 Register modal found:', !!registerModal);
+
+        if (registerModal) {
+            const modal = new bootstrap.Modal(registerModal);
+            modal.show();
+            console.log('✅ Register modal shown');
+        } else {
+            console.error('❌ Register modal not found!');
         }
     }
 
-    // Gestione form login
-    document.addEventListener('DOMContentLoaded', function() {
-        const loginForm = document.getElementById('loginForm');
-        const registerForm = document.getElementById('registerForm');
+    function switchToRegister() {
+        console.log('🔄 Switching to register modal');
+        const loginModal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
+        if (loginModal) loginModal.hide();
 
-        if (loginForm) {
-            loginForm.addEventListener('submit', function(e) {
-                e.preventDefault();
-                console.log('🔑 Login form submitted');
+        setTimeout(() => {
+            const registerModal = new bootstrap.Modal(document.getElementById('registerModal'));
+            registerModal.show();
+        }, 300);
+    }
 
-                // Se esiste l'app globale, usa il suo handler
-                if (window.coworkspaceApp && window.coworkspaceApp.handleLogin) {
-                    window.coworkspaceApp.handleLogin(this);
-                } else {
-                    // Fallback semplice per test
-                    const email = this.loginEmail.value;
-                    const password = this.loginPassword.value;
+    function switchToLogin() {
+        console.log('🔄 Switching to login modal');
+        const registerModal = bootstrap.Modal.getInstance(document.getElementById('registerModal'));
+        if (registerModal) registerModal.hide();
 
-                    console.log('📧 Login attempt:', { email, password: '***' });
-                    alert('Funzionalità di login in fase di implementazione!');
+        setTimeout(() => {
+            const loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
+            loginModal.show();
+        }, 300);
+    }
 
-                    // Simula login riuscito per test UI
-                    const loginModal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
-                    if (loginModal) loginModal.hide();
-                }
-            });
+    function logout() {
+        console.log('🚪 Eseguo il logout...');
+
+        // Clear authentication
+        if (window.coworkspaceApp) {
+            window.coworkspaceApp.clearAuth();
         }
 
-        if (registerForm) {
-            registerForm.addEventListener('submit', function(e) {
-                e.preventDefault();
-                console.log('📝 Register form submitted');
+        // Clear storage
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('currentUser');
+        sessionStorage.removeItem('login_success');
+        localStorage.removeItem('just_logged_in');
 
-                // Validazione password
-                const password = this.registerPassword.value;
-                const confirmPassword = this.registerPasswordConfirm.value;
+        // Show success message
+        showNotificationMessage('Logout effettuato con successo!', 'success');
 
-                if (password !== confirmPassword) {
-                    alert('Le password non coincidono!');
-                    return;
-                }
+        // Redirect to home
+        setTimeout(() => {
+            window.location.href = '../index.html';
+        }, 1500);
+    }
 
-                if (password.length < 8) {
-                    alert('La password deve essere di almeno 8 caratteri!');
-                    return;
-                }
-
-                if (!this.acceptTerms.checked) {
-                    alert('Devi accettare i Termini e Condizioni per registrarti!');
-                    return;
-                }
-
-                // Se esiste l'app globale, usa il suo handler
-                if (window.coworkspaceApp && window.coworkspaceApp.handleRegister) {
-                    window.coworkspaceApp.handleRegister(this);
-                } else {
-                    // Fallback semplice per test
-                    const formData = new FormData(this);
-                    const userData = Object.fromEntries(formData);
-                    delete userData.registerPasswordConfirm; // Non inviare la conferma password
-
-                    console.log('👤 Register attempt:', userData);
-                    alert('Registrazione completata con successo! (Demo)');
-
-                    // Simula registrazione riuscita
-                    const registerModal = bootstrap.Modal.getInstance(document.getElementById('registerModal'));
-                    if (registerModal) registerModal.hide();
-
-                    // Mostra login modal dopo registrazione
-                    setTimeout(() => {
-                        const loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
-                        loginModal.show();
-
-                        // Pre-compila email nel login
-                        document.getElementById('loginEmail').value = userData.registerEmail;
-                    }, 500);
-                }
-            });
-        }
-    });
+    // ==================== ABOUT PAGE SPECIFIC FUNCTIONS ====================
 
     function handleExploreSpaces() {
         console.log('🔍 Navigating to spaces...');
 
-        // Prova diversi metodi di navigazione
+        // Try different navigation methods
         if (typeof showSection === 'function') {
             showSection('spaces');
         } else if (window.Navigation && window.Navigation.showSection) {
@@ -866,11 +889,11 @@
         } else if (window.App && window.App.navigation && window.App.navigation.showSection) {
             window.App.navigation.showSection('spaces');
         } else {
-            // Fallback: navigazione diretta
-            if (window.location.pathname.includes('pages/')) {
+            // Fallback: direct navigation
+            if (window.location.pathname.includes('template/')) {
                 window.location.href = 'spaces.html';
             } else {
-                window.location.href = 'pages/spaces.html';
+                window.location.href = 'template/spaces.html';
             }
         }
     }
@@ -878,54 +901,19 @@
     function handleRegisterButton() {
         console.log('📝 Handling register button...');
 
-        // Controlla se l'utente è già loggato
+        // Check if user is already logged in
         if (isUserLoggedIn()) {
-            // Se è loggato, mostra messaggio
             showNotificationMessage('Sei già registrato e collegato!', 'info');
             return;
         }
 
-        // Se non è loggato, mostra il modulo di registrazione
-        if (typeof showRegister === 'function') {
-            console.log('✅ Using global showRegister function');
-            showRegister();
-        } else if (window.auth && window.auth.showRegister) {
-            console.log('✅ Using window.Auth.showRegister');
-            window.auth.showRegister();
-        } else if (window.App && window.App.auth && window.App.auth.showRegister) {
-            console.log('✅ Using window.App.auth.showRegister');
-            window.App.auth.showRegister();
-        } else if (typeof showSection === 'function') {
-            console.log('✅ Using showSection(register)');
-            showSection('register');
-        } else {
-            console.log('❌ No register method found, trying manual modal');
-
-            // Prova a trovare e aprire manualmente il modal di registrazione
-            const registerModal = document.getElementById('registerModal');
-            if (registerModal) {
-                const modal = new bootstrap.Modal(registerModal);
-                modal.show();
-                console.log('✅ Manual modal opened');
-            } else {
-                // Ultimo fallback
-                console.log('❌ Register modal not found, showing fallback message');
-                showNotificationMessage('Per registrarti, vai alla pagina principale e clicca su "Registrati".', 'warning');
-
-                setTimeout(() => {
-                    if (window.location.pathname.includes('pages/')) {
-                        window.location.href = '../index.html';
-                    } else {
-                        window.location.href = 'index.html';
-                    }
-                }, 2000);
-            }
-        }
+        // If not logged in, show registration modal
+        showRegister();
     }
 
-    // Funzione per controllare se l'utente è loggato
+    // Function to check if user is logged in
     function isUserLoggedIn() {
-        // 1. Controlla localStorage
+        // 1. Check localStorage
         const tokens = ['authToken', 'jwt', 'user', 'token'];
         for (let token of tokens) {
             const value = localStorage.getItem(token);
@@ -935,7 +923,7 @@
             }
         }
 
-        // 2. Controlla sessionStorage
+        // 2. Check sessionStorage
         for (let token of tokens) {
             const value = sessionStorage.getItem(token);
             if (value && value !== 'null' && value !== 'undefined') {
@@ -944,18 +932,13 @@
             }
         }
 
-        // 3. Controlla oggetti globali di autenticazione
-        if (window.auth && window.auth.state && window.auth.state.isAuthenticated) {
-            console.log('✅ Found auth in window.Auth');
+        // 3. Check global auth objects
+        if (window.coworkspaceApp && window.coworkspaceApp.state && window.coworkspaceApp.state.isAuthenticated) {
+            console.log('✅ Found auth in window.coworkspaceApp');
             return true;
         }
 
-        if (window.AppState && window.AppState.auth && window.AppState.auth.isAuthenticated) {
-            console.log('✅ Found auth in window.AppState');
-            return true;
-        }
-
-        // 4. Controlla elementi DOM
+        // 4. Check DOM elements
         const userMenu = document.getElementById('userMenu');
         if (userMenu && userMenu.style.display !== 'none' && !userMenu.classList.contains('d-none')) {
             console.log('✅ Found visible userMenu in DOM');
@@ -972,20 +955,19 @@
         return false;
     }
 
-    // Funzione helper per mostrare notifiche
+    // Helper function to show notifications
     function showNotificationMessage(message, type = 'info') {
-        // Prova diversi metodi per mostrare notifiche
-        if (window.App && window.App.utils && window.App.utils.showNotification) {
-            window.App.utils.showNotification(message, type);
-        } else if (window.coworkspaceApp && window.coworkspaceApp.showNotification) {
+        if (window.coworkspaceApp && window.coworkspaceApp.showNotification) {
             window.coworkspaceApp.showNotification(message, type);
-        } else if (typeof alert !== 'undefined') {
-            // Fallback con alert
-            alert(message);
+        } else if (window.App && window.App.utils && window.App.utils.showNotification) {
+            window.App.utils.showNotification(message, type);
         } else {
             console.log(`Notification: ${message}`);
+            alert(message);
         }
     }
+
+    // ==================== ABOUT PAGE ANIMATIONS ====================
 
     // Animate statistics counters
     function initStatsAnimation() {
@@ -1054,9 +1036,7 @@
                 const platform = this.querySelector('i').className;
 
                 console.log(`Social link clicked: ${teamMember} - ${platform}`);
-
-                // Show notification
-                App.utils?.showNotification?.(
+                showNotificationMessage(
                     `Link social di ${teamMember} - Funzionalità disponibile nella versione completa`,
                     'info'
                 );
@@ -1114,13 +1094,17 @@
         valueCards.forEach(card => {
             card.addEventListener('mouseenter', function() {
                 const icon = this.querySelector('.value-icon');
-                icon.style.transform = 'scale(1.2) rotate(10deg)';
-                icon.style.transition = 'all 0.3s ease';
+                if (icon) {
+                    icon.style.transform = 'scale(1.2) rotate(10deg)';
+                    icon.style.transition = 'all 0.3s ease';
+                }
             });
 
             card.addEventListener('mouseleave', function() {
                 const icon = this.querySelector('.value-icon');
-                icon.style.transform = 'scale(1) rotate(0deg)';
+                if (icon) {
+                    icon.style.transform = 'scale(1) rotate(0deg)';
+                }
             });
         });
 
@@ -1129,20 +1113,131 @@
         featureCards.forEach(card => {
             card.addEventListener('mouseenter', function() {
                 const icon = this.querySelector('.feature-icon i');
-                icon.style.animation = 'pulse 1s infinite';
+                if (icon) {
+                    icon.style.animation = 'pulse 1s infinite';
+                }
             });
 
             card.addEventListener('mouseleave', function() {
                 const icon = this.querySelector('.feature-icon i');
-                icon.style.animation = 'none';
+                if (icon) {
+                    icon.style.animation = 'none';
+                }
             });
         });
     }
 
-    // Add click tracking for analytics
-    function addClickTracking() {
-        // Track CTA button clicks
-        const ctaButtons = document.querySelectorAll('.cta-buttons .btn');
+    // ==================== DOM CONTENT LOADED ====================
+
+    document.addEventListener('DOMContentLoaded', async function () {
+        try {
+            // Load page components
+            await loadComponent('navbar-container', '../components/navbar.html');
+            await loadComponent('footer-container', '../components/footer.html');
+            // Note: Modals are already in the page HTML, no need to load them
+
+            // Initialize about page features
+            initStatsAnimation();
+            initTeamFeatures();
+            initTimelineAnimation();
+            initScrollEffects();
+            addHoverEffects();
+
+            // Initialize app if available
+            if (!window.coworkspaceApp) {
+                window.coworkspaceApp = new CoWorkSpaceApp();
+            }
+
+            await window.coworkspaceApp.initializePage();
+            window.coworkspaceApp.checkAuth();
+
+            console.log('✅ About page initialized successfully');
+
+        } catch (error) {
+            console.error('❌ Error initializing about page:', error);
+        }
+
+        // ==================== EVENT HANDLERS FORM ====================
+
+        // Form Login Handler
+        const loginForm = document.getElementById('loginForm');
+        if (loginForm) {
+            loginForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                console.log('🔓 Login form submitted');
+
+                if (window.coworkspaceApp && window.coworkspaceApp.handleLogin) {
+                    await window.coworkspaceApp.handleLogin(this);
+                } else {
+                    // Fallback for testing
+                    const email = this.loginEmail.value;
+                    const password = this.loginPassword.value;
+
+                    console.log('📧 Login attempt:', { email, password: '***' });
+
+                    const loginModal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
+                    if (loginModal) loginModal.hide();
+
+                    showNotificationMessage('Login simulato riuscito!', 'success');
+                }
+            });
+        }
+
+        // Form Register Handler
+        const registerForm = document.getElementById('registerForm');
+        if (registerForm) {
+            registerForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                console.log('📝 Register form submitted');
+
+                // Validation
+                const password = this.registerPassword.value;
+                const confirmPassword = this.registerPasswordConfirm.value;
+
+                if (password !== confirmPassword) {
+                    showNotificationMessage('Le password non coincidono!', 'error');
+                    return;
+                }
+
+                if (password.length < 8) {
+                    showNotificationMessage('La password deve essere di almeno 8 caratteri!', 'error');
+                    return;
+                }
+
+                if (!this.acceptTerms.checked) {
+                    showNotificationMessage('Devi accettare i Termini e Condizioni!', 'error');
+                    return;
+                }
+
+                if (window.coworkspaceApp && window.coworkspaceApp.handleRegister) {
+                    await window.coworkspaceApp.handleRegister(this);
+                } else {
+                    // Fallback for testing
+                    const formData = new FormData(this);
+                    const userData = Object.fromEntries(formData);
+                    delete userData.registerPasswordConfirm;
+
+                    console.log('👤 Register attempt:', userData);
+
+                    const registerModal = bootstrap.Modal.getInstance(document.getElementById('registerModal'));
+                    if (registerModal) registerModal.hide();
+
+                    showNotificationMessage('Registrazione simulata riuscita!', 'success');
+
+                    // Show login modal after registration
+                    setTimeout(() => {
+                        const loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
+                        loginModal.show();
+
+                        // Pre-fill email in login
+                        document.getElementById('loginEmail').value = userData.registerEmail;
+                    }, 1000);
+                }
+            });
+        }
+
+        // Add click tracking for CTA buttons
+        const ctaButtons = document.querySelectorAll('.cta-buttons .btn, .btn[onclick*="handleExploreSpaces"], .btn[onclick*="handleRegisterButton"]');
         ctaButtons.forEach(button => {
             button.addEventListener('click', function() {
                 const buttonText = this.textContent.trim();
@@ -1163,132 +1258,403 @@
         if (joinTeamBtn) {
             joinTeamBtn.addEventListener('click', function(e) {
                 e.preventDefault();
-                App.utils?.showNotification?.(
+                showNotificationMessage(
                     'Sezione carriere in arrivo! Tieni d\'occhio i nostri canali social.',
                     'info'
                 );
             });
         }
-    }
 
-    // Dynamic content updates
-    function updateDynamicContent() {
-        // Update current year
-        const currentYear = new Date().getFullYear();
-        document.querySelectorAll('.current-year').forEach(el => {
-            el.textContent = currentYear;
+        // Error handling for images
+        document.querySelectorAll('img').forEach(img => {
+            img.addEventListener('error', function() {
+                if (this.dataset.errorHandled === 'true') {
+                    return;
+                }
+                this.dataset.errorHandled = 'true';
+
+                this.style.display = 'none';
+
+                // Create placeholder with icon
+                const placeholder = document.createElement('div');
+                placeholder.style.cssText = `
+                    width: 120px;
+                    height: 120px;
+                    border-radius: 50%;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: white;
+                    font-size: 2rem;
+                    margin: 0 auto;
+                `;
+                placeholder.innerHTML = '<i class="fas fa-user"></i>';
+
+                this.parentNode.insertBefore(placeholder, this);
+                console.log('🖼️ Image replaced with icon placeholder');
+            });
         });
 
-        // Update stats based on real-time data (simulated)
-        setTimeout(() => {
-            updateRealtimeStats();
-        }, 3000);
-    }
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Press 'T' to scroll to team section
+            if (e.key.toLowerCase() === 't' && !e.ctrlKey && !e.altKey) {
+                const teamSection = document.querySelector('.team-section');
+                if (teamSection) {
+                    teamSection.scrollIntoView({ behavior: 'smooth' });
+                }
+            }
 
-    // Simulate real-time stats updates
-    function updateRealtimeStats() {
-        const stats = {
-            spaces: Math.floor(Math.random() * 50) + 500,
-            cities: Math.floor(Math.random() * 10) + 50,
-            users: Math.floor(Math.random() * 1000) + 10000,
-            bookings: Math.floor(Math.random() * 5000) + 50000
-        };
-
-        // Update with subtle animation
-        Object.keys(stats).forEach(key => {
-            const element = document.querySelector(`[data-target]`);
-            if (element) {
-                element.style.opacity = '0.7';
-                setTimeout(() => {
-                    element.style.opacity = '1';
-                }, 200);
+            // Press 'V' to scroll to values section
+            if (e.key.toLowerCase() === 'v' && !e.ctrlKey && !e.altKey) {
+                const valuesSection = document.querySelector('.values-section');
+                if (valuesSection) {
+                    valuesSection.scrollIntoView({ behavior: 'smooth' });
+                }
             }
         });
-    }
 
-    // Keyboard shortcuts
-    document.addEventListener('keydown', function(e) {
-        // Press 'T' to scroll to team section
-        if (e.key.toLowerCase() === 't' && !e.ctrlKey && !e.altKey) {
-            const teamSection = document.querySelector('.team-section');
-            if (teamSection) {
-                teamSection.scrollIntoView({ behavior: 'smooth' });
-            }
-        }
+        // Add parallax effect to hero section
+        window.addEventListener('scroll', function() {
+            const scrolled = window.pageYOffset;
+            const heroElements = document.querySelectorAll('.hero-section .section-title, .hero-section .section-subtitle');
 
-        // Press 'V' to scroll to values section
-        if (e.key.toLowerCase() === 'v' && !e.ctrlKey && !e.altKey) {
-            const valuesSection = document.querySelector('.values-section');
-            if (valuesSection) {
-                valuesSection.scrollIntoView({ behavior: 'smooth' });
-            }
-        }
-    });
-
-    // Initialize dynamic content
-    updateDynamicContent();
-
-    // Add parallax effect to hero section
-    window.addEventListener('scroll', function() {
-        const scrolled = window.pageYOffset;
-
-        // Applica l'effetto parallasse SOLO ai titoli nell'hero section
-        const heroElements = document.querySelectorAll('.hero-section .section-title, .hero-section .section-subtitle');
-
-        heroElements.forEach(element => {
-            const speed = 0.3;
-            element.style.transform = `translateY(${scrolled * speed}px)`;
+            heroElements.forEach(element => {
+                const speed = 0.3;
+                element.style.transform = `translateY(${scrolled * speed}px)`;
+            });
         });
-    });
 
-    // Add smooth reveal animations for mobile
-    if (window.innerWidth <= 768) {
-        const mobileCards = document.querySelectorAll('.team-card, .feature-card, .value-card');
-        mobileCards.forEach((card, index) => {
-            card.style.animation = `slideInUp 0.6s ease ${index * 0.1}s both`;
+        // Initialize tooltips for team stats
+        const teamStats = document.querySelectorAll('.team-stats [data-bs-toggle="tooltip"]');
+        teamStats.forEach(stat => {
+            new bootstrap.Tooltip(stat);
         });
-    }
 
-    // Error handling for images
-    // Error handling for images - VERSIONE CORRETTA
-    document.querySelectorAll('img').forEach(img => {
-        img.addEventListener('error', function() {
-            // Previeni loop infiniti
-            if (this.dataset.errorHandled === 'true') {
+        console.log('✅ About page event handlers initialized');
+
+        // ==================== PROFILE FUNCTIONS ====================
+
+        function showProfile() {
+            console.log('🔍 Opening profile modal...');
+
+            let currentUser = getCurrentUserData();
+
+            if (!currentUser) {
+                showNotificationMessage('Devi essere loggato per vedere il tuo profilo.', 'warning');
+                setTimeout(() => showLogin(), 1000);
                 return;
             }
-            this.dataset.errorHandled = 'true';
 
-            // Nascondi l'immagine e mostra un'icona
-            this.style.display = 'none';
+            console.log('✅ User found:', currentUser);
 
-            // Crea un placeholder con icona
-            const placeholder = document.createElement('div');
-            placeholder.style.cssText = `
-            width: 120px;
-            height: 120px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 2rem;
-            margin: 0 auto;
-        `;
-            placeholder.innerHTML = '<i class="fas fa-user"></i>';
+            // Mostra il modal
+            const profileModal = new bootstrap.Modal(document.getElementById('profileModal'));
+            profileModal.show();
 
-            // Sostituisci l'immagine con il placeholder
-            this.parentNode.insertBefore(placeholder, this);
+            // Popola con un piccolo delay
+            setTimeout(() => {
+                populateProfileModal(currentUser);
+            }, 200);
+        }
 
-            console.log('📷 Image replaced with icon placeholder');
+        function getCurrentUserData() {
+            let currentUser = null;
+
+            // 1. Controlla coworkspaceApp
+            if (window.coworkspaceApp && window.coworkspaceApp.state && window.coworkspaceApp.state.currentUser) {
+                currentUser = window.coworkspaceApp.state.currentUser;
+                console.log('✅ Found user in coworkspaceApp:', currentUser);
+                return currentUser;
+            }
+
+            // 2. Controlla localStorage con diverse chiavi
+            const userKeys = ['user', 'currentUser', 'auth_user', 'loggedUser'];
+
+            for (let key of userKeys) {
+                try {
+                    const userJson = localStorage.getItem(key);
+                    if (userJson && userJson !== 'null' && userJson !== 'undefined') {
+                        currentUser = JSON.parse(userJson);
+                        console.log(`✅ Found user in localStorage[${key}]:`, currentUser);
+                        return currentUser;
+                    }
+                } catch (error) {
+                    console.error(`Error parsing localStorage[${key}]:`, error);
+                }
+            }
+
+            // 3. Controlla sessionStorage
+            for (let key of userKeys) {
+                try {
+                    const userJson = sessionStorage.getItem(key);
+                    if (userJson && userJson !== 'null' && userJson !== 'undefined') {
+                        currentUser = JSON.parse(userJson);
+                        console.log(`✅ Found user in sessionStorage[${key}]:`, currentUser);
+                        return currentUser;
+                    }
+                } catch (error) {
+                    console.error(`Error parsing sessionStorage[${key}]:`, error);
+                }
+            }
+
+            // 4. Se non trova nulla, crea utente demo per test
+            console.log('❌ No user found, creating demo user for testing...');
+            currentUser = {
+                first_name: 'Ariele',
+                last_name: 'Babini',
+                email: 'ariele@gmail.com',
+                phone: '+39 333 1234567',
+                company: 'CoWorkSpace Demo'
+            };
+
+            return currentUser;
+        }
+
+        function populateProfileModal(user) {
+            console.log('🔄 Populating profile modal with user:', user);
+
+            if (!user || typeof user !== 'object') {
+                showNotificationMessage('Errore: dati utente non disponibili', 'error');
+                return;
+            }
+
+            // Mappatura completa dei campi - gestisce diverse varianti
+            const userData = {
+                firstName: user.first_name || user.firstName || user.name || user.given_name || 'Non disponibile',
+                lastName: user.last_name || user.lastName || user.surname || user.family_name || 'Non disponibile',
+                email: user.email || user.mail || user.email_address || 'Non disponibile',
+                phone: user.phone || user.phoneNumber || user.phone_number || user.mobile || 'Non disponibile',
+                company: user.company || user.company_name || user.organization || user.workplace || 'Non disponibile'
+            };
+
+            console.log('📋 Mapped user data:', userData);
+
+            // Popola campi di visualizzazione
+            const elements = {
+                profileName: document.getElementById('profileName'),
+                profileSurname: document.getElementById('profileSurname'),
+                profileEmail: document.getElementById('profileEmail'),
+                profilePhone: document.getElementById('profilePhone'),
+                profileCompany: document.getElementById('profileCompany')
+            };
+
+            // Controlla se gli elementi esistono
+            Object.keys(elements).forEach(key => {
+                console.log(`Element ${key}:`, !!elements[key]);
+            });
+
+            // Popola i campi
+            if (elements.profileName) {
+                elements.profileName.textContent = userData.firstName;
+                console.log('✅ Set profileName:', userData.firstName);
+            }
+
+            if (elements.profileSurname) {
+                elements.profileSurname.textContent = userData.lastName;
+                console.log('✅ Set profileSurname:', userData.lastName);
+            }
+
+            if (elements.profileEmail) {
+                elements.profileEmail.textContent = userData.email;
+                console.log('✅ Set profileEmail:', userData.email);
+            }
+
+            if (elements.profilePhone) {
+                elements.profilePhone.textContent = userData.phone;
+                console.log('✅ Set profilePhone:', userData.phone);
+            }
+
+            if (elements.profileCompany) {
+                elements.profileCompany.textContent = userData.company;
+                console.log('✅ Set profileCompany:', userData.company);
+            }
+
+            console.log('✅ Profile modal populated successfully');
+        }
+
+        // Rendi le funzioni globali per compatibilità
+        window.User = {
+            populateProfileModal: populateProfileModal,
+            getCurrentUserData: getCurrentUserData
+        };
+
+        window.showProfile = showProfile;
+
+        // ==================== GESTIONE MODAL RESET PASSWORD ====================
+
+        // Click su "Hai dimenticato la password?"
+        document.addEventListener('click', function(e) {
+            if (e.target.id === 'forgotPasswordLink') {
+                e.preventDefault();
+
+                // Nascondi modal login
+                const loginModal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
+                if (loginModal) loginModal.hide();
+
+                // Mostra modal reset password
+                const forgotModal = new bootstrap.Modal(document.getElementById('forgotPasswordModal'));
+                forgotModal.show();
+
+                // Reset form
+                document.getElementById('forgotPasswordForm').reset();
+                document.getElementById('resetPasswordForm').style.display = 'block';
+                document.getElementById('resetSuccessMessage').style.display = 'none';
+            }
+
+            // Click su "Torna al Login"
+            if (e.target.id === 'backToLogin') {
+                e.preventDefault();
+
+                // Nascondi modal reset
+                const forgotModal = bootstrap.Modal.getInstance(document.getElementById('forgotPasswordModal'));
+                if (forgotModal) forgotModal.hide();
+
+                // Mostra modal login
+                const loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
+                loginModal.show();
+            }
         });
-    });
 
-    // Initialize tooltips for team stats
-    const teamStats = document.querySelectorAll('.team-stats [data-bs-toggle="tooltip"]');
-    teamStats.forEach(stat => {
-        new bootstrap.Tooltip(stat);
+        // ==================== GESTIONE FORM RESET PASSWORD ====================
+
+        const forgotPasswordForm = document.getElementById('forgotPasswordForm');
+        if (forgotPasswordForm) {
+            forgotPasswordForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+
+                const email = document.getElementById('resetEmail').value.trim();
+                const submitBtn = e.target.querySelector('button[type="submit"]');
+                const originalBtnContent = submitBtn.innerHTML;
+
+                // Validazione base
+                if (!email) {
+                    showNotificationInModal('Inserisci un indirizzo email valido', 'error');
+                    return;
+                }
+
+                // Validazione formato email
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(email)) {
+                    showNotificationInModal('Formato email non valido', 'error');
+                    return;
+                }
+
+                // Mostra loading
+                submitBtn.disabled = true;
+                submitBtn.classList.add('btn-loading');
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Invio in corso...';
+
+                try {
+                    console.log('Sending password reset request for:', email);
+
+                    const response = await fetch('/api/auth/forgot-password', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({ email })
+                    });
+
+                    const data = await response.json();
+                    console.log('Reset password response:', data);
+
+                    if (response.ok && data.success) {
+                        // Mostra messaggio di successo
+                        document.getElementById('resetPasswordForm').style.display = 'none';
+                        document.getElementById('resetSuccessMessage').style.display = 'block';
+
+                        // Auto-chiudi dopo 5 secondi
+                        setTimeout(() => {
+                            const forgotModal = bootstrap.Modal.getInstance(document.getElementById('forgotPasswordModal'));
+                            if (forgotModal) forgotModal.hide();
+
+                            // Reset per il prossimo utilizzo
+                            setTimeout(() => {
+                                document.getElementById('resetPasswordForm').style.display = 'block';
+                                document.getElementById('resetSuccessMessage').style.display = 'none';
+                                forgotPasswordForm.reset();
+                            }, 500);
+                        }, 5000);
+
+                    } else {
+                        // Mostra errore
+                        const errorMessage = data.message || 'Errore durante l\'invio dell\'email. Riprova.';
+                        showNotificationInModal(errorMessage, 'error');
+                    }
+
+                } catch (error) {
+                    console.error('Reset password error:', error);
+
+                    // Gestisci errori di rete
+                    if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                        showNotificationInModal('Problema di connessione. Verifica la tua rete.', 'error');
+                    } else {
+                        showNotificationInModal('Errore imprevisto. Riprova più tardi.', 'error');
+                    }
+                } finally {
+                    // Ripristina bottone
+                    submitBtn.disabled = false;
+                    submitBtn.classList.remove('btn-loading');
+                    submitBtn.innerHTML = originalBtnContent;
+                }
+            });
+        }
+
+        // ==================== FUNZIONI HELPER ====================
+
+        function showNotificationInModal(message, type = 'info') {
+            // Rimuovi notifiche precedenti nel modal
+            const existingAlerts = document.querySelectorAll('#forgotPasswordModal .alert');
+            existingAlerts.forEach(alert => alert.remove());
+
+            // Crea nuova notifica
+            const alertClass = type === 'error' ? 'alert-danger' :
+                type === 'success' ? 'alert-success' :
+                    type === 'warning' ? 'alert-warning' : 'alert-info';
+
+            const icon = type === 'error' ? 'fas fa-exclamation-triangle' :
+                type === 'success' ? 'fas fa-check-circle' :
+                    type === 'warning' ? 'fas fa-exclamation-circle' : 'fas fa-info-circle';
+
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert ${alertClass} alert-dismissible fade show mt-3`;
+            alertDiv.innerHTML = `
+            <i class="${icon} me-2"></i>${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+
+            // Inserisci prima del form
+            const modalBody = document.querySelector('#forgotPasswordModal .modal-body');
+            const form = document.getElementById('resetPasswordForm');
+            modalBody.insertBefore(alertDiv, form);
+
+            // Auto-rimuovi dopo 5 secondi
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
+            }, 5000);
+        }
+
+        // ==================== MIGLIORA L'UX ====================
+
+        // Auto-focus sul campo email quando si apre il modal
+        document.getElementById('forgotPasswordModal').addEventListener('shown.bs.modal', function() {
+            document.getElementById('resetEmail').focus();
+        });
+
+        // Gestisci il tasto Invio nel campo email
+        document.getElementById('resetEmail')?.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                document.getElementById('forgotPasswordForm').dispatchEvent(new Event('submit'));
+            }
+        });
+
+        console.log('Password reset system initialized');
     });
 </script>
 </body>

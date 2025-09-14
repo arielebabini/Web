@@ -386,6 +386,77 @@ class User {
             throw error;
         }
     }
+
+    /**
+     * Aggiorna token reset password
+     * @param {string} email - Email dell'utente
+     * @param {string} resetToken - Token per reset
+     * @param {Date} resetTokenExpiry - Scadenza del token
+     * @returns {Promise<boolean>} Successo operazione
+     */
+    static async updateResetToken(email, resetToken, resetTokenExpiry) {
+        try {
+            const result = await query(`
+                UPDATE users
+                SET reset_token = $1, 
+                    reset_token_expiry = $2,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE email = $3
+            `, [resetToken, resetTokenExpiry, email]);
+
+            return result.rowCount > 0;
+        } catch (error) {
+            logger.error('Error updating reset token:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Trova utente per token reset valido
+     * @param {string} token - Token di reset
+     * @returns {Promise<Object|null>} Utente trovato
+     */
+    static async findByValidResetToken(token) {
+        try {
+            const result = await query(`
+                SELECT id, email, first_name, last_name, password_hash,
+                       reset_token, reset_token_expiry
+                FROM users
+                WHERE reset_token = $1 
+                  AND reset_token_expiry > NOW()
+                  AND status = 'active'
+            `, [token]);
+
+            return result.rows[0] || null;
+        } catch (error) {
+            logger.error('Error finding user by reset token:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Aggiorna password e rimuove token reset
+     * @param {string} userId - ID dell'utente
+     * @param {string} newPasswordHash - Nuova password hashata
+     * @returns {Promise<boolean>} Successo operazione
+     */
+    static async updatePasswordAndClearResetToken(userId, newPasswordHash) {
+        try {
+            const result = await query(`
+                UPDATE users
+                SET password_hash = $1,
+                    reset_token = NULL,
+                    reset_token_expiry = NULL,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = $2
+            `, [newPasswordHash, userId]);
+
+            return result.rowCount > 0;
+        } catch (error) {
+            logger.error('Error updating password and clearing reset token:', error);
+            throw error;
+        }
+    }
 }
 
 module.exports = User;

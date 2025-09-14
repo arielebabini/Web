@@ -141,6 +141,81 @@
 </div>
 
 <style>
+    * Stili per il reset password */
+    .forgot-password-section {
+        text-align: center;
+        margin: 15px 0;
+    }
+
+    .forgot-password-link:hover {
+        text-decoration: underline !important;
+    }
+
+    #resetSuccessMessage .fas.fa-check-circle {
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+        100% { transform: scale(1); }
+    }
+
+    /* Migliora l'aspetto dei link nel modal */
+    #forgotPasswordLink:hover,
+    #backToLogin:hover {
+        color: var(--bs-primary) !important;
+        transition: color 0.3s ease;
+    }
+
+    /* Loading state per il bottone */
+    .btn-loading {
+        position: relative;
+        color: transparent !important;
+    }
+
+    .btn-loading::after {
+        content: "";
+        position: absolute;
+        width: 16px;
+        height: 16px;
+        top: 50%;
+        left: 50%;
+        margin-left: -8px;
+        margin-top: -8px;
+        border: 2px solid #ffffff;
+        border-radius: 50%;
+        border-top-color: transparent;
+        animation: spin 1s linear infinite;
+    }
+
+    /* ===== BACK TO TOP BUTTON MODERNO ===== */
+    .back-to-top {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        width: 56px;
+        height: 56px;
+        background: var(--primary);
+        color: white;
+        border: none;
+        border-radius: var(--radius-xl);
+        font-size: 1.5rem;
+        box-shadow: var(--shadow-xl);
+        transition: all var(--transition-base);
+        z-index: 9997;
+        cursor: pointer;
+    }
+
+    .back-to-top:hover {
+        background: var(--primary);
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-2xl);
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
     /* Stili aggiuntivi per il modal profilo */
     .profile-stats .stat-number {
         font-size: 1.5rem;
@@ -248,12 +323,13 @@
                                         <option value="1-5">1-5 persone</option>
                                         <option value="6-10">6-10 persone</option>
                                         <option value="11-20">11-20 persone</option>
-                                        <option value="20+">20+ persone</option>
+                                        <option value="21-50">21-50 persone</option>
+                                        <option value="50+">50+ persone</option>
                                     </select>
                                 </div>
                             </div>
-                            <button type="button" class="btn btn-primary w-100 btn-lg" onclick="Navigation.showSection('spazi')">
-                                <a class="nav-link" href="template/spaces.html">Cerca Spazi Disponibili</a>
+                            <button type="button" class="btn btn-primary w-100 btn-lg" onclick="searchWithFilters()">
+                                <i class="fas fa-search me-2"></i>Cerca Spazi Disponibili
                             </button>
                         </form>
                     </div>
@@ -312,6 +388,14 @@
                             <input type="checkbox" class="form-check-input" id="rememberMe" name="rememberMe">
                             <label class="form-check-label" for="rememberMe">Ricordami</label>
                         </div>
+
+                        <!-- NUOVO: Link Reset Password -->
+                        <div class="text-center mb-3">
+                            <a href="#" id="forgotPasswordLink" class="text-decoration-none small text-muted">
+                                🔑 Hai dimenticato la password?
+                            </a>
+                        </div>
+
                         <div class="d-grid">
                             <button type="submit" class="btn btn-primary">
                                 <i class="fas fa-sign-in-alt me-2"></i>Accedi
@@ -323,7 +407,7 @@
                         </div>
 
                         <div class="d-grid mb-3">
-                            <a href="http://localhost:3000/api/auth/google" target="_self"  class="btn btn-outline-danger google-login-btn">
+                            <a href="http://localhost:3000/api/auth/google" target="_self" class="btn btn-outline-danger google-login-btn">
                                 <svg class="me-2" width="18" height="18" viewBox="0 0 24 24">
                                     <path fill="#4285f4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                                     <path fill="#34a853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -409,6 +493,69 @@
                         <p class="mb-0">Hai già un account?
                             <a href="#" onclick="switchToLogin()">Accedi qui</a>
                         </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="forgotPasswordModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-key me-2"></i>Reset Password
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Form Reset Password -->
+                    <div id="resetPasswordForm">
+                        <p class="text-muted mb-4">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Inserisci la tua email e ti invieremo un link per reimpostare la password.
+                        </p>
+
+                        <form id="forgotPasswordForm">
+                            <div class="mb-3">
+                                <label for="resetEmail" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="resetEmail" required
+                                       placeholder="Inserisci la tua email">
+                            </div>
+
+                            <div class="d-grid mb-3">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-paper-plane me-2"></i>Invia Link Reset
+                                </button>
+                            </div>
+
+                            <div class="text-center">
+                                <a href="#" id="backToLogin" class="text-decoration-none">
+                                    <i class="fas fa-arrow-left me-1"></i>Torna al Login
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Messaggio di Successo -->
+                    <div id="resetSuccessMessage" style="display: none;">
+                        <div class="text-center">
+                            <div class="mb-3">
+                                <i class="fas fa-check-circle text-success" style="font-size: 3rem;"></i>
+                            </div>
+                            <h5 class="text-success mb-3">Email Inviata!</h5>
+                            <p class="text-muted mb-4">
+                                Controlla la tua casella di posta elettronica.
+                                Ti abbiamo inviato un link per reimpostare la password.
+                            </p>
+                            <div class="alert alert-info">
+                                <i class="fas fa-clock me-2"></i>
+                                <strong>Importante:</strong> Il link è valido per 1 ora
+                            </div>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                <i class="fas fa-times me-2"></i>Chiudi
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -562,5 +709,562 @@
 <script src="assets/js/user.js"></script>
 <script src="assets/js/booking.js"></script>
 <script src="assets/js/spaces.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+
+        // ==================== GESTIONE MODAL RESET PASSWORD ====================
+
+        // Click su "Hai dimenticato la password?"
+        document.addEventListener('click', function(e) {
+            if (e.target.id === 'forgotPasswordLink') {
+                e.preventDefault();
+
+                // Nascondi modal login
+                const loginModal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
+                if (loginModal) loginModal.hide();
+
+                // Mostra modal reset password
+                const forgotModal = new bootstrap.Modal(document.getElementById('forgotPasswordModal'));
+                forgotModal.show();
+
+                // Reset form
+                document.getElementById('forgotPasswordForm').reset();
+                document.getElementById('resetPasswordForm').style.display = 'block';
+                document.getElementById('resetSuccessMessage').style.display = 'none';
+            }
+
+            // Click su "Torna al Login"
+            if (e.target.id === 'backToLogin') {
+                e.preventDefault();
+
+                // Nascondi modal reset
+                const forgotModal = bootstrap.Modal.getInstance(document.getElementById('forgotPasswordModal'));
+                if (forgotModal) forgotModal.hide();
+
+                // Mostra modal login
+                const loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
+                loginModal.show();
+            }
+        });
+
+        // ==================== GESTIONE FORM RESET PASSWORD ====================
+
+        const forgotPasswordForm = document.getElementById('forgotPasswordForm');
+        if (forgotPasswordForm) {
+            forgotPasswordForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+
+                const email = document.getElementById('resetEmail').value.trim();
+                const submitBtn = e.target.querySelector('button[type="submit"]');
+                const originalBtnContent = submitBtn.innerHTML;
+
+                // Validazione base
+                if (!email) {
+                    showNotificationInModal('Inserisci un indirizzo email valido', 'error');
+                    return;
+                }
+
+                // Validazione formato email
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(email)) {
+                    showNotificationInModal('Formato email non valido', 'error');
+                    return;
+                }
+
+                // Mostra loading
+                submitBtn.disabled = true;
+                submitBtn.classList.add('btn-loading');
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Invio in corso...';
+
+                try {
+                    console.log('Sending password reset request for:', email);
+
+                    const response = await fetch('/api/auth/forgot-password', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({ email })
+                    });
+
+                    const data = await response.json();
+                    console.log('Reset password response:', data);
+
+                    if (response.ok && data.success) {
+                        // Mostra messaggio di successo
+                        document.getElementById('resetPasswordForm').style.display = 'none';
+                        document.getElementById('resetSuccessMessage').style.display = 'block';
+
+                        // Auto-chiudi dopo 5 secondi
+                        setTimeout(() => {
+                            const forgotModal = bootstrap.Modal.getInstance(document.getElementById('forgotPasswordModal'));
+                            if (forgotModal) forgotModal.hide();
+
+                            // Reset per il prossimo utilizzo
+                            setTimeout(() => {
+                                document.getElementById('resetPasswordForm').style.display = 'block';
+                                document.getElementById('resetSuccessMessage').style.display = 'none';
+                                forgotPasswordForm.reset();
+                            }, 500);
+                        }, 5000);
+
+                    } else {
+                        // Mostra errore
+                        const errorMessage = data.message || 'Errore durante l\'invio dell\'email. Riprova.';
+                        showNotificationInModal(errorMessage, 'error');
+                    }
+
+                } catch (error) {
+                    console.error('Reset password error:', error);
+
+                    // Gestisci errori di rete
+                    if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                        showNotificationInModal('Problema di connessione. Verifica la tua rete.', 'error');
+                    } else {
+                        showNotificationInModal('Errore imprevisto. Riprova più tardi.', 'error');
+                    }
+                } finally {
+                    // Ripristina bottone
+                    submitBtn.disabled = false;
+                    submitBtn.classList.remove('btn-loading');
+                    submitBtn.innerHTML = originalBtnContent;
+                }
+            });
+        }
+
+        // ==================== FUNZIONI HELPER ====================
+
+        function showNotificationInModal(message, type = 'info') {
+            // Rimuovi notifiche precedenti nel modal
+            const existingAlerts = document.querySelectorAll('#forgotPasswordModal .alert');
+            existingAlerts.forEach(alert => alert.remove());
+
+            // Crea nuova notifica
+            const alertClass = type === 'error' ? 'alert-danger' :
+                type === 'success' ? 'alert-success' :
+                    type === 'warning' ? 'alert-warning' : 'alert-info';
+
+            const icon = type === 'error' ? 'fas fa-exclamation-triangle' :
+                type === 'success' ? 'fas fa-check-circle' :
+                    type === 'warning' ? 'fas fa-exclamation-circle' : 'fas fa-info-circle';
+
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert ${alertClass} alert-dismissible fade show mt-3`;
+            alertDiv.innerHTML = `
+            <i class="${icon} me-2"></i>${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+
+            // Inserisci prima del form
+            const modalBody = document.querySelector('#forgotPasswordModal .modal-body');
+            const form = document.getElementById('resetPasswordForm');
+            modalBody.insertBefore(alertDiv, form);
+
+            // Auto-rimuovi dopo 5 secondi
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
+            }, 5000);
+        }
+
+        // ==================== MIGLIORA L'UX ====================
+
+        // Auto-focus sul campo email quando si apre il modal
+        document.getElementById('forgotPasswordModal').addEventListener('shown.bs.modal', function() {
+            document.getElementById('resetEmail').focus();
+        });
+
+        // Gestisci il tasto Invio nel campo email
+        document.getElementById('resetEmail')?.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                document.getElementById('forgotPasswordForm').dispatchEvent(new Event('submit'));
+            }
+        });
+
+        console.log('Password reset system initialized');
+    });
+
+    function showProfile() {
+        console.log('Opening profile modal...');
+
+        let currentUser = null;
+
+        // Verifica coworkspaceApp
+        console.log('Checking coworkspaceApp:', {
+            exists: !!window.coworkspaceApp,
+            hasState: !!(window.coworkspaceApp && window.coworkspaceApp.state),
+            hasCurrentUser: !!(window.coworkspaceApp && window.coworkspaceApp.state && window.coworkspaceApp.state.currentUser)
+        });
+
+        if (window.coworkspaceApp && window.coworkspaceApp.state && window.coworkspaceApp.state.currentUser) {
+            currentUser = window.coworkspaceApp.state.currentUser;
+            console.log('User found from coworkspaceApp:', currentUser);
+        }
+        else {
+            console.log('User not found in coworkspaceApp, trying localStorage...');
+            try {
+                const userJson = localStorage.getItem('user');
+                console.log('localStorage user JSON:', userJson);
+
+                if (userJson) {
+                    currentUser = JSON.parse(userJson);
+                    console.log('User found from localStorage:', currentUser);
+                } else {
+                    console.log('No user data in localStorage');
+                }
+            } catch (error) {
+                console.error('Error parsing user data:', error);
+            }
+        }
+
+        // CONTROLLO CRITICO
+        if (!currentUser) {
+            console.log('No user found anywhere!');
+            alert('Devi essere loggato per vedere il tuo profilo.');
+            return;
+        }
+
+        console.log('About to call populateProfileModal with user:', currentUser);
+
+        // Mostra il modal
+        const profileModal = new bootstrap.Modal(document.getElementById('profileModal'));
+        profileModal.show();
+
+        // Popola con un piccolo delay per essere sicuri che il modal sia visibile
+        setTimeout(() => {
+            populateProfileModal(currentUser);
+        }, 200);
+    }
+
+    function populateProfileModal(user) {
+        console.log('Populating profile modal with user:', user);
+
+        if (!user) {
+            console.error('User object is null or undefined!');
+            alert('Errore: dati utente non disponibili');
+            return;
+        }
+
+        if (typeof user !== 'object') {
+            console.error('User is not an object:', typeof user, user);
+            alert('Errore: formato dati utente non valido');
+            return;
+        }
+
+        console.log('User object is valid, proceeding with mapping...');
+
+        // Mappatura dei campi (gestisce diverse varianti)
+        const userData = {
+            firstName: user.first_name || user.firstName || user.name || '',
+            lastName: user.last_name || user.lastName || user.surname || '',
+            email: user.email || '',
+            phone: user.phone || user.phoneNumber || '',
+            company: user.company || user.company_name || '',
+            role: user.role || 'user'
+        };
+
+        console.log('Mapped user data:', userData);
+
+        // Popola campi di visualizzazione (read-only)
+        const profileName = document.getElementById('profileName');
+        const profileSurname = document.getElementById('profileSurname');
+        const profileEmail = document.getElementById('profileEmail');
+        const profilePhone = document.getElementById('profilePhone');
+        const profileCompany = document.getElementById('profileCompany');
+
+        if (profileName) {
+            profileName.textContent = userData.firstName || '-';
+            console.log('Set profileName:', userData.firstName);
+        }
+        if (profileSurname) {
+            profileSurname.textContent = userData.lastName || '-';
+            console.log('Set profileSurname:', userData.lastName);
+        }
+        if (profileEmail) {
+            profileEmail.textContent = userData.email || '-';
+            console.log('Set profileEmail:', userData.email);
+        }
+        if (profilePhone) {
+            profilePhone.textContent = userData.phone || '-';
+            console.log('Set profilePhone:', userData.phone);
+        }
+        if (profileCompany) {
+            profileCompany.textContent = userData.company || '-';
+            console.log('Set profileCompany:', userData.company);
+        }
+
+        // Popola campi di input per la modifica
+        const profileNameInput = document.getElementById('profileNameInput');
+        const profileSurnameInput = document.getElementById('profileSurnameInput');
+        const profilePhoneInput = document.getElementById('profilePhoneInput');
+        const profileCompanyInput = document.getElementById('profileCompanyInput');
+        const profileEmailStatic = document.getElementById('profileEmailStatic');
+
+        if (profileNameInput) {
+            profileNameInput.value = userData.firstName;
+            console.log('Set profileNameInput:', userData.firstName);
+        }
+        if (profileSurnameInput) {
+            profileSurnameInput.value = userData.lastName;
+            console.log('Set profileSurnameInput:', userData.lastName);
+        }
+        if (profilePhoneInput) {
+            profilePhoneInput.value = userData.phone;
+            console.log('Set profilePhoneInput:', userData.phone);
+        }
+        if (profileCompanyInput) {
+            profileCompanyInput.value = userData.company;
+            console.log('Set profileCompanyInput:', userData.company);
+        }
+        if (profileEmailStatic) {
+            profileEmailStatic.textContent = userData.email;
+            console.log('Set profileEmailStatic:', userData.email);
+        }
+
+        // Popola statistiche (opzionale - dati mockup per ora)
+        populateUserStats(user);
+    }
+
+    function populateUserStats(user) {
+        // Trova gli elementi delle statistiche
+        const statElements = document.querySelectorAll('.profile-stats .stat-number');
+
+        if (statElements.length >= 4) {
+            // Usa dati reali se disponibili, altrimenti mockup
+            statElements[0].textContent = user.total_bookings || '0'; // Prenotazioni
+            statElements[1].textContent = user.total_favorites || '0'; // Preferiti
+            statElements[2].textContent = user.total_spent ? `€${user.total_spent}` : '€0'; // Speso
+
+            // Calcola giorni di membership
+            let memberDays = 0;
+            if (user.created_at || user.createdAt || user.registration_date) {
+                const createdDate = new Date(user.created_at || user.createdAt || user.registration_date);
+                const now = new Date();
+                memberDays = Math.floor((now - createdDate) / (1000 * 60 * 60 * 24));
+            }
+            statElements[3].textContent = memberDays > 0 ? memberDays.toString() : '0';
+
+            console.log('Stats populated');
+        }
+    }
+
+    function saveProfile() {
+        console.log('Saving profile changes...');
+
+        // Ottieni l'utente corrente
+        let currentUser = null;
+        if (window.coworkspaceApp && window.coworkspaceApp.state && window.coworkspaceApp.state.currentUser) {
+            currentUser = window.coworkspaceApp.state.currentUser;
+        } else {
+            try {
+                const userJson = localStorage.getItem('user');
+                if (userJson) {
+                    currentUser = JSON.parse(userJson);
+                }
+            } catch (error) {
+                console.error('Error getting current user:', error);
+                alert('Errore nel caricamento dei dati utente');
+                return;
+            }
+        }
+
+        if (!currentUser) {
+            alert('Errore: utente non trovato');
+            return;
+        }
+
+        // Raccogli i dati dai campi di input
+        const updatedData = {
+            first_name: document.getElementById('profileNameInput')?.value || currentUser.first_name,
+            last_name: document.getElementById('profileSurnameInput')?.value || currentUser.last_name,
+            phone: document.getElementById('profilePhoneInput')?.value || currentUser.phone,
+            company: document.getElementById('profileCompanyInput')?.value || currentUser.company,
+            email: currentUser.email // L'email non si può modificare
+        };
+
+        console.log('Sending updated data:', updatedData);
+
+        // Per ora salva solo localmente (in attesa del backend)
+        const mergedUser = { ...currentUser, ...updatedData };
+
+        try {
+            // Aggiorna localStorage
+            localStorage.setItem('user', JSON.stringify(mergedUser));
+
+            // Aggiorna lo stato dell'app se disponibile
+            if (window.coworkspaceApp && window.coworkspaceApp.state) {
+                window.coworkspaceApp.state.currentUser = mergedUser;
+            }
+
+            // Mostra messaggio di successo
+            if (window.coworkspaceApp && window.coworkspaceApp.showNotification) {
+                window.coworkspaceApp.showNotification('Profilo aggiornato con successo!', 'success');
+            } else {
+                alert('Profilo aggiornato con successo!');
+            }
+
+            // Chiudi il modal
+            const profileModal = bootstrap.Modal.getInstance(document.getElementById('profileModal'));
+            if (profileModal) profileModal.hide();
+
+            // Aggiorna l'UI del menu utente
+            updateUserMenuDisplay();
+
+            console.log('Profile saved successfully');
+
+        } catch (error) {
+            console.error('Error saving profile:', error);
+            if (window.coworkspaceApp && window.coworkspaceApp.showNotification) {
+                window.coworkspaceApp.showNotification('Errore durante il salvataggio del profilo', 'error');
+            } else {
+                alert('Errore durante il salvataggio del profilo');
+            }
+        }
+    }
+
+    function updateUserMenuDisplay() {
+        console.log('Updating user menu display...');
+
+        let currentUser = null;
+        if (window.coworkspaceApp && window.coworkspaceApp.state && window.coworkspaceApp.state.currentUser) {
+            currentUser = window.coworkspaceApp.state.currentUser;
+        } else {
+            try {
+                const userJson = localStorage.getItem('user');
+                if (userJson) {
+                    currentUser = JSON.parse(userJson);
+                }
+            } catch (error) {
+                console.error('Error getting current user:', error);
+            }
+        }
+
+        if (currentUser) {
+            // Aggiorna elementi nel navbar
+            const userFullName = document.getElementById('userFullName');
+            const userEmail = document.getElementById('userEmail');
+            const userInitial = document.getElementById('userInitial');
+
+            if (userFullName) {
+                const fullName = `${currentUser.first_name || ''} ${currentUser.last_name || ''}`.trim();
+                userFullName.textContent = fullName || 'Utente';
+            }
+            if (userEmail) {
+                userEmail.textContent = currentUser.email || '';
+            }
+            if (userInitial) {
+                const name = currentUser.first_name || currentUser.email || 'U';
+                userInitial.textContent = name.charAt(0).toUpperCase();
+            }
+
+            console.log('User menu display updated');
+        }
+    }
+
+    // DEBUG: Funzione per verificare lo stato dell'utente
+    function debugProfileModal() {
+        console.log('DEBUG PROFILE MODAL:');
+
+        const modal = document.getElementById('profileModal');
+        console.log('profileModal exists:', !!modal);
+
+        if (modal) {
+            const elements = {
+                profileName: document.getElementById('profileName'),
+                profileSurname: document.getElementById('profileSurname'),
+                profileEmail: document.getElementById('profileEmail'),
+                profilePhone: document.getElementById('profilePhone'),
+                profileCompany: document.getElementById('profileCompany'),
+                profileNameInput: document.getElementById('profileNameInput'),
+                profileSurnameInput: document.getElementById('profileSurnameInput'),
+                profilePhoneInput: document.getElementById('profilePhoneInput'),
+                profileCompanyInput: document.getElementById('profileCompanyInput'),
+                profileEmailStatic: document.getElementById('profileEmailStatic')
+            };
+
+            console.log('Modal elements found:');
+            Object.entries(elements).forEach(([key, element]) => {
+                console.log(`- ${key}:`, !!element, element ? `(${element.tagName})` : '');
+                if (element) {
+                    console.log(`  Content: "${element.textContent || element.value || 'empty'}"`);
+                }
+            });
+
+            // Mostra la struttura HTML del modal
+            console.log('Modal HTML structure:', modal.innerHTML.substring(0, 500) + '...');
+        }
+    }
+
+    // ==================== GESTIONE EVENTI AUTENTICAZIONE ====================
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Verifica se l'utente è già loggato e aggiorna l'UI
+        if (window.User && window.User.getCurrentUser()) {
+            updateUserMenuDisplay();
+        }
+
+        // Ascolta gli eventi di login/logout per aggiornare l'UI
+        document.addEventListener('userLoggedIn', function(event) {
+            updateUserMenuDisplay();
+        });
+
+        document.addEventListener('userLoggedOut', function(event) {
+            // Reset dell'UI quando si fa logout
+            const authButtons = document.getElementById('authButtons');
+            const userMenu = document.getElementById('userMenu');
+
+            if (authButtons) authButtons.style.display = 'block';
+            if (userMenu) userMenu.style.display = 'none';
+        });
+    });
+
+    function searchWithFilters() {
+        // Raccogli i valori dai campi del form
+        const city = document.getElementById('quickCity').value;
+        const spaceType = document.getElementById('quickSpaceType').value;
+        const date = document.getElementById('quickDate').value;
+        const capacity = document.getElementById('quickCapacity').value;
+
+        // Costruisci i parametri URL
+        const params = new URLSearchParams();
+
+        if (city) params.append('city', city);
+        if (spaceType) params.append('type', spaceType);
+        if (date) params.append('date', date);
+        if (capacity) params.append('capacity', capacity);
+
+        // Naviga alla pagina spazi con i parametri
+        const spacesUrl = `template/spaces.html${params.toString() ? '?' + params.toString() : ''}`;
+
+        console.log('Navigating to spaces with filters:', spacesUrl);
+        window.location.href = spacesUrl;
+    }
+
+    // ==================== FUNZIONE GLOBALE PER TESTARE ====================
+
+    // Funzione per testare il sistema (solo per sviluppo)
+    window.testPasswordReset = function(email = 'test@example.com') {
+        console.log('Testing password reset system...');
+
+        // Mostra il modal
+        const forgotModal = new bootstrap.Modal(document.getElementById('forgotPasswordModal'));
+        forgotModal.show();
+
+        // Compila automaticamente l'email per test
+        setTimeout(() => {
+            document.getElementById('resetEmail').value = email;
+            console.log('Email field populated with:', email);
+        }, 500);
+    };
+
+    console.log('Password reset system loaded');
+    console.log('Test with: testPasswordReset("tua.email@test.com")');
+</script>
+
+
 </body>
 </html>

@@ -18,80 +18,58 @@
     <link rel="stylesheet" href="../assets/css/style.css">
 </head>
 
+<style>
+    /* Stili aggiuntivi per il modal profilo */
+    .profile-stats .stat-number {
+        font-size: 1.5rem;
+        font-weight: bold;
+    }
+
+    /* ===== BACK TO TOP BUTTON MODERNO ===== */
+    .back-to-top {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        width: 56px;
+        height: 56px;
+        background: var(--primary);
+        color: white;
+        border: none;
+        border-radius: var(--radius-xl);
+        font-size: 1.5rem;
+        box-shadow: var(--shadow-xl);
+        transition: all var(--transition-base);
+        z-index: 9997;
+        cursor: pointer;
+    }
+
+    .back-to-top:hover {
+        background: var(--primary);
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-2xl);
+    }
+
+    .profile-stats .stat-label {
+        font-size: 0.875rem;
+    }
+
+    .form-control-plaintext {
+        background-color: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 0.375rem;
+        padding: 0.375rem 0.75rem;
+        min-height: 1.5rem;
+    }
+
+    .modal-header .modal-title i {
+        color: var(--bs-primary);
+    }
+</style>
+
 <body>
-<!-- Navigation -->
+<!-- Navigation - CORRETTA: solo il container vuoto -->
 <div id="navbar-container">
-    <nav class="navbar navbar-expand-lg navbar-light fixed-top">
-        <div class="container">
-            <a class="navbar-brand" href="../index.html">
-                <i class="fas fa-building"></i> CoWorkSpace
-            </a>
-
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="../index.html">Home</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="spaces.html">Spazi</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="about.html">Chi Siamo</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link active" href="support.html">Supporto</a>
-                    </li>
-                </ul>
-
-                <div class="navbar-nav">
-                    <div id="authButtons">
-                        <button class="btn btn-outline-primary me-2" onclick="showLogin()">
-                            <i class="fas fa-sign-in-alt"></i> Accedi
-                        </button>
-                        <button class="btn btn-primary" onclick="showRegister()">
-                            <i class="fas fa-user-plus"></i> Registrati
-                        </button>
-                    </div>
-                    <div id="userMenu" style="display: none;">
-                        <div class="dropdown">
-                            <button class="btn btn-link dropdown-toggle p-0" type="button" data-bs-toggle="dropdown">
-                                <div class="user-avatar">
-                                    <span id="userInitial"></span>
-                                </div>
-                            </button>
-                            <ul class="dropdown-menu dropdown-menu-end">
-                                <li><div class="dropdown-header">
-                                    <span id="userFullName"></span><br>
-                                    <small class="text-muted" id="userEmail"></small>
-                                </div></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="#" onclick="showProfile()">
-                                    <i class="fas fa-user-circle"></i> Profilo
-                                </a></li>
-                                <li><a class="dropdown-item" href="#" onclick="showBookings()">
-                                    <i class="fas fa-calendar-check"></i> Le Mie Prenotazioni
-                                </a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li id="adminMenuItem" style="display: none;">
-                                    <a class="dropdown-item" href="template/admin-dashboard.html">
-                                        <i class="fas fa-cog me-2"></i> Pannello Admin
-                                    </a>
-                                </li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="#" onclick="logout()">
-                                    <i class="fas fa-sign-out-alt"></i> Logout
-                                </a></li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </nav>
+    <!-- La navbar verrà caricata dinamicamente dal componente navbar.html -->
 </div>
 
 <!-- Support Section -->
@@ -523,7 +501,6 @@
 
 <!-- Modals -->
 <div id="modals-container">
-    <!-- Modal Login -->
     <div class="modal fade" id="loginModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -547,10 +524,34 @@
                             <input type="checkbox" class="form-check-input" id="rememberMe" name="rememberMe">
                             <label class="form-check-label" for="rememberMe">Ricordami</label>
                         </div>
+
+                        <!-- NUOVO: Link Reset Password -->
+                        <div class="text-center mb-3">
+                            <a href="#" id="forgotPasswordLink" class="text-decoration-none small text-muted">
+                                🔑 Hai dimenticato la password?
+                            </a>
+                        </div>
+
                         <div class="d-grid">
                             <button type="submit" class="btn btn-primary">
                                 <i class="fas fa-sign-in-alt me-2"></i>Accedi
                             </button>
+                        </div>
+                        <div class="text-center my-3">
+                            <hr class="my-2">
+                            <span class="text-muted bg-white px-3">oppure</span>
+                        </div>
+
+                        <div class="d-grid mb-3">
+                            <a href="http://localhost:3000/api/auth/google" target="_self" class="btn btn-outline-danger google-login-btn">
+                                <svg class="me-2" width="18" height="18" viewBox="0 0 24 24">
+                                    <path fill="#4285f4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                                    <path fill="#34a853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                                    <path fill="#fbbc05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                                    <path fill="#ea4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                                </svg>
+                                Continua con Google
+                            </a>
                         </div>
                     </form>
                     <div class="text-center mt-3">
@@ -563,7 +564,6 @@
         </div>
     </div>
 
-    <!-- Modal Register -->
     <div class="modal fade" id="registerModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -634,6 +634,115 @@
             </div>
         </div>
     </div>
+
+    <div class="modal fade" id="profileModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-user-circle text-primary"></i> Il Mio Profilo
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted small">Nome</label>
+                            <div class="form-control-plaintext border rounded p-2 bg-light" id="profileName">-</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted small">Cognome</label>
+                            <div class="form-control-plaintext border rounded p-2 bg-light" id="profileSurname">-</div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label text-muted small">Email</label>
+                            <div class="form-control-plaintext border rounded p-2 bg-light" id="profileEmail">-</div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted small">Telefono</label>
+                            <div class="form-control-plaintext border rounded p-2 bg-light" id="profilePhone">-</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted small">Azienda</label>
+                            <div class="form-control-plaintext border rounded p-2 bg-light" id="profileCompany">-</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Chiudi
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="forgotPasswordModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-key me-2"></i>Reset Password
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Form Reset Password -->
+                    <div id="resetPasswordForm">
+                        <p class="text-muted mb-4">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Inserisci la tua email e ti invieremo un link per reimpostare la password.
+                        </p>
+
+                        <form id="forgotPasswordForm">
+                            <div class="mb-3">
+                                <label for="resetEmail" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="resetEmail" required
+                                       placeholder="Inserisci la tua email">
+                            </div>
+
+                            <div class="d-grid mb-3">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-paper-plane me-2"></i>Invia Link Reset
+                                </button>
+                            </div>
+
+                            <div class="text-center">
+                                <a href="#" id="backToLogin" class="text-decoration-none">
+                                    <i class="fas fa-arrow-left me-1"></i>Torna al Login
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Messaggio di Successo -->
+                    <div id="resetSuccessMessage" style="display: none;">
+                        <div class="text-center">
+                            <div class="mb-3">
+                                <i class="fas fa-check-circle text-success" style="font-size: 3rem;"></i>
+                            </div>
+                            <h5 class="text-success mb-3">Email Inviata!</h5>
+                            <p class="text-muted mb-4">
+                                Controlla la tua casella di posta elettronica.
+                                Ti abbiamo inviato un link per reimpostare la password.
+                            </p>
+                            <div class="alert alert-info">
+                                <i class="fas fa-clock me-2"></i>
+                                <strong>Importante:</strong> Il link è valido per 1 ora
+                            </div>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                <i class="fas fa-times me-2"></i>Chiudi
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Notification Container -->
@@ -659,6 +768,84 @@
 <script src="../assets/js/app.js"></script>
 
 <script>
+    // ==================== FUNZIONI GLOBALI AUTH ====================
+
+    function showLogin() {
+        console.log('🔑 showLogin function called');
+        const loginModal = document.getElementById('loginModal');
+        console.log('🔍 Login modal found:', !!loginModal);
+
+        if (loginModal) {
+            const modal = new bootstrap.Modal(loginModal);
+            modal.show();
+            console.log('✅ Login modal shown');
+        } else {
+            console.error('❌ Login modal not found!');
+        }
+    }
+
+    function showRegister() {
+        console.log('📝 showRegister function called');
+        const registerModal = document.getElementById('registerModal');
+        console.log('🔍 Register modal found:', !!registerModal);
+
+        if (registerModal) {
+            const modal = new bootstrap.Modal(registerModal);
+            modal.show();
+            console.log('✅ Register modal shown');
+        } else {
+            console.error('❌ Register modal not found!');
+        }
+    }
+
+    function switchToRegister() {
+        console.log('🔄 Switching to register modal');
+        const loginModal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
+        if (loginModal) loginModal.hide();
+
+        setTimeout(() => {
+            const registerModal = new bootstrap.Modal(document.getElementById('registerModal'));
+            registerModal.show();
+        }, 300);
+    }
+
+    function switchToLogin() {
+        console.log('🔄 Switching to login modal');
+        const registerModal = bootstrap.Modal.getInstance(document.getElementById('registerModal'));
+        if (registerModal) registerModal.hide();
+
+        setTimeout(() => {
+            const loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
+            loginModal.show();
+        }, 300);
+    }
+
+    function logout() {
+        console.log('🚪 Eseguo il logout...');
+
+        // Clear authentication
+        if (window.coworkspaceApp) {
+            window.coworkspaceApp.clearAuth();
+        }
+
+        // Clear storage
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('currentUser');
+        sessionStorage.removeItem('login_success');
+        localStorage.removeItem('just_logged_in');
+
+        // Show success message
+        showNotificationMessage('Logout effettuato con successo!', 'success');
+
+        // Redirect to home
+        setTimeout(() => {
+            window.location.href = '../index.html';
+        }, 1500);
+    }
+
+    // ==================== SUPPORT PAGE FUNCTIONS ====================
+
     // Support section functions
     function showFAQ() {
         // Hide other sections
@@ -694,7 +881,8 @@
 
         // Focus on first input
         setTimeout(() => {
-            document.getElementById('contactName').focus();
+            const firstInput = document.getElementById('contactName');
+            if (firstInput) firstInput.focus();
         }, 500);
 
         // Update active states
@@ -729,216 +917,74 @@
         const cards = document.querySelectorAll('.support-card');
         switch(type) {
             case 'faq':
-                cards[0]?.classList.add('active');
+                if (cards[0]) cards[0].classList.add('active');
                 break;
             case 'contact':
-                cards[1]?.classList.add('active');
+                if (cards[1]) cards[1].classList.add('active');
                 break;
             case 'phone':
-                cards[2]?.classList.add('active');
+                if (cards[2]) cards[2].classList.add('active');
                 break;
         }
     }
 
     function startLiveChat() {
         // Check if user is logged in
-        const currentUser = App.auth?.getCurrentUser?.();
+        const currentUser = isUserLoggedIn();
 
         if (currentUser) {
-            App.utils?.showNotification?.('Connessione alla chat in corso...', 'info');
+            showNotificationMessage('Connessione alla chat in corso...', 'info');
 
             // Simulate chat initialization
             setTimeout(() => {
-                App.utils?.showNotification?.('Chat dal vivo disponibile nella versione completa', 'success');
+                showNotificationMessage('Chat dal vivo disponibile nella versione completa', 'success');
             }, 1500);
         } else {
-            App.utils?.showNotification?.(
-                'Effettua il login per accedere alla chat dal vivo',
-                'warning'
-            );
+            showNotificationMessage('Effettua il login per accedere alla chat dal vivo', 'warning');
 
             // Show login modal after a delay
             setTimeout(() => {
-                App.auth?.showLogin?.();
+                showLogin();
             }, 1000);
         }
     }
 
-    // Contact form validation and submission
-    document.addEventListener('DOMContentLoaded', function() {
-        // Initialize page components
-        loadComponent('navbar-container', 'components/navbar.html');
-        loadComponent('footer-container', 'components/footer.html');
-        loadComponent('modals-container', 'components/modals.html');
-
-        // Setup contact form handler
-        const contactForm = document.getElementById('contactForm');
-        if (contactForm) {
-            contactForm.addEventListener('submit', function(e) {
-                e.preventDefault();
-
-                // Get form data
-                const formData = {
-                    name: document.getElementById('contactName').value.trim(),
-                    surname: document.getElementById('contactSurname').value.trim(),
-                    email: document.getElementById('contactEmail').value.trim(),
-                    phone: document.getElementById('contactPhone').value.trim(),
-                    subject: document.getElementById('contactSubject').value,
-                    message: document.getElementById('contactMessage').value.trim(),
-                    privacy: document.getElementById('contactPrivacy').checked
-                };
-
-                // Validation
-                if (!formData.name || !formData.surname || !formData.email ||
-                    !formData.subject || !formData.message || !formData.privacy) {
-                    App.utils?.showNotification?.(
-                        'Compila tutti i campi obbligatori e accetta la privacy policy',
-                        'warning'
-                    );
-                    return;
-                }
-
-                // Email validation
-                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                if (!emailRegex.test(formData.email)) {
-                    App.utils?.showNotification?.(
-                        'Inserisci un indirizzo email valido',
-                        'warning'
-                    );
-                    return;
-                }
-
-                // Phone validation (optional but if present must be valid)
-                if (formData.phone) {
-                    const phoneRegex = /^(\+39)?\s?3\d{2}\s?\d{6,7}$/;
-                    if (!phoneRegex.test(formData.phone)) {
-                        App.utils?.showNotification?.(
-                            'Inserisci un numero di telefono valido (es: +39 3XX XXXXXXX)',
-                            'warning'
-                        );
-                        return;
-                    }
-                }
-
-                // Show loading state
-                const submitBtn = contactForm.querySelector('button[type="submit"]');
-                const originalText = submitBtn.innerHTML;
-                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Invio in corso...';
-                submitBtn.disabled = true;
-
-                // Simulate API call
-                setTimeout(() => {
-                    // Reset button
-                    submitBtn.innerHTML = originalText;
-                    submitBtn.disabled = false;
-
-                    // Show success message
-                    App.utils?.showNotification?.(
-                        'Messaggio inviato con successo! Ti risponderemo entro 24 ore.',
-                        'success'
-                    );
-
-                    // Reset form
-                    contactForm.reset();
-
-                    // Log to console for debugging
-                    console.log('Support request submitted:', formData);
-
-                }, 2000);
-            });
+    // Function to check if user is logged in
+    function isUserLoggedIn() {
+        // Check localStorage
+        const tokens = ['authToken', 'jwt', 'user', 'token'];
+        for (let token of tokens) {
+            const value = localStorage.getItem(token);
+            if (value && value !== 'null' && value !== 'undefined') {
+                return true;
+            }
         }
 
-        // Setup phone number formatting
-        const phoneInput = document.getElementById('contactPhone');
-        if (phoneInput) {
-            phoneInput.addEventListener('input', function(e) {
-                let value = e.target.value.replace(/\D/g, '');
-
-                // Add +39 prefix if not present
-                if (value.length > 0 && !value.startsWith('39')) {
-                    if (value.startsWith('3')) {
-                        value = '39' + value;
-                    }
-                }
-
-                // Format the number
-                if (value.length >= 2) {
-                    let formatted = '+39 ';
-                    if (value.length > 2) {
-                        formatted += value.substring(2, 5);
-                    }
-                    if (value.length > 5) {
-                        formatted += ' ' + value.substring(5, 12);
-                    }
-                    e.target.value = formatted;
-                }
-            });
+        // Check global auth objects
+        if (window.coworkspaceApp && window.coworkspaceApp.state && window.coworkspaceApp.state.isAuthenticated) {
+            return true;
         }
 
-        // Auto-scroll to sections based on URL hash
-        const hash = window.location.hash;
-        if (hash === '#faq') {
-            setTimeout(() => showFAQ(), 500);
-        } else if (hash === '#contact') {
-            setTimeout(() => showContactForm(), 500);
-        } else if (hash === '#phone') {
-            setTimeout(() => showPhoneInfo(), 500);
+        // Check DOM elements
+        const userMenu = document.getElementById('userMenu');
+        if (userMenu && userMenu.style.display !== 'none' && !userMenu.classList.contains('d-none')) {
+            return true;
         }
 
-        // Add click tracking for statistics
-        document.querySelectorAll('.support-card button').forEach(button => {
-            button.addEventListener('click', function() {
-                const cardTitle = this.closest('.support-card').querySelector('h4').textContent;
-                console.log('Support option clicked:', cardTitle);
+        return false;
+    }
 
-                // Track user interaction (for analytics)
-                if (window.gtag) {
-                    gtag('event', 'support_option_click', {
-                        'event_category': 'support',
-                        'event_label': cardTitle
-                    });
-                }
-            });
-        });
-
-        // Add smooth scroll for all anchor links
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function (e) {
-                e.preventDefault();
-                const target = document.querySelector(this.getAttribute('href'));
-                if (target) {
-                    target.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
-                    });
-                }
-            });
-        });
-
-        // Initialize tooltips for better UX
-        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-        tooltipTriggerList.map(function (tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl);
-        });
-
-        // Add dynamic content updates
-        updateSupportStats();
-
-        // Check for success/error messages from URL parameters
-        const urlParams = new URLSearchParams(window.location.search);
-        const message = urlParams.get('message');
-        const type = urlParams.get('type');
-
-        if (message && type) {
-            setTimeout(() => {
-                App.utils?.showNotification?.(decodeURIComponent(message), type);
-
-                // Clean URL
-                const cleanUrl = window.location.pathname;
-                window.history.replaceState({}, document.title, cleanUrl);
-            }, 1000);
+    // Helper function to show notifications
+    function showNotificationMessage(message, type = 'info') {
+        if (window.coworkspaceApp && window.coworkspaceApp.showNotification) {
+            window.coworkspaceApp.showNotification(message, type);
+        } else if (window.App && window.App.utils && window.App.utils.showNotification) {
+            window.App.utils.showNotification(message, type);
+        } else {
+            console.log(`Notification: ${message}`);
+            alert(message);
         }
-    });
+    }
 
     // Function to update support statistics
     function updateSupportStats() {
@@ -1020,6 +1066,8 @@
     // Add real-time chat status
     function updateChatStatus() {
         const chatButton = document.querySelector('[onclick="startLiveChat()"]');
+        if (!chatButton) return;
+
         const statusIndicator = document.createElement('span');
         statusIndicator.className = 'chat-status';
 
@@ -1036,39 +1084,550 @@
             statusIndicator.className += ' text-warning';
         }
 
-        if (chatButton && !document.querySelector('.chat-status')) {
+        if (!document.querySelector('.chat-status')) {
             chatButton.parentNode.appendChild(statusIndicator);
         }
     }
 
-    // Update chat status every minute
-    updateChatStatus();
-    setInterval(updateChatStatus, 60000);
+    // ==================== DOM CONTENT LOADED ====================
 
-    // Add keyboard shortcuts for better UX
-    document.addEventListener('keydown', function(e) {
-        // Ctrl/Cmd + K to focus search
-        if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-            e.preventDefault();
-            const searchInput = document.querySelector('#searchSpaces, input[type="search"]');
-            if (searchInput) {
-                searchInput.focus();
+    document.addEventListener('DOMContentLoaded', async function () {
+        try {
+            // Load page components
+            await loadComponent('navbar-container', '../components/navbar.html');
+            await loadComponent('footer-container', '../components/footer.html');
+            // Note: Modals are already in the page HTML
+
+            // Initialize app if available
+            if (!window.coworkspaceApp) {
+                window.coworkspaceApp = new CoWorkSpaceApp();
+            }
+
+            await window.coworkspaceApp.initializePage();
+            window.coworkspaceApp.checkAuth();
+
+            console.log('✅ Support page initialized successfully');
+
+        } catch (error) {
+            console.error('❌ Error initializing support page:', error);
+        }
+
+        // ==================== EVENT HANDLERS FORM ====================
+
+        // Form Login Handler
+        const loginForm = document.getElementById('loginForm');
+        if (loginForm) {
+            loginForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                console.log('🔓 Login form submitted');
+
+                if (window.coworkspaceApp && window.coworkspaceApp.handleLogin) {
+                    await window.coworkspaceApp.handleLogin(this);
+                } else {
+                    // Fallback for testing
+                    const email = this.loginEmail.value;
+                    console.log('📧 Login attempt:', email);
+
+                    const loginModal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
+                    if (loginModal) loginModal.hide();
+
+                    showNotificationMessage('Login simulato riuscito!', 'success');
+                }
+            });
+        }
+
+        // Form Register Handler
+        const registerForm = document.getElementById('registerForm');
+        if (registerForm) {
+            registerForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                console.log('📝 Register form submitted');
+
+                // Validation
+                const password = this.registerPassword.value;
+                const confirmPassword = this.registerPasswordConfirm.value;
+
+                if (password !== confirmPassword) {
+                    showNotificationMessage('Le password non coincidono!', 'error');
+                    return;
+                }
+
+                if (password.length < 8) {
+                    showNotificationMessage('La password deve essere di almeno 8 caratteri!', 'error');
+                    return;
+                }
+
+                if (!this.acceptTerms.checked) {
+                    showNotificationMessage('Devi accettare i Termini e Condizioni!', 'error');
+                    return;
+                }
+
+                if (window.coworkspaceApp && window.coworkspaceApp.handleRegister) {
+                    await window.coworkspaceApp.handleRegister(this);
+                } else {
+                    // Fallback for testing
+                    const registerModal = bootstrap.Modal.getInstance(document.getElementById('registerModal'));
+                    if (registerModal) registerModal.hide();
+
+                    showNotificationMessage('Registrazione simulata riuscita!', 'success');
+
+                    setTimeout(() => showLogin(), 1000);
+                }
+            });
+        }
+
+        // ==================== CONTACT FORM HANDLER ====================
+
+        // Setup contact form handler
+        const contactForm = document.getElementById('contactForm');
+        if (contactForm) {
+            contactForm.addEventListener('submit', function (e) {
+                e.preventDefault();
+
+                // Get form data
+                const formData = {
+                    name: document.getElementById('contactName').value.trim(),
+                    surname: document.getElementById('contactSurname').value.trim(),
+                    email: document.getElementById('contactEmail').value.trim(),
+                    phone: document.getElementById('contactPhone').value.trim(),
+                    subject: document.getElementById('contactSubject').value,
+                    message: document.getElementById('contactMessage').value.trim(),
+                    privacy: document.getElementById('contactPrivacy').checked
+                };
+
+                // Validation
+                if (!formData.name || !formData.surname || !formData.email ||
+                    !formData.subject || !formData.message || !formData.privacy) {
+                    showNotificationMessage(
+                        'Compila tutti i campi obbligatori e accetta la privacy policy',
+                        'warning'
+                    );
+                    return;
+                }
+
+                // Email validation
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(formData.email)) {
+                    showNotificationMessage('Inserisci un indirizzo email valido', 'warning');
+                    return;
+                }
+
+                // Phone validation (optional but if present must be valid)
+                if (formData.phone) {
+                    const phoneRegex = /^(\+39)?\s?3\d{2}\s?\d{6,7}$/;
+                    if (!phoneRegex.test(formData.phone)) {
+                        showNotificationMessage(
+                            'Inserisci un numero di telefono valido (es: +39 3XX XXXXXXX)',
+                            'warning'
+                        );
+                        return;
+                    }
+                }
+
+                // Show loading state
+                const submitBtn = contactForm.querySelector('button[type="submit"]');
+                const originalText = submitBtn.innerHTML;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Invio in corso...';
+                submitBtn.disabled = true;
+
+                // Simulate API call
+                setTimeout(() => {
+                    // Reset button
+                    submitBtn.innerHTML = originalText;
+                    submitBtn.disabled = false;
+
+                    // Show success message
+                    showNotificationMessage(
+                        'Messaggio inviato con successo! Ti risponderemo entro 24 ore.',
+                        'success'
+                    );
+
+                    // Reset form
+                    contactForm.reset();
+
+                    // Log to console for debugging
+                    console.log('Support request submitted:', formData);
+
+                }, 2000);
+            });
+        }
+
+        // ==================== PHONE INPUT FORMATTING ====================
+
+        // Setup phone number formatting
+        const phoneInput = document.getElementById('contactPhone');
+        if (phoneInput) {
+            phoneInput.addEventListener('input', function (e) {
+                let value = e.target.value.replace(/\D/g, '');
+
+                // Add +39 prefix if not present
+                if (value.length > 0 && !value.startsWith('39')) {
+                    if (value.startsWith('3')) {
+                        value = '39' + value;
+                    }
+                }
+
+                // Format the number
+                if (value.length >= 2) {
+                    let formatted = '+39 ';
+                    if (value.length > 2) {
+                        formatted += value.substring(2, 5);
+                    }
+                    if (value.length > 5) {
+                        formatted += ' ' + value.substring(5, 12);
+                    }
+                    e.target.value = formatted;
+                }
+            });
+        }
+
+        // ==================== URL HASH HANDLING ====================
+
+        // Auto-scroll to sections based on URL hash
+        const hash = window.location.hash;
+        if (hash === '#faq') {
+            setTimeout(() => showFAQ(), 500);
+        } else if (hash === '#contact') {
+            setTimeout(() => showContactForm(), 500);
+        } else if (hash === '#phone') {
+            setTimeout(() => showPhoneInfo(), 500);
+        }
+
+        // ==================== SUPPORT FEATURES ====================
+
+        // Add click tracking for statistics
+        document.querySelectorAll('.support-card button').forEach(button => {
+            button.addEventListener('click', function () {
+                const cardTitle = this.closest('.support-card').querySelector('h4').textContent;
+                console.log('Support option clicked:', cardTitle);
+
+                // Track user interaction (for analytics)
+                if (window.gtag) {
+                    gtag('event', 'support_option_click', {
+                        'event_category': 'support',
+                        'event_label': cardTitle
+                    });
+                }
+            });
+        });
+
+        // Add smooth scroll for all anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Initialize tooltips for better UX
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+
+        // Add dynamic content updates
+        updateSupportStats();
+        updateChatStatus();
+
+        // Update chat status every minute
+        setInterval(updateChatStatus, 60000);
+
+        // Check for success/error messages from URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const message = urlParams.get('message');
+        const type = urlParams.get('type');
+
+        if (message && type) {
+            setTimeout(() => {
+                showNotificationMessage(decodeURIComponent(message), type);
+
+                // Clean URL
+                const cleanUrl = window.location.pathname;
+                window.history.replaceState({}, document.title, cleanUrl);
+            }, 1000);
+        }
+
+        // ==================== KEYBOARD SHORTCUTS ====================
+
+        // Add keyboard shortcuts for better UX
+        document.addEventListener('keydown', function(e) {
+            // Ctrl/Cmd + K to focus search
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                const searchInput = document.querySelector('#searchSpaces, input[type="search"]');
+                if (searchInput) {
+                    searchInput.focus();
+                }
+            }
+
+            // Escape key to close opened sections
+            if (e.key === 'Escape') {
+                const openSections = document.querySelectorAll('#faqSection:not([style*="none"]), #contactFormSection:not([style*="none"]), #phoneInfoSection:not([style*="none"])');
+                openSections.forEach(section => {
+                    section.style.display = 'none';
+                });
+
+                // Remove active states
+                document.querySelectorAll('.support-card.active').forEach(card => {
+                    card.classList.remove('active');
+                });
+            }
+        });
+
+        console.log('✅ Support page event handlers initialized');
+
+        // ==================== GESTIONE MODAL RESET PASSWORD ====================
+
+        // Click su "Hai dimenticato la password?"
+        document.addEventListener('click', function(e) {
+            if (e.target.id === 'forgotPasswordLink') {
+                e.preventDefault();
+
+                // Nascondi modal login
+                const loginModal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
+                if (loginModal) loginModal.hide();
+
+                // Mostra modal reset password
+                const forgotModal = new bootstrap.Modal(document.getElementById('forgotPasswordModal'));
+                forgotModal.show();
+
+                // Reset form
+                document.getElementById('forgotPasswordForm').reset();
+                document.getElementById('resetPasswordForm').style.display = 'block';
+                document.getElementById('resetSuccessMessage').style.display = 'none';
+            }
+
+            // Click su "Torna al Login"
+            if (e.target.id === 'backToLogin') {
+                e.preventDefault();
+
+                // Nascondi modal reset
+                const forgotModal = bootstrap.Modal.getInstance(document.getElementById('forgotPasswordModal'));
+                if (forgotModal) forgotModal.hide();
+
+                // Mostra modal login
+                const loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
+                loginModal.show();
+            }
+        });
+
+        // ==================== GESTIONE FORM RESET PASSWORD ====================
+
+        const forgotPasswordForm = document.getElementById('forgotPasswordForm');
+        if (forgotPasswordForm) {
+            forgotPasswordForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+
+                const email = document.getElementById('resetEmail').value.trim();
+                const submitBtn = e.target.querySelector('button[type="submit"]');
+                const originalBtnContent = submitBtn.innerHTML;
+
+                // Validazione base
+                if (!email) {
+                    showNotificationInModal('Inserisci un indirizzo email valido', 'error');
+                    return;
+                }
+
+                // Validazione formato email
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(email)) {
+                    showNotificationInModal('Formato email non valido', 'error');
+                    return;
+                }
+
+                // Mostra loading
+                submitBtn.disabled = true;
+                submitBtn.classList.add('btn-loading');
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Invio in corso...';
+
+                try {
+                    console.log('Sending password reset request for:', email);
+
+                    const response = await fetch('/api/auth/forgot-password', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({ email })
+                    });
+
+                    const data = await response.json();
+                    console.log('Reset password response:', data);
+
+                    if (response.ok && data.success) {
+                        // Mostra messaggio di successo
+                        document.getElementById('resetPasswordForm').style.display = 'none';
+                        document.getElementById('resetSuccessMessage').style.display = 'block';
+
+                        // Auto-chiudi dopo 5 secondi
+                        setTimeout(() => {
+                            const forgotModal = bootstrap.Modal.getInstance(document.getElementById('forgotPasswordModal'));
+                            if (forgotModal) forgotModal.hide();
+
+                            // Reset per il prossimo utilizzo
+                            setTimeout(() => {
+                                document.getElementById('resetPasswordForm').style.display = 'block';
+                                document.getElementById('resetSuccessMessage').style.display = 'none';
+                                forgotPasswordForm.reset();
+                            }, 500);
+                        }, 5000);
+
+                    } else {
+                        // Mostra errore
+                        const errorMessage = data.message || 'Errore durante l\'invio dell\'email. Riprova.';
+                        showNotificationInModal(errorMessage, 'error');
+                    }
+
+                } catch (error) {
+                    console.error('Reset password error:', error);
+
+                    // Gestisci errori di rete
+                    if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                        showNotificationInModal('Problema di connessione. Verifica la tua rete.', 'error');
+                    } else {
+                        showNotificationInModal('Errore imprevisto. Riprova più tardi.', 'error');
+                    }
+                } finally {
+                    // Ripristina bottone
+                    submitBtn.disabled = false;
+                    submitBtn.classList.remove('btn-loading');
+                    submitBtn.innerHTML = originalBtnContent;
+                }
+            });
+        }
+
+        // ==================== FUNZIONI HELPER ====================
+
+        function showNotificationInModal(message, type = 'info') {
+            // Rimuovi notifiche precedenti nel modal
+            const existingAlerts = document.querySelectorAll('#forgotPasswordModal .alert');
+            existingAlerts.forEach(alert => alert.remove());
+
+            // Crea nuova notifica
+            const alertClass = type === 'error' ? 'alert-danger' :
+                type === 'success' ? 'alert-success' :
+                    type === 'warning' ? 'alert-warning' : 'alert-info';
+
+            const icon = type === 'error' ? 'fas fa-exclamation-triangle' :
+                type === 'success' ? 'fas fa-check-circle' :
+                    type === 'warning' ? 'fas fa-exclamation-circle' : 'fas fa-info-circle';
+
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert ${alertClass} alert-dismissible fade show mt-3`;
+            alertDiv.innerHTML = `
+            <i class="${icon} me-2"></i>${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+
+            // Inserisci prima del form
+            const modalBody = document.querySelector('#forgotPasswordModal .modal-body');
+            const form = document.getElementById('resetPasswordForm');
+            modalBody.insertBefore(alertDiv, form);
+
+            // Auto-rimuovi dopo 5 secondi
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
+            }, 5000);
+        }
+
+        // ==================== MIGLIORA L'UX ====================
+
+        // Auto-focus sul campo email quando si apre il modal
+        document.getElementById('forgotPasswordModal').addEventListener('shown.bs.modal', function() {
+            document.getElementById('resetEmail').focus();
+        });
+
+        // Gestisci il tasto Invio nel campo email
+        document.getElementById('resetEmail')?.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                document.getElementById('forgotPasswordForm').dispatchEvent(new Event('submit'));
+            }
+        });
+
+        console.log('Password reset system initialized');
+    });
+
+    // ==================== PROFILE FUNCTIONS ====================
+
+    function showProfile() {
+        console.log('🔍 Opening profile modal...');
+
+        let currentUser = null;
+
+        // Verifica coworkspaceApp
+        if (window.coworkspaceApp && window.coworkspaceApp.state && window.coworkspaceApp.state.currentUser) {
+            currentUser = window.coworkspaceApp.state.currentUser;
+        } else {
+            try {
+                const userJson = localStorage.getItem('user');
+                if (userJson) {
+                    currentUser = JSON.parse(userJson);
+                }
+            } catch (error) {
+                console.error('Error parsing user data:', error);
             }
         }
 
-        // Escape key to close opened sections
-        if (e.key === 'Escape') {
-            const openSections = document.querySelectorAll('#faqSection:not([style*="none"]), #contactFormSection:not([style*="none"]), #phoneInfoSection:not([style*="none"])');
-            openSections.forEach(section => {
-                section.style.display = 'none';
-            });
-
-            // Remove active states
-            document.querySelectorAll('.support-card.active').forEach(card => {
-                card.classList.remove('active');
-            });
+        if (!currentUser) {
+            showNotificationMessage('Devi essere loggato per vedere il tuo profilo.', 'warning');
+            return;
         }
-    });
+
+        // Mostra il modal
+        const profileModal = new bootstrap.Modal(document.getElementById('profileModal'));
+        profileModal.show();
+
+        // Popola con un piccolo delay
+        setTimeout(() => {
+            populateProfileModal(currentUser);
+        }, 200);
+    }
+
+    function populateProfileModal(user) {
+        console.log('🔄 Populating profile modal with user:', user);
+
+        if (!user || typeof user !== 'object') {
+            showNotificationMessage('Errore: dati utente non disponibili', 'error');
+            return;
+        }
+
+        // Mappatura dei campi
+        const userData = {
+            firstName: user.first_name || user.firstName || user.name || '',
+            lastName: user.last_name || user.lastName || user.surname || '',
+            email: user.email || '',
+            phone: user.phone || user.phoneNumber || '',
+            company: user.company || user.company_name || ''
+        };
+
+        // Popola campi di visualizzazione
+        const profileName = document.getElementById('profileName');
+        const profileSurname = document.getElementById('profileSurname');
+        const profileEmail = document.getElementById('profileEmail');
+        const profilePhone = document.getElementById('profilePhone');
+        const profileCompany = document.getElementById('profileCompany');
+
+        if (profileName) profileName.textContent = userData.firstName || '-';
+        if (profileSurname) profileSurname.textContent = userData.lastName || '-';
+        if (profileEmail) profileEmail.textContent = userData.email || '-';
+        if (profilePhone) profilePhone.textContent = userData.phone || '-';
+        if (profileCompany) profileCompany.textContent = userData.company || '-';
+    }
+
+    // Rendi la funzione globale per compatibilità
+    window.User = {
+        populateProfileModal: populateProfileModal
+    };
 </script>
 
 </body>

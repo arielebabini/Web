@@ -153,7 +153,7 @@ class AdminDashboardController {
                 return; // La validazione ha già gestito l'errore
             }
 
-            const token = localStorage.getItem('auth_token');
+            const token = localStorage.getItem('authToken');
 
             // Mostra loading
             showUsersLoading();
@@ -415,7 +415,7 @@ class AdminDashboardController {
         }
 
         try {
-            const token = localStorage.getItem('auth_token');
+            const token = localStorage.getItem('authToken');
             const response = await fetch(`http://localhost:3000/api/users/${userId}`, {
                 method: 'DELETE',
                 headers: {

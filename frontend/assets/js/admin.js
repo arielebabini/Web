@@ -6,7 +6,7 @@
 class AdminAPI {
     constructor() {
         this.baseURL = '/api';
-        this.token = localStorage.getItem('auth_token');
+        this.token = localStorage.getItem('authToken');
     }
 
     // ==================== UTILITY METHODS ====================

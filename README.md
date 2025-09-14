@@ -32,15 +32,15 @@ L'architettura del progetto si basa sulle seguenti tecnologie:
 Per esplorare le diverse funzionalità e i livelli di accesso, è possibile utilizzare le seguenti credenziali per il login.
 
 ### Utente Standard
-* **Email:** `carlo@gmai.com`
-* **Password:** `Carlo123`
+* **Email:** `marco@gmail.com`
+* **Password:** `Marco12345`
 
 ### Artigiano
-* **Email:** `federico@manager.com`
+* **Email:** `fede@manager.com`
 * **Password:** `Ciao123456`
 
 ### Amministratore
-* **Email:** `admin@coworkspace.it`
+* **Email:** `fede@admin.com`
 * **Password:** `Admin123`
 
 ---

@@ -82,6 +82,10 @@ frontend/
 │   └── about.html             # Pagina chi siamo
 ├── index.html                 # Homepage
 ├── README.md                  # Questo file
+├── Dockerfile 
+├── app.js 
+├── package.json
+└── package-lock.json 
 ```
 
 ## 🚀 Installazione
@@ -242,6 +246,7 @@ const Components = {
 
 ### Modali e Overlay
 - **Login/Register**: Autenticazione utente
+- **Password Dimenticata**: Reset Password via mail
 - **Space Details**: Dettagli spazio
 - **Booking**: Prenotazione spazio
 - **Image Viewer**: Galleria immagini

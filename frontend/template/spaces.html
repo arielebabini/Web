@@ -10,6 +10,10 @@
     <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.4.1/MarkerCluster.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.4.1/MarkerCluster.Default.css" rel="stylesheet">
+
     <!-- Custom CSS -->
     <link rel="stylesheet" href="../assets/css/variables.css">
     <link rel="stylesheet" href="../assets/css/components.css">
@@ -19,87 +23,439 @@
     <link rel="stylesheet" href="../assets/css/style.css">
 </head>
 
+<style>
+    /* Stili aggiuntivi per il modal profilo */
+    .profile-stats .stat-number {
+        font-size: 1.5rem;
+        font-weight: bold;
+    }
+
+    /* ===== BACK TO TOP BUTTON MODERNO ===== */
+    .back-to-top {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        width: 56px;
+        height: 56px;
+        background: var(--primary);
+        color: white;
+        border: none;
+        border-radius: var(--radius-xl);
+        font-size: 1.5rem;
+        box-shadow: var(--shadow-xl);
+        transition: all var(--transition-base);
+        z-index: 9997;
+        cursor: pointer;
+    }
+
+    .back-to-top:hover {
+        background: var(--primary);
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-2xl);
+    }
+
+    .profile-stats .stat-label {
+        font-size: 0.875rem;
+    }
+
+    .form-control-plaintext {
+        background-color: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 0.375rem;
+        padding: 0.375rem 0.75rem;
+        min-height: 1.5rem;
+    }
+
+    .modal-header .modal-title i {
+        color: var(--bs-primary);
+    }
+
+    .filters-section .card {
+        border: none;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .filters-section .card-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+    }
+
+    .filters-section .form-label {
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 0.5rem;
+    }
+
+    .filters-section .form-select,
+    .filters-section .form-control {
+        border-radius: 8px;
+        border: 2px solid #e9ecef;
+        transition: all 0.3s ease;
+    }
+
+    .filters-section .form-select:focus,
+    .filters-section .form-control:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+    }
+
+    .filters-section .form-check {
+        padding: 0.5rem;
+        border-radius: 6px;
+        transition: background-color 0.2s ease;
+    }
+
+    .filters-section .form-check:hover {
+        background-color: #f8f9fa;
+    }
+
+    .filters-section .form-check-input:checked {
+        background-color: #667eea;
+        border-color: #667eea;
+    }
+
+    .filter-badge {
+        background-color: #667eea;
+        color: white;
+        border: none;
+        font-size: 0.875rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: 20px;
+        display: inline-flex;
+        align-items: center;
+        margin: 0.125rem;
+    }
+
+    .filter-badge .btn-close {
+        margin-left: 0.5rem;
+        font-size: 0.7rem;
+        color: white;
+        opacity: 0.8;
+    }
+
+    .filter-badge .btn-close:hover {
+        opacity: 1;
+    }
+
+    #filterToggleIcon {
+        transition: transform 0.3s ease;
+    }
+
+    #filtersCollapse.show + * #filterToggleIcon {
+        transform: rotate(180deg);
+    }
+
+    .input-group-text {
+        background-color: #f8f9fa;
+        border-color: #e9ecef;
+    }
+
+    @media (max-width: 768px) {
+        .filters-section .col-lg-3,
+        .filters-section .col-md-6 {
+            margin-bottom: 1rem;
+        }
+
+        .filter-actions {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+    }
+
+    /* Stili per il modal dettagli spazio */
+    .modal-xl {
+        max-width: 1200px;
+    }
+
+    .info-item {
+        transition: all 0.2s ease;
+    }
+
+    .info-item:hover {
+        transform: translateX(5px);
+    }
+
+    .icon-wrapper {
+        flex-shrink: 0;
+    }
+
+    .amenity-badge {
+        background-color: #f8f9fa;
+        color: #495057;
+        padding: 8px 12px;
+        border-radius: 20px;
+        font-size: 0.875rem;
+        border: 1px solid #e9ecef;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s ease;
+    }
+
+    .amenity-badge:hover {
+        background-color: #e9ecef;
+        transform: translateY(-1px);
+    }
+
+    .image-thumbnail {
+        width: 80px;
+        height: 60px;
+        object-fit: cover;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: 2px solid transparent;
+    }
+
+    .image-thumbnail:hover {
+        transform: scale(1.05);
+        border-color: #007bff;
+    }
+
+    .image-thumbnail.active {
+        border-color: #007bff;
+        box-shadow: 0 2px 8px rgba(0,123,255,0.3);
+    }
+
+    .feature-item {
+        display: flex;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid #f1f3f5;
+    }
+
+    .feature-item:last-child {
+        border-bottom: none;
+    }
+
+    .feature-item i {
+        color: #28a745;
+        margin-right: 10px;
+        width: 20px;
+    }
+
+    @media (max-width: 991px) {
+        .modal-xl {
+            max-width: 95%;
+        }
+
+        .col-lg-8, .col-lg-4 {
+            flex: 0 0 100%;
+            max-width: 100%;
+        }
+
+        #modalMainImage {
+            height: 250px !important;
+        }
+    }
+    .view-toggle {
+        background: white;
+        border-radius: 10px;
+        padding: 0.5rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        margin-bottom: 1rem;
+    }
+
+    .view-toggle .btn {
+        border-radius: 8px;
+        padding: 0.5rem 1rem;
+        border: none;
+        transition: all 0.3s ease;
+    }
+
+    .view-toggle .btn.active {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    }
+
+    .map-view-container {
+        display: none;
+        background: white;
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+
+    .map-sidebar {
+        background: #f8f9fa;
+        padding: 1.5rem;
+        height: 600px;
+        overflow-y: auto;
+    }
+
+    .map-container-integrated {
+        height: 600px;
+        position: relative;
+    }
+
+    .map-controls-integrated {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        z-index: 1000;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .map-control-btn-integrated {
+        background: white;
+        border: none;
+        border-radius: 6px;
+        padding: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        transition: all 0.3s ease;
+        color: #495057;
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .map-control-btn-integrated:hover {
+        background: #f8f9fa;
+        transform: translateY(-1px);
+    }
+
+    .filter-group-compact {
+        background: white;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        border: 1px solid #e9ecef;
+    }
+
+    .filter-group-compact h6 {
+        color: #495057;
+        margin-bottom: 0.75rem;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+
+    .legend-compact {
+        background: white;
+        border-radius: 8px;
+        padding: 1rem;
+        border: 1px solid #e9ecef;
+    }
+
+    .legend-item-compact {
+        display: flex;
+        align-items: center;
+        margin-bottom: 0.4rem;
+        font-size: 0.85rem;
+    }
+
+    .legend-color-compact {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin-right: 0.5rem;
+        border: 2px solid white;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+
+    .search-box-compact {
+        position: relative;
+    }
+
+    .search-box-compact input {
+        padding-right: 40px;
+        font-size: 0.9rem;
+    }
+
+    .search-btn-compact {
+        position: absolute;
+        right: 5px;
+        top: 50%;
+        transform: translateY(-50%);
+        border: none;
+        background: #667eea;
+        color: white;
+        border-radius: 4px;
+        padding: 4px 8px;
+        font-size: 0.8rem;
+    }
+
+    .stats-compact {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        text-align: center;
+    }
+
+    .stat-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-row:last-child {
+        margin-bottom: 0;
+    }
+
+    .stat-value {
+        font-weight: bold;
+        font-size: 1.1rem;
+    }
+
+    /* Custom Popup Styles for integrated map */
+    .custom-popup-integrated .leaflet-popup-content-wrapper {
+        border-radius: 12px;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+    }
+
+    .space-popup-integrated {
+        min-width: 260px;
+        padding: 0;
+    }
+
+    .popup-header-integrated {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 0.75rem;
+        margin: -12px -16px 0.75rem -16px;
+        border-radius: 12px 12px 0 0;
+    }
+
+    .popup-badge-integrated {
+        background: rgba(255,255,255,0.2);
+        color: white;
+        padding: 0.2rem 0.6rem;
+        border-radius: 15px;
+        font-size: 0.7rem;
+        font-weight: 500;
+    }
+
+    .popup-actions-integrated {
+        padding: 0.75rem;
+        margin: 0 -16px -12px -16px;
+        border-top: 1px solid #e9ecef;
+        background: #f8f9fa;
+        border-radius: 0 0 12px 12px;
+    }
+
+    @media (max-width: 768px) {
+        .map-container-integrated {
+            height: 400px;
+        }
+
+        .map-sidebar {
+            height: auto;
+            padding: 1rem;
+        }
+    }
+</style>
+
 <body>
 <!-- Navigation -->
-<div id="navbar-container">
-    <!-- Navigation - Header diretto senza component -->
-    <nav class="navbar navbar-expand-lg navbar-light fixed-top">
-        <div class="container">
-            <a class="navbar-brand" href="../index.html">
-                <i class="fas fa-building"></i> CoWorkSpace
-            </a>
-
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="../index.html">Home</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link active" href="spaces.html">Spazi</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="about.html">Chi Siamo</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="support.html">Supporto</a>
-                    </li>
-                </ul>
-
-                <div class="navbar-nav">
-                    <div id="authButtons">
-                        <button class="btn btn-outline-primary me-2" onclick="showLogin()">
-                            <i class="fas fa-sign-in-alt"></i> Accedi
-                        </button>
-                        <button class="btn btn-primary" onclick="showRegister()">
-                            <i class="fas fa-user-plus"></i> Registrati
-                        </button>
-                    </div>
-                    <div id="userMenu" style="display: none;">
-                        <div class="dropdown">
-                            <button class="btn btn-link dropdown-toggle p-0" type="button" data-bs-toggle="dropdown">
-                                <div class="user-avatar">
-                                    <span id="userInitial"></span>
-                                </div>
-                            </button>
-                            <ul class="dropdown-menu dropdown-menu-end">
-                                <li><div class="dropdown-header">
-                                    <span id="userFullName"></span><br>
-                                    <small class="text-muted" id="userEmail"></small>
-                                </div></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#profileModal">
-                                    <i class="fas fa-user-circle"></i> Profilo
-                                </a></li>
-                                <li><a class="dropdown-item" href="#" onclick="showSection('bookings')">
-                                    <i class="fas fa-calendar-check"></i> Le Mie Prenotazioni
-                                </a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li id="managerMenuItem" style="display: none;">
-                                    <a class="dropdown-item" href="manager-dashboard.html">
-                                        <i class="fas fa-user-tie me-2"></i> Pannello Manager
-                                    </a>
-                                </li>
-                                <li id="adminMenuItem" style="display: none;">
-                                    <a class="dropdown-item" href="admin-dashboard.html">
-                                        <i class="fas fa-cog me-2"></i> Pannello Admin
-                                    </a>
-                                </li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="#" onclick="logout()">
-                                    <i class="fas fa-sign-out-alt"></i> Logout
-                                </a></li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </nav>
-</div>
+<div id="navbar-container"></div>
 
 <!-- Spaces Section -->
 <section class="section-padding" style="margin-top: 10px;">
@@ -111,6 +467,289 @@
                     <h2><i class="fas fa-building text-primary"></i> Spazi Disponibili</h2>
                     <p class="results-count" id="resultsCount">Caricamento spazi...</p>
                 </div>
+
+                <!-- VIEW TOGGLE - AGGIUNGI QUESTO -->
+                <div class="view-toggle">
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-secondary active" id="gridViewBtn" onclick="switchToGridView()">
+                            <i class="fas fa-th-large me-1"></i>Griglia
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" id="mapViewBtn" onclick="switchToMapView()">
+                            <i class="fas fa-map me-1"></i>Mappa
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filters Section - Inserire dopo il results-header -->
+        <div class="filters-section mt-4 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-filter text-primary me-2"></i>Filtri di Ricerca
+                        </h5>
+                        <div class="filter-actions">
+                            <button class="btn btn-sm btn-outline-secondary me-2" onclick="clearAllFilters()">
+                                <i class="fas fa-times me-1"></i>Cancella Filtri
+                            </button>
+                            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#filtersCollapse">
+                                <i class="fas fa-chevron-down" id="filterToggleIcon"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="collapse show" id="filtersCollapse">
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <!-- Filtro Città -->
+                            <div class="col-lg-3 col-md-6">
+                                <label class="form-label">
+                                    <i class="fas fa-map-marker-alt text-primary me-1"></i>Città
+                                </label>
+                                <select class="form-select" id="filterCity" onchange="applyFilters()">
+                                    <option value="">Tutte le città</option>
+                                    <option value="Milano">Milano</option>
+                                    <option value="Roma">Roma</option>
+                                    <option value="Torino">Torino</option>
+                                    <option value="Napoli">Napoli</option>
+                                    <option value="Bologna">Bologna</option>
+                                    <option value="Firenze">Firenze</option>
+                                    <option value="Venezia">Venezia</option>
+                                    <option value="Genova">Genova</option>
+                                </select>
+                            </div>
+
+                            <!-- Filtro Tipo Spazio -->
+                            <div class="col-lg-3 col-md-6">
+                                <label class="form-label">
+                                    <i class="fas fa-building text-primary me-1"></i>Tipo di Spazio
+                                </label>
+                                <select class="form-select" id="filterType" onchange="applyFilters()">
+                                    <option value="">Tutti i tipi</option>
+                                    <option value="hot-desk">Hot Desk</option>
+                                    <option value="private-office">Ufficio Privato</option>
+                                    <option value="meeting-room">Sala Riunioni</option>
+                                    <option value="event-space">Spazio Eventi</option>
+                                </select>
+                            </div>
+
+                            <!-- Filtro Capacità -->
+                            <div class="col-lg-3 col-md-6">
+                                <label class="form-label">
+                                    <i class="fas fa-users text-primary me-1"></i>Capacità
+                                </label>
+                                <select class="form-select" id="filterCapacity" onchange="applyFilters()">
+                                    <option value="">Qualsiasi capacità</option>
+                                    <option value="1-5">1-5 persone</option>
+                                    <option value="6-10">6-10 persone</option>
+                                    <option value="11-20">11-20 persone</option>
+                                    <option value="20+">20+ persone</option>
+                                </select>
+                            </div>
+
+                            <!-- Filtro Prezzo -->
+                            <div class="col-lg-3 col-md-6">
+                                <label class="form-label">
+                                    <i class="fas fa-euro-sign text-primary me-1"></i>Prezzo Massimo
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text">€</span>
+                                    <input type="number" class="form-control" id="filterPrice" placeholder="Max prezzo" min="0" max="1000" onchange="applyFilters()">
+                                    <span class="input-group-text">/giorno</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Riga Servizi -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <label class="form-label">
+                                    <i class="fas fa-cogs text-primary me-1"></i>Servizi Inclusi
+                                </label>
+                                <div class="row g-2">
+                                    <div class="col-lg-2 col-md-3 col-sm-4 col-6">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="serviceWifi" value="wifi" onchange="applyFilters()">
+                                            <label class="form-check-label" for="serviceWifi">
+                                                <i class="fas fa-wifi me-1"></i>WiFi
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-2 col-md-3 col-sm-4 col-6">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="serviceCoffee" value="coffee" onchange="applyFilters()">
+                                            <label class="form-check-label" for="serviceCoffee">
+                                                <i class="fas fa-coffee me-1"></i>Caffè
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-2 col-md-3 col-sm-4 col-6">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="servicePrinter" value="printer" onchange="applyFilters()">
+                                            <label class="form-check-label" for="servicePrinter">
+                                                <i class="fas fa-print me-1"></i>Stampante
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-2 col-md-3 col-sm-4 col-6">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="serviceParking" value="parking" onchange="applyFilters()">
+                                            <label class="form-check-label" for="serviceParking">
+                                                <i class="fas fa-parking me-1"></i>Parcheggio
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-2 col-md-3 col-sm-4 col-6">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="serviceAC" value="ac" onchange="applyFilters()">
+                                            <label class="form-check-label" for="serviceAC">
+                                                <i class="fas fa-snowflake me-1"></i>Aria Condizionata
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-2 col-md-3 col-sm-4 col-6">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="service24h" value="24h" onchange="applyFilters()">
+                                            <label class="form-check-label" for="service24h">
+                                                <i class="fas fa-clock me-1"></i>24/7
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Filtri Attivi -->
+                        <div class="row mt-3" id="activeFiltersRow" style="display: none;">
+                            <div class="col-12">
+                                <div class="d-flex align-items-center flex-wrap">
+                                    <span class="text-muted me-2">Filtri attivi:</span>
+                                    <div id="activeFiltersList" class="d-flex flex-wrap gap-1"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Map View Container -->
+        <div id="mapViewContainer" class="map-view-container">
+            <div class="row g-0">
+                <!-- Sidebar Controlli -->
+                <div class="col-lg-3">
+                    <div class="map-sidebar">
+                        <!-- Statistiche Compatte -->
+                        <div class="stats-compact">
+                            <div class="stat-row">
+                                <span>Totali:</span>
+                                <span class="stat-value" id="totalSpacesMap">0</span>
+                            </div>
+                            <div class="stat-row">
+                                <span>Disponibili:</span>
+                                <span class="stat-value" id="availableSpacesMap">0</span>
+                            </div>
+                            <div class="stat-row">
+                                <span>Occupati:</span>
+                                <span class="stat-value" id="occupiedSpacesMap">0</span>
+                            </div>
+                        </div>
+
+                        <!-- Ricerca Mappa -->
+                        <div class="filter-group-compact">
+                            <h6><i class="fas fa-search me-1"></i>Ricerca sulla Mappa</h6>
+                            <div class="search-box-compact">
+                                <input type="text" class="form-control form-control-sm" id="mapSearchInput"
+                                       placeholder="Cerca spazi...">
+                                <button class="search-btn-compact" onclick="searchOnMap()">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Filtri Rapidi Mappa -->
+                        <div class="filter-group-compact">
+                            <h6><i class="fas fa-filter me-1"></i>Filtri Rapidi</h6>
+                            <select class="form-select form-select-sm mb-2" id="mapCityFilter" onchange="applyMapFilters()">
+                                <option value="">Tutte le città</option>
+                                <option value="Milano">Milano</option>
+                                <option value="Roma">Roma</option>
+                                <option value="Torino">Torino</option>
+                                <option value="Bologna">Bologna</option>
+                                <option value="Firenze">Firenze</option>
+                            </select>
+
+                            <select class="form-select form-select-sm" id="mapTypeFilter" onchange="applyMapFilters()">
+                                <option value="">Tutti i tipi</option>
+                                <option value="hot-desk">Hot Desk</option>
+                                <option value="private-office">Ufficio Privato</option>
+                                <option value="meeting-room">Sala Riunioni</option>
+                                <option value="event-space">Spazio Eventi</option>
+                            </select>
+                        </div>
+
+                        <!-- Legenda Compatta -->
+                        <div class="legend-compact">
+                            <h6><i class="fas fa-info-circle me-1"></i>Legenda</h6>
+                            <div class="legend-item-compact">
+                                <div class="legend-color-compact" style="background-color: #28a745;"></div>
+                                <span>Hot Desk</span>
+                            </div>
+                            <div class="legend-item-compact">
+                                <div class="legend-color-compact" style="background-color: #007bff;"></div>
+                                <span>Ufficio Privato</span>
+                            </div>
+                            <div class="legend-item-compact">
+                                <div class="legend-color-compact" style="background-color: #ffc107;"></div>
+                                <span>Sala Riunioni</span>
+                            </div>
+                            <div class="legend-item-compact">
+                                <div class="legend-color-compact" style="background-color: #dc3545;"></div>
+                                <span>Spazio Eventi</span>
+                            </div>
+                            <div class="legend-item-compact">
+                                <div class="legend-color-compact" style="background-color: #6c757d;"></div>
+                                <span>Non Disponibile</span>
+                            </div>
+                        </div>
+
+                        <!-- Controlli Layer -->
+                        <div class="filter-group-compact">
+                            <h6><i class="fas fa-layer-group me-1"></i>Livelli</h6>
+                            <div class="form-check form-switch mb-1">
+                                <input class="form-check-input" type="checkbox" id="showAvailableMap" checked onchange="toggleMapLayer('available')">
+                                <label class="form-check-label small" for="showAvailableMap">Disponibili</label>
+                            </div>
+                            <div class="form-check form-switch mb-1">
+                                <input class="form-check-input" type="checkbox" id="showOccupiedMap" onchange="toggleMapLayer('occupied')">
+                                <label class="form-check-label small" for="showOccupiedMap">Occupati</label>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="showClustersMap" checked onchange="toggleMapClusters()">
+                                <label class="form-check-label small" for="showClustersMap">Raggruppa</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mappa -->
+                <div class="col-lg-9">
+                    <div class="map-container-integrated">
+                        <div id="spacesMap"></div>
+
+                        <!-- Controlli Mappa -->
+                        <div class="map-controls-integrated">
+                            <button class="map-control-btn-integrated" onclick="centerSpacesMap()" title="Centra Mappa">
+                                <i class="fas fa-crosshairs"></i>
+                            </button>
+                            <button class="map-control-btn-integrated" onclick="toggleMapFullscreen()" title="Schermo Intero">
+                                <i class="fas fa-expand"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -118,27 +757,18 @@
         <div id="spacesContainer" class="spaces-grid">
             <script>
                 // Inizializza la pagina spazi
-                document.addEventListener('DOMContentLoaded', function() {
-                    // Inizializza auth manager per mantenere stato login
-                    if (window.auth) {
-                        window.auth.init();
+                document.addEventListener('DOMContentLoaded', async () => {
+                    // Ensure the global app instance is created
+                    if (!window.coworkspaceApp) {
+                        window.coworkspaceApp = new CoWorkSpaceApp();
                     }
 
-                    // Carica componenti comuni (escludi navbar che è ora diretta)
-                    loadComponent('footer-container', 'components/footer.html');
-                    loadComponent('modals-container', 'components/modals.html');
+                    // Call the new centralized initializer
+                    await window.coworkspaceApp.initializePage();
 
-                    // Carica gli spazi
-                    loadSpaces();
-
-                    // Recupera parametri di ricerca se presenti
-                    const searchParams = localStorage.getItem('searchParams');
-                    if (searchParams) {
-                        const params = JSON.parse(searchParams);
-                        if (params.city) document.getElementById('quickCity').value = params.city;
-                        if (params.type) document.getElementById('quickSpaceType').value = params.type;
-                        localStorage.removeItem('searchParams');
-                    }
+                    // Now, run page-specific logic like loading spaces
+                    console.log('🚀 Loading spaces for the page...');
+                    await loadSpaces();
                 });
             </script>
         </div>
@@ -150,7 +780,6 @@
 
 <!-- Modals -->
 <div id="modals-container">
-    <!-- Modal Login -->
     <div class="modal fade" id="loginModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -174,10 +803,34 @@
                             <input type="checkbox" class="form-check-input" id="rememberMe" name="rememberMe">
                             <label class="form-check-label" for="rememberMe">Ricordami</label>
                         </div>
+
+                        <!-- NUOVO: Link Reset Password -->
+                        <div class="text-center mb-3">
+                            <a href="#" id="forgotPasswordLink" class="text-decoration-none small text-muted">
+                                🔑 Hai dimenticato la password?
+                            </a>
+                        </div>
+
                         <div class="d-grid">
                             <button type="submit" class="btn btn-primary">
                                 <i class="fas fa-sign-in-alt me-2"></i>Accedi
                             </button>
+                        </div>
+                        <div class="text-center my-3">
+                            <hr class="my-2">
+                            <span class="text-muted bg-white px-3">oppure</span>
+                        </div>
+
+                        <div class="d-grid mb-3">
+                            <a href="http://localhost:3000/api/auth/google" target="_self" class="btn btn-outline-danger google-login-btn">
+                                <svg class="me-2" width="18" height="18" viewBox="0 0 24 24">
+                                    <path fill="#4285f4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                                    <path fill="#34a853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                                    <path fill="#fbbc05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                                    <path fill="#ea4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                                </svg>
+                                Continua con Google
+                            </a>
                         </div>
                     </form>
                     <div class="text-center mt-3">
@@ -190,7 +843,6 @@
         </div>
     </div>
 
-    <!-- Modal Register -->
     <div class="modal fade" id="registerModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -261,6 +913,267 @@
             </div>
         </div>
     </div>
+
+    <!-- Profile Modal -->
+    <div class="modal fade" id="profileModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-user-circle text-primary"></i> Il Mio Profilo
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted small">Nome</label>
+                            <div class="form-control-plaintext border rounded p-2 bg-light" id="profileName">-</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted small">Cognome</label>
+                            <div class="form-control-plaintext border rounded p-2 bg-light" id="profileSurname">-</div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label text-muted small">Email</label>
+                            <div class="form-control-plaintext border rounded p-2 bg-light" id="profileEmail">-</div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted small">Telefono</label>
+                            <div class="form-control-plaintext border rounded p-2 bg-light" id="profilePhone">-</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted small">Azienda</label>
+                            <div class="form-control-plaintext border rounded p-2 bg-light" id="profileCompany">-</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Chiudi
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="forgotPasswordModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-key me-2"></i>Reset Password
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Form Reset Password -->
+                    <div id="resetPasswordForm">
+                        <p class="text-muted mb-4">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Inserisci la tua email e ti invieremo un link per reimpostare la password.
+                        </p>
+
+                        <form id="forgotPasswordForm">
+                            <div class="mb-3">
+                                <label for="resetEmail" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="resetEmail" required
+                                       placeholder="Inserisci la tua email">
+                            </div>
+
+                            <div class="d-grid mb-3">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-paper-plane me-2"></i>Invia Link Reset
+                                </button>
+                            </div>
+
+                            <div class="text-center">
+                                <a href="#" id="backToLogin" class="text-decoration-none">
+                                    <i class="fas fa-arrow-left me-1"></i>Torna al Login
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Messaggio di Successo -->
+                    <div id="resetSuccessMessage" style="display: none;">
+                        <div class="text-center">
+                            <div class="mb-3">
+                                <i class="fas fa-check-circle text-success" style="font-size: 3rem;"></i>
+                            </div>
+                            <h5 class="text-success mb-3">Email Inviata!</h5>
+                            <p class="text-muted mb-4">
+                                Controlla la tua casella di posta elettronica.
+                                Ti abbiamo inviato un link per reimpostare la password.
+                            </p>
+                            <div class="alert alert-info">
+                                <i class="fas fa-clock me-2"></i>
+                                <strong>Importante:</strong> Il link è valido per 1 ora
+                            </div>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                <i class="fas fa-times me-2"></i>Chiudi
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Modal Dettagli Spazio - Aggiungi questo nel tuo HTML -->
+    <div class="modal fade" id="spaceDetailsModal" tabindex="-1" aria-labelledby="spaceDetailsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="spaceDetailsModalLabel">
+                        <i class="fas fa-building me-2"></i>
+                        <span id="modalSpaceName">Dettagli Spazio</span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <div class="row g-0">
+                        <!-- Colonna Immagini -->
+                        <div class="col-lg-8">
+                            <div class="position-relative">
+                                <img id="modalMainImage" src="" class="img-fluid w-100" alt="Immagine spazio" style="height: 400px; object-fit: cover;">
+                                <div class="position-absolute top-0 end-0 m-3">
+                                <span class="badge bg-primary fs-6 px-3 py-2" id="modalSpaceType">
+                                    <i class="fas fa-tag me-1"></i>Tipo Spazio
+                                </span>
+                                </div>
+                            </div>
+
+                            <!-- Galleria miniature -->
+                            <div class="p-3">
+                                <div class="d-flex gap-2 overflow-auto" id="modalImageGallery">
+                                    <!-- Le miniature verranno inserite qui dinamicamente -->
+                                </div>
+                            </div>
+
+                            <!-- Descrizione -->
+                            <div class="px-3 pb-3">
+                                <h6 class="text-primary mb-3">
+                                    <i class="fas fa-info-circle me-2"></i>Descrizione
+                                </h6>
+                                <p class="text-muted" id="modalSpaceDescription">
+                                    Descrizione dello spazio...
+                                </p>
+
+                                <!-- Caratteristiche -->
+                                <div id="modalSpaceFeatures" class="mt-4">
+                                    <!-- Le caratteristiche verranno inserite qui -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Colonna Informazioni -->
+                        <div class="col-lg-4 bg-light">
+                            <div class="p-4 h-100">
+                                <!-- Informazioni principali -->
+                                <div class="mb-4">
+                                    <div class="info-item mb-3">
+                                        <div class="d-flex align-items-center">
+                                            <div class="icon-wrapper bg-primary text-white rounded-circle me-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                                <i class="fas fa-map-marker-alt"></i>
+                                            </div>
+                                            <div>
+                                                <h6 class="mb-1">Posizione</h6>
+                                                <p class="mb-0 text-muted" id="modalSpaceLocation">Città, Indirizzo</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="info-item mb-3">
+                                        <div class="d-flex align-items-center">
+                                            <div class="icon-wrapper bg-success text-white rounded-circle me-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                                <i class="fas fa-users"></i>
+                                            </div>
+                                            <div>
+                                                <h6 class="mb-1">Capacità</h6>
+                                                <p class="mb-0 text-muted" id="modalSpaceCapacity">Fino a X persone</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="info-item mb-3">
+                                        <div class="d-flex align-items-center">
+                                            <div class="icon-wrapper bg-warning text-white rounded-circle me-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                                <i class="fas fa-euro-sign"></i>
+                                            </div>
+                                            <div>
+                                                <h6 class="mb-1">Prezzo</h6>
+                                                <div>
+                                                    <span class="h4 text-success mb-0" id="modalSpacePrice">€XX</span>
+                                                    <span class="text-muted">/giorno</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="info-item mb-3" id="modalSpaceRatingSection" style="display: none;">
+                                        <div class="d-flex align-items-center">
+                                            <div class="icon-wrapper bg-info text-white rounded-circle me-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                                <i class="fas fa-star"></i>
+                                            </div>
+                                            <div>
+                                                <h6 class="mb-1">Valutazione</h6>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="text-warning me-2" id="modalSpaceStars"></div>
+                                                    <span class="text-muted" id="modalSpaceRating">4.5/5</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Servizi -->
+                                <div class="mb-4">
+                                    <h6 class="text-primary mb-3">
+                                        <i class="fas fa-concierge-bell me-2"></i>Servizi Inclusi
+                                    </h6>
+                                    <div id="modalSpaceAmenities" class="d-flex flex-wrap gap-2">
+                                        <!-- I servizi verranno inseriti qui dinamicamente -->
+                                    </div>
+                                </div>
+
+                                <!-- Manager Info -->
+                                <div class="mb-4" id="modalManagerInfo" style="display: none;">
+                                    <h6 class="text-primary mb-3">
+                                        <i class="fas fa-user-tie me-2"></i>Gestore
+                                    </h6>
+                                    <div class="d-flex align-items-center">
+                                        <div class="bg-secondary rounded-circle me-3 d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                                            <i class="fas fa-user text-white"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="mb-1" id="modalManagerName">Nome Manager</h6>
+                                            <p class="mb-0 text-muted" id="modalManagerEmail">email@example.com</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Azioni -->
+                                <div class="d-grid gap-2">
+                                    <button class="btn btn-primary btn-lg" onclick="bookCurrentSpace()">
+                                        <i class="fas fa-calendar-plus me-2"></i>
+                                        Prenota Ora - <span id="modalPriceInButton">€XX/giorno</span>
+                                    </button>
+                                    <button class="btn btn-outline-secondary" onclick="shareSpace()">
+                                        <i class="fas fa-share-alt me-2"></i>
+                                        Condividi Spazio
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Notification Container -->
@@ -275,6 +1188,10 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.min.js"></script>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.4.1/leaflet.markercluster.js"></script>
+
+
 <!-- App Scripts -->
 <script src="https://js.stripe.com/v3/"></script>
 
@@ -287,286 +1204,1514 @@
 <script src="../assets/js/app.js"></script>
 
 <script>
+    // ==================== VARIABILI GLOBALI ====================
+    let allSpaces = [];
+    let currentSpaceId = null;
 
-    document.addEventListener('DOMContentLoaded', () => {
-        // Attendiamo che window.auth sia disponibile
-        if (window.auth && window.BookingManager) {
-            // Se l'utente è loggato, inizializziamo il gestore di prenotazioni
-            if (window.auth.isAuthenticated()) {
-                console.log('✅ Utente autenticato. Inizializzazione gestore prenotazioni.');
-                window.BookingManager.init();
+    // ==================== INIZIALIZZAZIONE PAGINA ====================
+    document.addEventListener('DOMContentLoaded', async () => {
+        console.log('🚀 Initializing spaces page...');
 
-                // Aggiorniamo la UI (es. pulsante di login/logout)
-                window.auth.updateUI();
-            } else {
-                console.log('⛔ Utente non autenticato. Mostriamo solo gli spazi.');
+        try {
+            // Carica componenti
+            await loadComponent('navbar-container', '../components/navbar.html');
+            await loadComponent('footer-container', '../components/footer.html');
+
+            // Inizializza app globale
+            if (!window.coworkspaceApp) {
+                window.coworkspaceApp = new CoWorkSpaceApp();
             }
-        } else {
-            console.error('Errore: AuthManager o BookingManager non sono disponibili.');
+            await window.coworkspaceApp.initializePage();
+
+            // Applica filtri da URL e carica spazi
+            applyFiltersFromURL();
+            await loadSpaces();
+
+            // Inizializza event handlers per i form
+            initializeFormHandlers();
+
+            console.log('✅ Spaces page initialized successfully');
+        } catch (error) {
+            console.error('❌ Error initializing spaces page:', error);
         }
     });
 
-    function logout() {
-        if (window.auth) {
-            window.auth.handleLogout();
-        }
-    }
-
-    // Implementazione funzioni mancanti
-    window.loadComponent = async function(containerId, componentPath) {
-        const container = document.getElementById(containerId);
-        if (!container) return;
-
-        try {
-            const response = await fetch(componentPath);
-            if (response.ok) {
-                container.innerHTML = await response.text();
-            }
-        } catch (error) {
-            console.log('Component load skipped:', componentPath);
-        }
-    };
-
-    window.loadSpaces = async function(filteredSpaces = null) {
+    // ==================== CARICAMENTO E RENDERING SPAZI ====================
+    window.loadSpaces = async function() {
         const container = document.getElementById('spacesContainer');
         if (!container) return;
 
         try {
-            // Mostra loading
             container.innerHTML = `
             <div class="col-12 text-center py-5">
                 <div class="spinner-border text-primary" role="status"></div>
                 <p class="mt-3">Caricamento spazi...</p>
-            </div>
-        `;
+            </div>`;
 
-            let spaces;
-            if (filteredSpaces) {
-                spaces = filteredSpaces;
-            } else {
-                // Chiama API
-                const response = await fetch('http://localhost:3000/api/spaces');
-                const data = await response.json();
-                spaces = data.success ? (data.data || data.spaces || []) : [];
-            }
+            const result = await window.coworkspaceApp.state.api.getSpaces();
+            const spaces = result.success ? (result.spaces || []) : [];
 
-            // Renderizza spazi
-            if (spaces.length === 0) {
-                container.innerHTML = `
-                <div class="col-12 text-center py-5">
-                    <h4>Nessuno spazio trovato</h4>
-                    <p class="text-muted">Riprova più tardi</p>
-                </div>
-            `;
-            } else {
-                const spacesHTML = spaces.map(space => {
-                    // Calcola rating stelle
-                    const rating = parseFloat(space.avg_rating) || 0;
-                    const fullStars = Math.floor(rating);
-                    const halfStar = rating % 1 >= 0.5;
-                    const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
-
-                    let starsHTML = '';
-                    for (let i = 0; i < fullStars; i++) {
-                        starsHTML += '<i class="fas fa-star text-warning"></i>';
-                    }
-                    if (halfStar) {
-                        starsHTML += '<i class="fas fa-star-half-alt text-warning"></i>';
-                    }
-                    for (let i = 0; i < emptyStars; i++) {
-                        starsHTML += '<i class="far fa-star text-warning"></i>';
-                    }
-
-                    // Badge tipo spazio
-                    const typeBadges = {
-                        'hot-desk': { label: 'Hot Desk', class: 'bg-primary' },
-                        'private-office': { label: 'Ufficio Privato', class: 'bg-success' },
-                        'meeting-room': { label: 'Sala Riunioni', class: 'bg-info' },
-                        'event-space': { label: 'Spazio Eventi', class: 'bg-warning' }
-                    };
-
-                    const typeBadge = typeBadges[space.type] || { label: space.type, class: 'bg-secondary' };
-
-                    // Icone servizi
-                    const amenityIcons = {
-                        'wifi': 'fas fa-wifi',
-                        'coffee': 'fas fa-coffee',
-                        'printer': 'fas fa-print',
-                        'parking': 'fas fa-parking'
-                    };
-
-                    const amenitiesHTML = (space.amenities || []).slice(0, 4).map(amenity =>
-                        `<i class="${amenityIcons[amenity] || 'fas fa-check'} text-success me-1" title="${amenity}"></i>`
-                    ).join('');
-
-                    const extraAmenities = (space.amenities || []).length > 4 ? `+${(space.amenities || []).length - 4}` : '';
-
-                    return `
-            <div class="space-card-modern">
-                <div class="space-image-container" style="display: flex; justify-content: space-between; align-items: flex-start;">
-                    <img src="${space.images?.[0] || '/assets/images/placeholder-space.jpg'}"
-                        class="space-image" alt="${space.name}">
-
-                    <div class="space-badge" style="margin-left: auto;">
-                        <span class="badge ${typeBadge.class}">${typeBadge.label}</span>
-                    </div>
-                </div>
-
-                <div class="space-content">
-                    <h5 class="space-title">${space.name}</h5>
-                    <p class="space-location">
-                        <i class="fas fa-map-marker-alt text-primary me-1"></i>
-                            ${space.city}
-                    </p>
-
-                    <p class="space-description">
-                        ${space.description ? space.description.substring(0, 120) + '...' : 'Spazio di coworking moderno e funzionale.'}
-                    </p>
-
-                    <div class="space-amenities">
-                        ${amenitiesHTML}
-                        ${extraAmenities ? `<span class="text-muted">${extraAmenities}</span>` : ''}
-                    </div>
-
-                    <div class="space-info">
-                        <div class="space-capacity">
-                            <i class="fas fa-users text-primary me-1"></i>
-                            <span>${space.capacity} persone</span>
-                        </div>
-                        <div class="space-price">
-                            <span class="price-amount">€${space.price_per_day}</span>
-                            <span class="price-period">/giorno</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="space-actions">
-                    <button class="btn btn-primary btn-book" onclick="bookSpace('${space.id}')">
-                        Prenota
-                    </button>
-                </div>
-            </div>
-    `;
-                }).join('');
-
-                container.innerHTML = spacesHTML;
-            }
-
-            // Aggiorna contatore
-            const resultsCount = document.getElementById('resultsCount');
-            if (resultsCount) {
-                resultsCount.textContent = `${spaces.length} spazi disponibili`;
-            }
+            allSpaces = spaces; // Salva tutti gli spazi
+            applyFilters(); // Applica filtri e renderizza
 
         } catch (error) {
             console.error('Error loading spaces:', error);
             container.innerHTML = `
-            <div class="col-12 text-center py-5">
-                <div class="alert alert-danger">
-                    <h5>Errore di caricamento</h5>
-                    <p>Impossibile caricare gli spazi. Verifica che il server sia attivo.</p>
-                    <button class="btn btn-primary" onclick="loadSpaces()">Riprova</button>
-                </div>
-            </div>
-        `;
+            <div class="alert alert-danger">
+                Impossibile caricare gli spazi. Riprova.
+            </div>`;
         }
     };
 
-    // Inizializzazione
-    document.addEventListener('DOMContentLoaded', async function() {
-        console.log('🏢 Initializing spaces page...');
+    function renderSpaces(spaces) {
+        const container = document.getElementById('spacesContainer');
+        if (!container) return;
 
-        // Carica componenti
-        await loadComponent('navbar-container', 'components/navbar.html');
-        await loadComponent('footer-container', 'components/footer.html');
-        await loadComponent('modals-container', 'components/modals.html');
+        if (spaces.length === 0) {
+            container.innerHTML = `
+            <div class="col-12 text-center py-5">
+                <div class="alert alert-info">
+                    <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                    <h4>Nessuno spazio trovato</h4>
+                    <p class="text-muted">Prova a modificare i filtri di ricerca per vedere più risultati.</p>
+                    <button class="btn btn-outline-primary" onclick="clearAllFilters()">
+                        <i class="fas fa-times me-1"></i>Cancella Tutti i Filtri
+                    </button>
+                </div>
+            </div>`;
+        } else {
+            // Ensure container has proper classes before rendering
+            container.className = 'spaces-grid row';
 
-        // Carica spazi
-        await loadSpaces();
+            const spacesHTML = spaces.map(space => createSpaceCard(space)).join('');
+            container.innerHTML = spacesHTML;
 
-        // Gestisci parametri ricerca
-        const searchParams = localStorage.getItem('searchParams');
-        if (searchParams) {
-            try {
-                const params = JSON.parse(searchParams);
-                console.log('🔍 Applying search params:', params);
+            // CRITICAL FIX: Force layout recalculation after content change
+            setTimeout(() => {
+                container.offsetHeight; // Trigger reflow
 
-                // Se esiste il sistema di filtri, usalo
-                if (window.SearchFilters) {
-                    window.SearchFilters.initSpacesPage();
-                }
+                // Ensure all cards have proper responsive classes
+                const cardContainers = container.querySelectorAll('.col-lg-4');
+                cardContainers.forEach(cardContainer => {
+                    if (!cardContainer.classList.contains('col-md-6')) {
+                        cardContainer.classList.add('col-md-6', 'mb-4');
+                    }
+                });
 
-                localStorage.removeItem('searchParams');
-            } catch (error) {
-                console.error('Error parsing search params:', error);
-            }
+                console.log('Grid layout refreshed for', spaces.length, 'spaces');
+            }, 50);
         }
 
-        console.log('✅ Spaces page ready');
-    });
+        updateResultsCount(spaces.length);
+    }
 
-    // Override della funzione bookSpace esistente
-    window.bookSpace = function(spaceId) {
-        console.log('📅 Booking space:', spaceId);
+    function createSpaceCard(space) {
+        const typeBadges = {
+            'hot-desk': { label: 'Hot Desk', class: 'bg-primary' },
+            'private-office': { label: 'Ufficio Privato', class: 'bg-success' },
+            'meeting-room': { label: 'Sala Riunioni', class: 'bg-info' },
+            'event-space': { label: 'Spazio Eventi', class: 'bg-warning' }
+        };
+        const typeBadge = typeBadges[space.type] || { label: space.type, class: 'bg-secondary' };
 
-        // Verifica autenticazione
-        const token = localStorage.getItem('auth_token');
-        if (!token) {
-            console.log('❌ No auth token found');
+        const priceHtml = `
+            <div class="space-price text-end">
+                <strong>€${space.price_per_day}/giorno</strong>
+                ${space.price_per_hour && space.price_per_hour > 0 ? `<small class="d-block text-muted">o €${space.price_per_hour}/ora</small>` : ''}
+            </div>
+        `;
 
-            if (window.showNotification) {
-                window.showNotification('Devi effettuare il login per prenotare', 'warning');
-            } else {
-                alert('Devi effettuare il login per prenotare');
-            }
+        return `
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card space-card h-100">
+                <img src="${space.images?.[0] || '../assets/images/placeholder-space.jpg'}"
+                     class="card-img-top" alt="${space.name}">
+                <div class="card-body d-flex flex-column">
+                    <span class="badge ${typeBadge.class} align-self-start mb-2">${typeBadge.label}</span>
+                    <h5 class="card-title">${space.name}</h5>
+                    <p class="card-text text-muted small">
+                        <i class="fas fa-map-marker-alt"></i> ${space.city}
+                    </p>
+                    <p class="card-text flex-grow-1">
+                        ${space.description ? space.description.substring(0, 100) + '...' : ''}
+                    </p>
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <span><i class="fas fa-users"></i> ${space.capacity}</span>
+                        ${priceHtml}
+                    </div>
+                    <div class="services-preview mt-2">
+                        ${renderServicesPreview(space)}
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-0">
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-outline-secondary flex-fill"
+                                onclick="showSpaceDetails('${space.id}')">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Dettagli
+                        </button>
+                        <button class="btn btn-primary flex-fill"
+                                onclick="bookSpace('${space.id}')">
+                            <i class="fas fa-calendar-plus me-1"></i>
+                            Prenota Ora
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    }
 
-            // Mostra modal login se disponibile
-            if (window.showLogin) {
-                setTimeout(() => window.showLogin(), 1000);
-            }
+    function renderServicesPreview(space) {
+        const services = space.services || generateMockServices(space);
+        const serviceIcons = {
+            wifi: '<i class="fas fa-wifi" title="WiFi"></i>',
+            coffee: '<i class="fas fa-coffee" title="Caffè"></i>',
+            printer: '<i class="fas fa-print" title="Stampante"></i>',
+            parking: '<i class="fas fa-parking" title="Parcheggio"></i>',
+            ac: '<i class="fas fa-snowflake" title="Aria Condizionata"></i>',
+            '24h': '<i class="fas fa-clock" title="Accesso 24/7"></i>'
+        };
+
+        return services.slice(0, 4).map(service =>
+            `<span class="text-muted me-2">${serviceIcons[service] || ''}</span>`
+        ).join('');
+    }
+
+    function updateResultsCount(count) {
+        const resultsCount = document.getElementById('resultsCount');
+        if (resultsCount) {
+            resultsCount.textContent = `${count} spazi trovati`;
+        }
+    }
+
+    // ==================== DETTAGLI SPAZIO ====================
+    window.showSpaceDetails = function(spaceId) {
+        console.log('Mostrando dettagli per spazio:', spaceId);
+
+        currentSpaceId = spaceId;
+        const space = allSpaces.find(s => s.id === spaceId);
+
+        if (!space) {
+            alert('Spazio non trovato');
             return;
         }
 
-        console.log('✅ Auth token found, opening booking modal...');
+        populateSpaceModal(space);
+        const modal = new bootstrap.Modal(document.getElementById('spaceDetailsModal'));
+        modal.show();
+    };
 
-        // Usa il BookingManager se disponibile
-        if (window.BookingManager && window.BookingManager.openBookingModal) {
+    function populateSpaceModal(space) {
+        // Nome e tipo
+        document.getElementById('modalSpaceName').textContent = space.name;
+
+        const typeLabels = {
+            'hot-desk': 'Hot Desk',
+            'private-office': 'Ufficio Privato',
+            'meeting-room': 'Sala Riunioni',
+            'event-space': 'Spazio Eventi'
+        };
+        document.getElementById('modalSpaceType').innerHTML =
+            `<i class="fas fa-tag me-1"></i>${typeLabels[space.type] || space.type}`;
+
+        // Immagine principale
+        const mainImage = document.getElementById('modalMainImage');
+        const primaryImage = space.images?.[0] || '../assets/images/placeholder-space.jpg';
+        mainImage.src = primaryImage;
+        mainImage.alt = space.name;
+
+        // Galleria immagini
+        const gallery = document.getElementById('modalImageGallery');
+        if (space.images && space.images.length > 1) {
+            const thumbnails = space.images.map((img, index) =>
+                `<img src="${img}" class="image-thumbnail ${index === 0 ? 'active' : ''}"
+             alt="Immagine ${index + 1}" onclick="changeMainImage('${img}', this)">`
+            ).join('');
+            gallery.innerHTML = thumbnails;
+            gallery.parentElement.style.display = 'block';
+        } else {
+            gallery.parentElement.style.display = 'none';
+        }
+
+        // Descrizione
+        document.getElementById('modalSpaceDescription').textContent =
+            space.description || 'Spazio moderno e funzionale, ideale per il lavoro in team o individuale.';
+
+        // Caratteristiche
+        const features = space.features || [
+            'Ambiente moderno e confortevole',
+            'Illuminazione naturale',
+            'Postazioni ergonomiche',
+            'Area relax disponibile'
+        ];
+
+        const featuresHtml = features.map(feature =>
+            `<div class="feature-item">
+            <i class="fas fa-check"></i>
+            <span>${feature}</span>
+        </div>`
+        ).join('');
+
+        document.getElementById('modalSpaceFeatures').innerHTML =
+            `<h6 class="text-primary mb-3">
+            <i class="fas fa-star me-2"></i>Caratteristiche
+        </h6>
+        ${featuresHtml}`;
+
+        // Informazioni posizione e prezzo
+        document.getElementById('modalSpaceLocation').textContent =
+            `${space.city}, ${space.address || 'Centro città'}`;
+        document.getElementById('modalSpaceCapacity').textContent =
+            `Fino a ${space.capacity} persone`;
+
+        const price = parseFloat(space.price_per_day).toFixed(2);
+        document.getElementById('modalSpacePrice').textContent = `€${price}`;
+        document.getElementById('modalPriceInButton').textContent = `€${price}/giorno`;
+
+        // Valutazione
+        if (space.rating && space.rating > 0) {
+            const rating = parseFloat(space.rating);
+            const stars = '★'.repeat(Math.floor(rating)) + '☆'.repeat(5 - Math.floor(rating));
+            document.getElementById('modalSpaceStars').textContent = stars;
+            document.getElementById('modalSpaceRating').textContent =
+                `${rating}/5 (${space.total_reviews || 0} recensioni)`;
+            document.getElementById('modalSpaceRatingSection').style.display = 'block';
+        } else {
+            document.getElementById('modalSpaceRatingSection').style.display = 'none';
+        }
+
+        // Servizi
+        const services = space.services || generateMockServices(space);
+        const serviceIcons = {
+            wifi: 'fas fa-wifi', coffee: 'fas fa-coffee', printer: 'fas fa-print',
+            parking: 'fas fa-parking', ac: 'fas fa-snowflake', '24h': 'fas fa-clock'
+        };
+        const serviceLabels = {
+            wifi: 'WiFi', coffee: 'Caffè', printer: 'Stampante',
+            parking: 'Parcheggio', ac: 'Aria Condizionata', '24h': 'Accesso 24/7'
+        };
+
+        const amenitiesHtml = services.map(service =>
+            `<span class="amenity-badge">
+            <i class="${serviceIcons[service] || 'fas fa-check'}"></i>
+            ${serviceLabels[service] || service}
+        </span>`
+        ).join('');
+
+        document.getElementById('modalSpaceAmenities').innerHTML = amenitiesHtml;
+
+        // Manager info
+        if (space.manager_first_name || space.manager_name) {
+            const managerName = space.manager_first_name ?
+                `${space.manager_first_name} ${space.manager_last_name || ''}`.trim() :
+                space.manager_name;
+
+            document.getElementById('modalManagerName').textContent = managerName;
+            document.getElementById('modalManagerEmail').textContent =
+                space.manager_email || 'info@coworkspace.it';
+            document.getElementById('modalManagerInfo').style.display = 'block';
+        } else {
+            document.getElementById('modalManagerInfo').style.display = 'none';
+        }
+    }
+
+    function changeMainImage(imageSrc, thumbnail) {
+        document.getElementById('modalMainImage').src = imageSrc;
+
+        document.querySelectorAll('.image-thumbnail').forEach(thumb =>
+            thumb.classList.remove('active'));
+        thumbnail.classList.add('active');
+    }
+
+    function bookCurrentSpace() {
+        if (currentSpaceId) {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('spaceDetailsModal'));
+            if (modal) modal.hide();
+            bookSpace(currentSpaceId);
+        }
+    }
+
+    function shareSpace() {
+        if (currentSpaceId) {
+            const space = allSpaces.find(s => s.id === currentSpaceId);
+            if (space) {
+                const shareText = `Guarda questo spazio: ${space.name} a ${space.city} - €${space.price_per_day}/giorno`;
+                const shareUrl = `${window.location.origin}${window.location.pathname}?space=${currentSpaceId}`;
+
+                if (navigator.share) {
+                    navigator.share({
+                        title: space.name,
+                        text: shareText,
+                        url: shareUrl
+                    });
+                } else {
+                    navigator.clipboard.writeText(`${shareText}\n${shareUrl}`).then(() => {
+                        if (window.coworkspaceApp?.showNotification) {
+                            window.coworkspaceApp.showNotification('Link copiato negli appunti!', 'success');
+                        } else {
+                            alert('Link copiato negli appunti!');
+                        }
+                    });
+                }
+            }
+        }
+    }
+
+    // ==================== PRENOTAZIONE ====================
+    window.bookSpace = function(spaceId) {
+        console.log('📅 Avvio prenotazione per lo spazio:', spaceId);
+
+        if (!window.coworkspaceApp?.state?.isAuthenticated) {
+            window.coworkspaceApp?.showNotification('Devi effettuare il login per prenotare', 'warning');
+            setTimeout(() => showLogin(), 500);
+            return;
+        }
+
+        if (window.BookingManager?.openBookingModal) {
             window.BookingManager.openBookingModal(spaceId);
         } else {
-            console.error('❌ BookingManager not found!');
-
-            if (window.showNotification) {
-                window.showNotification('Sistema di prenotazione in caricamento...', 'info');
-            }
-
-            // Retry dopo un secondo
-            setTimeout(() => {
-                if (window.BookingManager) {
-                    window.BookingManager.openBookingModal(spaceId);
-                } else {
-                    alert('Sistema di prenotazione non disponibile. Ricarica la pagina.');
-                }
-            }, 1000);
+            window.coworkspaceApp?.showNotification('Funzionalità di prenotazione in arrivo!', 'info');
         }
     };
 
-    // Debug function
-    window.debugBookingFlow = function() {
-        console.log('🔍 Debugging booking flow...');
-        console.log('- Auth token:', localStorage.getItem('auth_token') ? 'Present' : 'Missing');
-        console.log('- BookingManager:', typeof window.BookingManager);
-        console.log('- BookingManager.openBookingModal:', typeof window.BookingManager?.openBookingModal);
-        console.log('- showNotification:', typeof window.showNotification);
-        console.log('- Bootstrap Modal:', typeof bootstrap?.Modal);
+    // ==================== GESTIONE FILTRI ====================
+    function applyFilters() {
+        const filteredSpaces = filterSpaces(allSpaces);
+        renderSpaces(filteredSpaces);
+        updateActiveFilters();
+    }
 
-        return {
-            hasAuth: !!localStorage.getItem('auth_token'),
-            hasBookingManager: typeof window.BookingManager === 'object',
-            hasOpenModal: typeof window.BookingManager?.openBookingModal === 'function',
-            hasNotification: typeof window.showNotification === 'function',
-            hasBootstrap: typeof bootstrap?.Modal === 'function'
+    function filterSpaces(spaces) {
+        const filters = {
+            city: document.getElementById('filterCity')?.value || '',
+            type: document.getElementById('filterType')?.value || '',
+            capacity: document.getElementById('filterCapacity')?.value || '',
+            maxPrice: document.getElementById('filterPrice')?.value || '',
+            services: getSelectedServices()
         };
+
+        return spaces.filter(space => {
+            if (filters.city && space.city !== filters.city) return false;
+            if (filters.type && space.type !== filters.type) return false;
+            if (filters.capacity && !matchesCapacityRange(space.capacity, filters.capacity)) return false;
+            if (filters.maxPrice && space.price_per_day > parseFloat(filters.maxPrice)) return false;
+            if (filters.services.length > 0 && !hasRequiredServices(space, filters.services)) return false;
+            return true;
+        });
+    }
+
+    function matchesCapacityRange(spaceCapacity, rangeFilter) {
+        const capacity = parseInt(spaceCapacity);
+
+        switch(rangeFilter) {
+            case '1-5': return capacity >= 1 && capacity <= 5;
+            case '6-10': return capacity >= 6 && capacity <= 10;
+            case '11-20': return capacity >= 11 && capacity <= 20;
+            case '21-50': return capacity >= 21 && capacity <= 50;
+            case '50+': return capacity > 50;
+            case '20+': return capacity >= 20;
+            default: return true;
+        }
+    }
+
+    function getSelectedServices() {
+        const services = [];
+        const serviceCheckboxes = [
+            'serviceWifi', 'serviceCoffee', 'servicePrinter',
+            'serviceParking', 'serviceAC', 'service24h'
+        ];
+
+        serviceCheckboxes.forEach(id => {
+            const checkbox = document.getElementById(id);
+            if (checkbox?.checked) {
+                services.push(checkbox.value);
+            }
+        });
+
+        return services;
+    }
+
+    function hasRequiredServices(space, requiredServices) {
+        const spaceServices = space.services || generateMockServices(space);
+        return requiredServices.every(service => spaceServices.includes(service));
+    }
+
+    function updateActiveFilters() {
+        const activeFiltersRow = document.getElementById('activeFiltersRow');
+        const activeFiltersList = document.getElementById('activeFiltersList');
+
+        if (!activeFiltersRow || !activeFiltersList) return;
+
+        const activeFilters = [];
+
+        const city = document.getElementById('filterCity')?.value;
+        const type = document.getElementById('filterType')?.value;
+        const capacity = document.getElementById('filterCapacity')?.value;
+        const maxPrice = document.getElementById('filterPrice')?.value;
+        const services = getSelectedServices();
+
+        if (city) activeFilters.push({ type: 'city', value: city, label: `Città: ${city}` });
+        if (type) {
+            const typeLabels = {
+                'hot-desk': 'Hot Desk', 'private-office': 'Ufficio Privato',
+                'meeting-room': 'Sala Riunioni', 'event-space': 'Spazio Eventi'
+            };
+            activeFilters.push({ type: 'type', value: type, label: `Tipo: ${typeLabels[type] || type}` });
+        }
+        if (capacity) activeFilters.push({ type: 'capacity', value: capacity, label: `Capacità: ${capacity} persone` });
+        if (maxPrice) activeFilters.push({ type: 'maxPrice', value: maxPrice, label: `Max: €${maxPrice}/giorno` });
+
+        services.forEach(service => {
+            const serviceLabels = {
+                wifi: 'WiFi', coffee: 'Caffè', printer: 'Stampante',
+                parking: 'Parcheggio', ac: 'Aria Condizionata', '24h': '24/7'
+            };
+            activeFilters.push({
+                type: 'service', value: service,
+                label: serviceLabels[service] || service
+            });
+        });
+
+        if (activeFilters.length > 0) {
+            activeFiltersRow.style.display = 'block';
+            activeFiltersList.innerHTML = activeFilters.map(filter => `
+            <span class="filter-badge">
+                ${filter.label}
+                <button type="button" class="btn-close" onclick="removeFilter('${filter.type}', '${filter.value}')"></button>
+            </span>
+        `).join('');
+        } else {
+            activeFiltersRow.style.display = 'none';
+        }
+    }
+
+    function removeFilter(filterType, filterValue) {
+        switch(filterType) {
+            case 'city': document.getElementById('filterCity').value = ''; break;
+            case 'type': document.getElementById('filterType').value = ''; break;
+            case 'capacity': document.getElementById('filterCapacity').value = ''; break;
+            case 'maxPrice': document.getElementById('filterPrice').value = ''; break;
+            case 'service':
+                const serviceCheckboxes = {
+                    wifi: 'serviceWifi', coffee: 'serviceCoffee', printer: 'servicePrinter',
+                    parking: 'serviceParking', ac: 'serviceAC', '24h': 'service24h'
+                };
+                const checkboxId = serviceCheckboxes[filterValue];
+                if (checkboxId) {
+                    document.getElementById(checkboxId).checked = false;
+                }
+                break;
+        }
+        applyFilters();
+    }
+
+    function clearAllFilters() {
+        document.getElementById('filterCity').value = '';
+        document.getElementById('filterType').value = '';
+        document.getElementById('filterCapacity').value = '';
+        document.getElementById('filterPrice').value = '';
+
+        ['serviceWifi', 'serviceCoffee', 'servicePrinter', 'serviceParking', 'serviceAC', 'service24h']
+            .forEach(id => {
+                const checkbox = document.getElementById(id);
+                if (checkbox) checkbox.checked = false;
+            });
+
+        applyFilters();
+    }
+
+    function applyFiltersFromURL() {
+        const urlParams = new URLSearchParams(window.location.search);
+
+        const city = urlParams.get('city');
+        const type = urlParams.get('type');
+        const capacity = urlParams.get('capacity');
+        const maxPrice = urlParams.get('maxPrice');
+
+        if (city && document.getElementById('filterCity')) {
+            document.getElementById('filterCity').value = city;
+        }
+        if (type && document.getElementById('filterType')) {
+            document.getElementById('filterType').value = type;
+        }
+        if (capacity && document.getElementById('filterCapacity')) {
+            let mappedCapacity = capacity === '20+' ? '21-50' : capacity;
+            document.getElementById('filterCapacity').value = mappedCapacity;
+        }
+        if (maxPrice && document.getElementById('filterPrice')) {
+            document.getElementById('filterPrice').value = maxPrice;
+        }
+
+        if (city || type || capacity || maxPrice) {
+            setTimeout(() => applyFilters(), 500);
+        }
+    }
+
+    // ==================== AUTHENTICATION ====================
+    function initializeFormHandlers() {
+        const loginForm = document.getElementById('loginForm');
+        if (loginForm) {
+            loginForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                if (window.coworkspaceApp?.handleLogin) {
+                    await window.coworkspaceApp.handleLogin(this);
+                }
+            });
+        }
+
+        const registerForm = document.getElementById('registerForm');
+        if (registerForm) {
+            registerForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+
+                const password = this.registerPassword.value;
+                const confirmPassword = this.registerPasswordConfirm.value;
+
+                if (password !== confirmPassword) {
+                    alert('Le password non coincidono!');
+                    return;
+                }
+                if (password.length < 8) {
+                    alert('La password deve essere di almeno 8 caratteri!');
+                    return;
+                }
+                if (!this.acceptTerms.checked) {
+                    alert('Devi accettare i Termini e Condizioni per registrarti!');
+                    return;
+                }
+
+                if (window.coworkspaceApp?.handleRegister) {
+                    await window.coworkspaceApp.handleRegister(this);
+                }
+            });
+        }
+    }
+
+    function showLogin() {
+        const loginModal = document.getElementById('loginModal');
+        if (loginModal) {
+            const modal = new bootstrap.Modal(loginModal);
+            modal.show();
+        }
+    }
+
+    function showRegister() {
+        const registerModal = document.getElementById('registerModal');
+        if (registerModal) {
+            const modal = new bootstrap.Modal(registerModal);
+            modal.show();
+        }
+    }
+
+    function switchToRegister() {
+        const loginModal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
+        if (loginModal) loginModal.hide();
+        setTimeout(() => showRegister(), 300);
+    }
+
+    function switchToLogin() {
+        const registerModal = bootstrap.Modal.getInstance(document.getElementById('registerModal'));
+        if (registerModal) registerModal.hide();
+        setTimeout(() => showLogin(), 300);
+    }
+
+    function logout() {
+        if (window.coworkspaceApp) {
+            window.coworkspaceApp.clearAuth();
+        }
+
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('currentUser');
+        sessionStorage.removeItem('login_success');
+
+        if (window.coworkspaceApp?.showNotification) {
+            window.coworkspaceApp.showNotification('Logout effettuato con successo!', 'success');
+        }
+
+        setTimeout(() => {
+            window.location.href = '../index.html';
+        }, 1500);
+    }
+
+    // ==================== PROFILO UTENTE ====================
+    function showProfile() {
+        let currentUser = getCurrentUserData();
+
+        if (!currentUser) {
+            if (window.coworkspaceApp?.showNotification) {
+                window.coworkspaceApp.showNotification('Devi essere loggato per vedere il tuo profilo.', 'warning');
+            }
+            setTimeout(() => showLogin(), 1000);
+            return;
+        }
+
+        const profileModal = new bootstrap.Modal(document.getElementById('profileModal'));
+        profileModal.show();
+
+        setTimeout(() => populateProfileModal(currentUser), 200);
+    }
+
+    function getCurrentUserData() {
+        if (window.coworkspaceApp?.state?.currentUser) {
+            return window.coworkspaceApp.state.currentUser;
+        }
+
+        const userKeys = ['user', 'currentUser', 'auth_user', 'loggedUser'];
+
+        for (let key of userKeys) {
+            try {
+                const userJson = localStorage.getItem(key);
+                if (userJson && userJson !== 'null' && userJson !== 'undefined') {
+                    return JSON.parse(userJson);
+                }
+            } catch (error) {
+                console.error(`Error parsing localStorage[${key}]:`, error);
+            }
+        }
+
+        // Demo user per test
+        return {
+            first_name: 'Ariele',
+            last_name: 'Babini',
+            email: 'ariele@gmail.com',
+            phone: '+39 333 1234567',
+            company: 'CoWorkSpace Demo'
+        };
+    }
+
+    function populateProfileModal(user) {
+        if (!user || typeof user !== 'object') return;
+
+        const userData = {
+            firstName: user.first_name || user.firstName || user.name || user.given_name || 'Non disponibile',
+            lastName: user.last_name || user.lastName || user.surname || user.family_name || 'Non disponibile',
+            email: user.email || user.mail || user.email_address || 'Non disponibile',
+            phone: user.phone || user.phoneNumber || user.phone_number || user.mobile || 'Non disponibile',
+            company: user.company || user.company_name || user.organization || user.workplace || 'Non disponibile'
+        };
+
+        const elements = {
+            profileName: document.getElementById('profileName'),
+            profileSurname: document.getElementById('profileSurname'),
+            profileEmail: document.getElementById('profileEmail'),
+            profilePhone: document.getElementById('profilePhone'),
+            profileCompany: document.getElementById('profileCompany')
+        };
+
+        if (elements.profileName) elements.profileName.textContent = userData.firstName;
+        if (elements.profileSurname) elements.profileSurname.textContent = userData.lastName;
+        if (elements.profileEmail) elements.profileEmail.textContent = userData.email;
+        if (elements.profilePhone) elements.profilePhone.textContent = userData.phone;
+        if (elements.profileCompany) elements.profileCompany.textContent = userData.company;
+    }
+
+    // ==================== UTILITY FUNCTIONS ====================
+    function generateMockServices(space) {
+        const baseServices = ['wifi'];
+
+        switch(space.type) {
+            case 'hot-desk':
+                return [...baseServices, 'coffee', 'printer'];
+            case 'private-office':
+                return [...baseServices, 'coffee', 'printer', 'ac', '24h'];
+            case 'meeting-room':
+                return [...baseServices, 'coffee', 'printer', 'ac'];
+            case 'event-space':
+                return [...baseServices, 'coffee', 'printer', 'ac', 'parking'];
+            default:
+                return baseServices;
+        }
+    }
+
+    // SOSTITUISCI COMPLETAMENTE la sezione mappa in spaces.html con questo codice:
+
+    // ==================== VARIABILI MAPPA INTEGRATE ====================
+    let spacesMap;
+    let mapMarkersLayer;
+    let mapClusterGroup;
+    let mapAllSpaces = [];
+    let mapFilteredSpaces = [];
+    let selectedMapMarker = null;
+    let isMapInitialized = false;
+
+    // ==================== SWITCH VIEW FUNCTIONS ====================
+    function switchToGridView() {
+        console.log('Switching to grid view...');
+        document.getElementById('gridViewBtn').classList.add('active');
+        document.getElementById('mapViewBtn').classList.remove('active');
+        document.getElementById('spacesContainer').style.display = 'block';
+        document.getElementById('mapViewContainer').style.display = 'none';
+    }
+
+    function switchToMapView() {
+        console.log('Switching to map view...');
+        document.getElementById('gridViewBtn').classList.remove('active');
+        document.getElementById('mapViewBtn').classList.add('active');
+        document.getElementById('spacesContainer').style.display = 'none';
+        document.getElementById('mapViewContainer').style.display = 'block';
+
+        setTimeout(() => {
+            // Se la mappa non è ancora stata creata, la inizializziamo
+            if (!isMapInitialized) {
+                initializeSpacesMap();
+            } else {
+                // Se esiste già, invalidiamo la sua dimensione per ricalcolarla
+                spacesMap.invalidateSize();
+            }
+
+            // --- QUESTA È LA CORREZIONE CHIAVE ---
+            // Popoliamo SEMPRE la mappa con i dati aggiornati quando questa vista viene attivata.
+            // In questo modo, siamo sicuri che i dati (caricati in `allSpaces`) vengano passati alla mappa.
+            updateMapWithCurrentSpaces();
+
+        }, 200); // Un leggero ritardo per assicurare che il container della mappa sia visibile
+    }
+
+    // ==================== MAP INITIALIZATION ====================
+    function initializeSpacesMap() {
+        console.log('🗺️ Starting map initialization...');
+
+        const mapContainer = document.getElementById('spacesMap');
+        if (!mapContainer) {
+            console.error('❌ Map container not found!');
+            return;
+        }
+
+        mapContainer.style.height = '600px';
+        mapContainer.style.width = '100%';
+
+        try {
+            if (spacesMap) {
+                spacesMap.remove();
+                spacesMap = null;
+            }
+
+            console.log('Creating new map instance...');
+            spacesMap = L.map('spacesMap', {
+                zoomControl: true,
+                attributionControl: true
+            }).setView([41.8719, 12.5674], 6);
+
+            console.log('Map instance created, adding tile layer...');
+            const tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 19
+            });
+            tileLayer.on('load', () => console.log('✅ Tile layer loaded successfully'));
+            tileLayer.on('tileerror', (e) => console.error('❌ Tile loading error:', e));
+            tileLayer.addTo(spacesMap);
+
+            console.log('Initializing map layers...');
+            mapMarkersLayer = L.layerGroup().addTo(spacesMap);
+            mapClusterGroup = L.markerClusterGroup({
+                chunkedLoading: true,
+                maxClusterRadius: 60,
+                showCoverageOnHover: false
+            });
+
+            spacesMap.on('load', () => console.log('✅ Map fully loaded'));
+            spacesMap.on('zoomend', () => console.log('Map zoom changed to:', spacesMap.getZoom()));
+
+            setTimeout(() => {
+                spacesMap.invalidateSize();
+                console.log('Map size invalidated');
+            }, 100);
+
+            // --- RIGA DA RIMUOVERE ---
+            // Rimuoviamo questa chiamata perché ora viene gestita da `switchToMapView`
+            // updateMapWithCurrentSpaces();
+
+            isMapInitialized = true;
+            console.log('✅ Map initialization completed successfully');
+
+        } catch (error) {
+            console.error('❌ Critical error during map initialization:', error);
+            // ... (codice di gestione errore) ...
+        }
+    }
+
+    function retryMapInitialization() {
+        console.log('🔄 Retrying map initialization...');
+        isMapInitialized = false;
+        spacesMap = null;
+
+        // Clear container
+        const mapContainer = document.getElementById('spacesMap');
+        mapContainer.innerHTML = '';
+
+        // Retry after delay
+        setTimeout(() => {
+            initializeSpacesMap();
+        }, 500);
+    }
+
+    function updateMapWithCurrentSpaces() {
+        console.log('🔄 Updating map with current spaces...');
+        console.log('Available allSpaces:', allSpaces ? allSpaces.length : 'undefined');
+
+        if (!isMapInitialized || !spacesMap) {
+            console.log('Map not ready, skipping update');
+            return;
+        }
+
+        if (!allSpaces || allSpaces.length === 0) {
+            console.log('No spaces data available');
+            updateMapStats();
+            return;
+        }
+
+        // Use the same spaces data from the main grid
+        mapAllSpaces = [...allSpaces];
+        mapFilteredSpaces = addCoordinatesToSpaces([...allSpaces]);
+
+        console.log('Map spaces prepared:', mapFilteredSpaces.length);
+
+        createMapMarkers();
+        updateMapStats();
+    }
+
+    // ==================== COORDINATE ASSIGNMENT ====================
+    function addCoordinatesToSpaces(spaces) {
+        console.log('📍 Adding coordinates to spaces...');
+
+        // Default coordinates for Italian cities
+        const cityCoordinates = {
+            'Milano': { lat: 45.4642, lng: 9.1900 },
+            'Roma': { lat: 41.9028, lng: 12.4964 },
+            'Torino': { lat: 45.0703, lng: 7.6869 },
+            'Bologna': { lat: 44.4949, lng: 11.3426 },
+            'Firenze': { lat: 43.7696, lng: 11.2558 },
+            'Napoli': { lat: 40.8518, lng: 14.2681 },
+            'Venezia': { lat: 45.4408, lng: 12.3155 },
+            'Genova': { lat: 44.4056, lng: 8.9463 },
+            'Palermo': { lat: 38.1157, lng: 13.3613 },
+            'Bari': { lat: 41.1171, lng: 16.8719 }
+        };
+
+        const spacesWithCoords = spaces.map((space, index) => {
+            // If space already has valid coordinates, keep them
+            if (space.lat && space.lng && !isNaN(space.lat) && !isNaN(space.lng)) {
+                return space;
+            }
+
+            // Get base coordinates for the city
+            const cityCoords = cityCoordinates[space.city];
+
+            if (cityCoords) {
+                // Add small random offset to avoid overlapping markers in same city
+                const latOffset = (Math.random() - 0.5) * 0.02; // ~1km variation
+                const lngOffset = (Math.random() - 0.5) * 0.02;
+
+                return {
+                    ...space,
+                    lat: cityCoords.lat + latOffset,
+                    lng: cityCoords.lng + lngOffset
+                };
+            } else {
+                console.warn(`Unknown city: ${space.city}, using fallback coordinates`);
+                // Fallback to random coordinates in Italy
+                return {
+                    ...space,
+                    lat: 35 + Math.random() * 12,
+                    lng: 6 + Math.random() * 12
+                };
+            }
+        });
+
+        console.log('Coordinates added to', spacesWithCoords.length, 'spaces');
+        return spacesWithCoords;
+    }
+
+    // ==================== MAP MARKERS ====================
+    function createMapMarkers() {
+        if (!spacesMap || !isMapInitialized) {
+            console.log('Map not ready for markers');
+            return;
+        }
+
+        console.log('📍 Creating markers for', mapFilteredSpaces.length, 'spaces');
+
+        // Clear existing markers
+        mapMarkersLayer.clearLayers();
+        mapClusterGroup.clearLayers();
+
+        if (mapFilteredSpaces.length === 0) {
+            console.log('No spaces to display on map');
+            return;
+        }
+
+        const markerIcons = {
+            'hot-desk': createMapIcon('#28a745'),
+            'private-office': createMapIcon('#007bff'),
+            'meeting-room': createMapIcon('#ffc107'),
+            'event-space': createMapIcon('#dc3545'),
+            'unavailable': createMapIcon('#6c757d')
+        };
+
+        let markersCreated = 0;
+
+        mapFilteredSpaces.forEach((space, index) => {
+            try {
+                // Validate coordinates
+                if (!space.lat || !space.lng || isNaN(space.lat) || isNaN(space.lng)) {
+                    console.warn(`Invalid coordinates for space ${space.name}:`, space.lat, space.lng);
+                    return;
+                }
+
+                // Determine icon type based on availability
+                const iconType = (space.available !== false) ? space.type : 'unavailable';
+                const icon = markerIcons[iconType] || markerIcons['unavailable'];
+
+                // Create marker
+                const marker = L.marker([space.lat, space.lng], { icon })
+                    .bindPopup(createMapPopupContent(space), {
+                        className: 'custom-popup-integrated',
+                        maxWidth: 280,
+                        closeButton: true
+                    });
+
+                // Add event listeners
+                marker.on('click', () => selectMapSpace(space, marker));
+                marker.spaceData = space;
+
+                // Add to cluster group
+                mapClusterGroup.addLayer(marker);
+                markersCreated++;
+
+            } catch (error) {
+                console.error(`Error creating marker for space ${space.name}:`, error);
+            }
+        });
+
+        // Add to map based on cluster setting
+        const showClusters = document.getElementById('showClustersMap')?.checked !== false;
+
+        if (showClusters) {
+            spacesMap.addLayer(mapClusterGroup);
+        } else {
+            mapClusterGroup.eachLayer(layer => mapMarkersLayer.addLayer(layer));
+        }
+
+        console.log(`✅ Created ${markersCreated} markers, clustering: ${showClusters}`);
+
+        // Fit map to markers if any were created
+        if (markersCreated > 0) {
+            setTimeout(() => {
+                try {
+                    const group = new L.featureGroup(mapClusterGroup.getLayers());
+                    if (group.getBounds().isValid()) {
+                        spacesMap.fitBounds(group.getBounds().pad(0.1));
+                    }
+                } catch (error) {
+                    console.warn('Could not fit bounds:', error);
+                }
+            }, 500);
+        }
+    }
+
+    function createMapIcon(color) {
+        return L.divIcon({
+            html: `<div style="
+            background-color: ${color};
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+        "></div>`,
+            className: 'custom-marker-integrated',
+            iconSize: [18, 18],
+            iconAnchor: [9, 9]
+        });
+    }
+
+    function createMapPopupContent(space) {
+        const typeLabels = {
+            'hot-desk': 'Hot Desk',
+            'private-office': 'Ufficio Privato',
+            'meeting-room': 'Sala Riunioni',
+            'event-space': 'Spazio Eventi'
+        };
+
+        const availabilityStatus = space.available !== false;
+
+        return `
+        <div class="space-popup-integrated">
+            <div class="popup-header-integrated">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <h6 class="mb-0 text-white" style="font-size: 0.9rem;">${space.name}</h6>
+                    <span class="popup-badge-integrated">${typeLabels[space.type] || space.type}</span>
+                </div>
+                <div class="small text-white-50">
+                    <i class="fas fa-map-marker-alt me-1"></i>${space.city}
+                </div>
+            </div>
+
+            <div style="padding: 0 0.75rem 0.5rem 0.75rem;">
+                <div class="row g-1 mb-2">
+                    <div class="col-6">
+                        <small class="text-muted">Capacità</small><br>
+                        <strong style="font-size: 0.85rem;"><i class="fas fa-users me-1"></i>${space.capacity}</strong>
+                    </div>
+                    <div class="col-6">
+                        <small class="text-muted">Prezzo</small><br>
+                        <strong style="color: #28a745; font-size: 0.9rem;">€${space.price_per_day}/giorno</strong>
+                    </div>
+                </div>
+                <div class="mb-1">
+                    <span class="badge ${availabilityStatus ? 'bg-success' : 'bg-danger'}" style="font-size: 0.7rem;">
+                        ${availabilityStatus ? 'Disponibile' : 'Occupato'}
+                    </span>
+                </div>
+            </div>
+
+            <div class="popup-actions-integrated">
+                <div class="d-flex gap-1">
+                    <button class="btn btn-outline-primary btn-sm flex-fill" onclick="showSpaceDetails('${space.id}')" style="font-size: 0.75rem;">
+                        <i class="fas fa-info-circle me-1"></i>Dettagli
+                    </button>
+                    <button class="btn btn-primary btn-sm flex-fill" onclick="bookSpace('${space.id}')" ${!availabilityStatus ? 'disabled' : ''} style="font-size: 0.75rem;">
+                        <i class="fas fa-calendar-plus me-1"></i>${availabilityStatus ? 'Prenota' : 'Occupato'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    }
+
+    // ==================== MAP INTERACTIONS ====================
+    function selectMapSpace(space, marker) {
+        if (selectedMapMarker) {
+            selectedMapMarker.setIcon(createMapIcon(getMapMarkerColor(selectedMapMarker.spaceData)));
+        }
+
+        selectedMapMarker = marker;
+        marker.setIcon(createMapIcon('#ff6b6b'));
+        spacesMap.setView([marker.getLatLng().lat, marker.getLatLng().lng], 14);
+    }
+
+    function getMapMarkerColor(space) {
+        if (space.available === false) return '#6c757d';
+
+        const colors = {
+            'hot-desk': '#28a745',
+            'private-office': '#007bff',
+            'meeting-room': '#ffc107',
+            'event-space': '#dc3545'
+        };
+        return colors[space.type] || '#6c757d';
+    }
+
+    // ==================== MAP FILTERS ====================
+    function applyMapFilters() {
+        if (!spacesMap || !isMapInitialized) return;
+
+        const cityFilter = document.getElementById('mapCityFilter')?.value || '';
+        const typeFilter = document.getElementById('mapTypeFilter')?.value || '';
+        const showAvailable = document.getElementById('showAvailableMap')?.checked !== false;
+        const showOccupied = document.getElementById('showOccupiedMap')?.checked === true;
+
+        console.log('Applying map filters:', { cityFilter, typeFilter, showAvailable, showOccupied });
+
+        mapFilteredSpaces = addCoordinatesToSpaces(mapAllSpaces.filter(space => {
+            if (cityFilter && space.city !== cityFilter) return false;
+            if (typeFilter && space.type !== typeFilter) return false;
+
+            const isAvailable = space.available !== false;
+            if (!showAvailable && isAvailable) return false;
+            if (!showOccupied && !isAvailable) return false;
+
+            return true;
+        }));
+
+        createMapMarkers();
+        updateMapStats();
+
+        console.log('Filtered to', mapFilteredSpaces.length, 'spaces');
+    }
+
+    function searchOnMap() {
+        const searchTerm = document.getElementById('mapSearchInput')?.value.toLowerCase() || '';
+
+        if (!searchTerm) {
+            mapFilteredSpaces = addCoordinatesToSpaces([...mapAllSpaces]);
+        } else {
+            mapFilteredSpaces = addCoordinatesToSpaces(mapAllSpaces.filter(space =>
+                space.name.toLowerCase().includes(searchTerm) ||
+                space.city.toLowerCase().includes(searchTerm) ||
+                (space.address && space.address.toLowerCase().includes(searchTerm))
+            ));
+        }
+
+        createMapMarkers();
+        updateMapStats();
+
+        console.log(`Search "${searchTerm}": ${mapFilteredSpaces.length} results`);
+    }
+
+    function toggleMapLayer(layerType) {
+        applyMapFilters();
+    }
+
+    function toggleMapClusters() {
+        if (!spacesMap || !isMapInitialized) return;
+
+        const showClusters = document.getElementById('showClustersMap')?.checked !== false;
+
+        spacesMap.removeLayer(mapClusterGroup);
+        mapMarkersLayer.clearLayers();
+
+        if (showClusters) {
+            spacesMap.addLayer(mapClusterGroup);
+        } else {
+            mapClusterGroup.eachLayer(layer => mapMarkersLayer.addLayer(layer));
+        }
+
+        console.log('Clusters toggled:', showClusters);
+    }
+
+    // ==================== MAP CONTROLS ====================
+    function centerSpacesMap() {
+        if (!spacesMap || !isMapInitialized) return;
+
+        if (mapFilteredSpaces.length > 0 && mapClusterGroup.getLayers().length > 0) {
+            try {
+                const group = new L.featureGroup(mapClusterGroup.getLayers());
+                if (group.getBounds().isValid()) {
+                    spacesMap.fitBounds(group.getBounds().pad(0.1));
+                }
+            } catch (error) {
+                console.warn('Could not center map:', error);
+                spacesMap.setView([41.8719, 12.5674], 6);
+            }
+        } else {
+            spacesMap.setView([41.8719, 12.5674], 6);
+        }
+    }
+
+    function toggleMapFullscreen() {
+        const mapContainer = document.getElementById('mapViewContainer');
+
+        if (!document.fullscreenElement) {
+            mapContainer.requestFullscreen().then(() => {
+                setTimeout(() => spacesMap.invalidateSize(), 100);
+            });
+        } else {
+            document.exitFullscreen().then(() => {
+                setTimeout(() => spacesMap.invalidateSize(), 100);
+            });
+        }
+    }
+
+    // ==================== MAP STATS ====================
+    function updateMapStats() {
+        const total = mapFilteredSpaces ? mapFilteredSpaces.length : 0;
+        const available = mapFilteredSpaces ? mapFilteredSpaces.filter(s => s.available !== false).length : 0;
+        const occupied = total - available;
+
+        const totalEl = document.getElementById('totalSpacesMap');
+        const availableEl = document.getElementById('availableSpacesMap');
+        const occupiedEl = document.getElementById('occupiedSpacesMap');
+
+        if (totalEl) totalEl.textContent = total;
+        if (availableEl) availableEl.textContent = available;
+        if (occupiedEl) occupiedEl.textContent = occupied;
+
+        console.log('Map stats updated:', { total, available, occupied });
+    }
+
+    // ==================== SYNC WITH MAIN SPACES ====================
+    // Override the original loadSpaces to include map sync
+    const originalLoadSpaces = window.loadSpaces;
+    window.loadSpaces = async function() {
+        console.log('🔄 Loading spaces (with map sync)...');
+
+        // Call original loadSpaces function
+        if (originalLoadSpaces) {
+            await originalLoadSpaces();
+        }
+
+        // Update map data if map view is active
+        const mapViewVisible = document.getElementById('mapViewContainer')?.style.display !== 'none';
+
+        if (mapViewVisible && isMapInitialized && spacesMap) {
+            console.log('🗺️ Map is active, syncing data...');
+            setTimeout(() => {
+                updateMapWithCurrentSpaces();
+            }, 500);
+        } else {
+            console.log('🗺️ Map not active or not initialized, data will sync when switched');
+        }
     };
+
+    // ==================== EVENT LISTENERS ====================
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('🗺️ Initializing map event listeners...');
+
+        // Map search enter key
+        const mapSearchInput = document.getElementById('mapSearchInput');
+        if (mapSearchInput) {
+            mapSearchInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    searchOnMap();
+                }
+            });
+            console.log('Map search input listener added');
+        }
+    });
+
+    function switchToGridView() {
+        console.log('Switching to grid view...');
+
+        // Update button states
+        document.getElementById('gridViewBtn').classList.add('active');
+        document.getElementById('mapViewBtn').classList.remove('active');
+
+        // Show/hide containers
+        document.getElementById('spacesContainer').style.display = 'block';
+        document.getElementById('mapViewContainer').style.display = 'none';
+
+        // CRITICAL FIX: Reset grid layout and force re-render
+        setTimeout(() => {
+            resetGridLayout();
+
+            // Force re-render of spaces grid if data exists
+            if (allSpaces && allSpaces.length > 0) {
+                console.log('Re-rendering grid layout with', allSpaces.length, 'spaces');
+                applyFilters(); // This will trigger renderSpaces with current data
+            }
+        }, 100);
+    }
+    function resetGridLayout() {
+        console.log('Resetting grid layout...');
+
+        const spacesContainer = document.getElementById('spacesContainer');
+        if (!spacesContainer) return;
+
+        // Clear any inline styles that might have been applied
+        spacesContainer.style.cssText = '';
+
+        // Ensure proper grid classes
+        spacesContainer.className = 'spaces-grid row';
+
+        // Force layout recalculation
+        spacesContainer.offsetHeight; // Trigger reflow
+
+        // Reset any potential flexbox/grid conflicts
+        const cards = spacesContainer.querySelectorAll('.space-card');
+        cards.forEach(card => {
+            const cardParent = card.closest('.col-lg-4, .col-md-6');
+            if (cardParent) {
+                // Reset any potential style conflicts
+                cardParent.style.cssText = '';
+                card.style.cssText = '';
+            }
+        });
+
+        console.log('Grid layout reset completed');
+    }
+
+    // ==================== GESTIONE MODAL RESET PASSWORD ====================
+
+    // Click su "Hai dimenticato la password?"
+    document.addEventListener('click', function(e) {
+        if (e.target.id === 'forgotPasswordLink') {
+            e.preventDefault();
+
+            // Nascondi modal login
+            const loginModal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
+            if (loginModal) loginModal.hide();
+
+            // Mostra modal reset password
+            const forgotModal = new bootstrap.Modal(document.getElementById('forgotPasswordModal'));
+            forgotModal.show();
+
+            // Reset form
+            document.getElementById('forgotPasswordForm').reset();
+            document.getElementById('resetPasswordForm').style.display = 'block';
+            document.getElementById('resetSuccessMessage').style.display = 'none';
+        }
+
+        // Click su "Torna al Login"
+        if (e.target.id === 'backToLogin') {
+            e.preventDefault();
+
+            // Nascondi modal reset
+            const forgotModal = bootstrap.Modal.getInstance(document.getElementById('forgotPasswordModal'));
+            if (forgotModal) forgotModal.hide();
+
+            // Mostra modal login
+            const loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
+            loginModal.show();
+        }
+    });
+
+    // ==================== GESTIONE FORM RESET PASSWORD ====================
+
+    const forgotPasswordForm = document.getElementById('forgotPasswordForm');
+    if (forgotPasswordForm) {
+        forgotPasswordForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const email = document.getElementById('resetEmail').value.trim();
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            const originalBtnContent = submitBtn.innerHTML;
+
+            // Validazione base
+            if (!email) {
+                showNotificationInModal('Inserisci un indirizzo email valido', 'error');
+                return;
+            }
+
+            // Validazione formato email
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                showNotificationInModal('Formato email non valido', 'error');
+                return;
+            }
+
+            // Mostra loading
+            submitBtn.disabled = true;
+            submitBtn.classList.add('btn-loading');
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Invio in corso...';
+
+            try {
+                console.log('Sending password reset request for:', email);
+
+                const response = await fetch('/api/auth/forgot-password', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ email })
+                });
+
+                const data = await response.json();
+                console.log('Reset password response:', data);
+
+                if (response.ok && data.success) {
+                    // Mostra messaggio di successo
+                    document.getElementById('resetPasswordForm').style.display = 'none';
+                    document.getElementById('resetSuccessMessage').style.display = 'block';
+
+                    // Auto-chiudi dopo 5 secondi
+                    setTimeout(() => {
+                        const forgotModal = bootstrap.Modal.getInstance(document.getElementById('forgotPasswordModal'));
+                        if (forgotModal) forgotModal.hide();
+
+                        // Reset per il prossimo utilizzo
+                        setTimeout(() => {
+                            document.getElementById('resetPasswordForm').style.display = 'block';
+                            document.getElementById('resetSuccessMessage').style.display = 'none';
+                            forgotPasswordForm.reset();
+                        }, 500);
+                    }, 5000);
+
+                } else {
+                    // Mostra errore
+                    const errorMessage = data.message || 'Errore durante l\'invio dell\'email. Riprova.';
+                    showNotificationInModal(errorMessage, 'error');
+                }
+
+            } catch (error) {
+                console.error('Reset password error:', error);
+
+                // Gestisci errori di rete
+                if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                    showNotificationInModal('Problema di connessione. Verifica la tua rete.', 'error');
+                } else {
+                    showNotificationInModal('Errore imprevisto. Riprova più tardi.', 'error');
+                }
+            } finally {
+                // Ripristina bottone
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('btn-loading');
+                submitBtn.innerHTML = originalBtnContent;
+            }
+        });
+    }
+
+    // ==================== FUNZIONI HELPER ====================
+
+    function showNotificationInModal(message, type = 'info') {
+        // Rimuovi notifiche precedenti nel modal
+        const existingAlerts = document.querySelectorAll('#forgotPasswordModal .alert');
+        existingAlerts.forEach(alert => alert.remove());
+
+        // Crea nuova notifica
+        const alertClass = type === 'error' ? 'alert-danger' :
+            type === 'success' ? 'alert-success' :
+                type === 'warning' ? 'alert-warning' : 'alert-info';
+
+        const icon = type === 'error' ? 'fas fa-exclamation-triangle' :
+            type === 'success' ? 'fas fa-check-circle' :
+                type === 'warning' ? 'fas fa-exclamation-circle' : 'fas fa-info-circle';
+
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert ${alertClass} alert-dismissible fade show mt-3`;
+        alertDiv.innerHTML = `
+            <i class="${icon} me-2"></i>${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+
+        // Inserisci prima del form
+        const modalBody = document.querySelector('#forgotPasswordModal .modal-body');
+        const form = document.getElementById('resetPasswordForm');
+        modalBody.insertBefore(alertDiv, form);
+
+        // Auto-rimuovi dopo 5 secondi
+        setTimeout(() => {
+            if (alertDiv.parentNode) {
+                alertDiv.remove();
+            }
+        }, 5000);
+    }
+
+    // ==================== MIGLIORA L'UX ====================
+
+    // Auto-focus sul campo email quando si apre il modal
+    document.getElementById('forgotPasswordModal').addEventListener('shown.bs.modal', function() {
+        document.getElementById('resetEmail').focus();
+    });
+
+    // Gestisci il tasto Invio nel campo email
+    document.getElementById('resetEmail')?.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            document.getElementById('forgotPasswordForm').dispatchEvent(new Event('submit'));
+        }
+    });
+
+    console.log('Password reset system initialized');
+
+    // ==================== EXPORT FUNCTIONS ====================
+    window.switchToGridView = switchToGridView;
+    window.switchToMapView = switchToMapView;
+    window.applyMapFilters = applyMapFilters;
+    window.searchOnMap = searchOnMap;
+    window.toggleMapLayer = toggleMapLayer;
+    window.toggleMapClusters = toggleMapClusters;
+    window.centerSpacesMap = centerSpacesMap;
+    window.toggleMapFullscreen = toggleMapFullscreen;
+    window.retryMapInitialization = retryMapInitialization;
+
+    console.log('🗺️ Map module loaded and ready');
+
+    // ==================== ESPORTAZIONE FUNZIONI GLOBALI ====================
+    window.applyFilters = applyFilters;
+    window.clearAllFilters = clearAllFilters;
+    window.removeFilter = removeFilter;
+    window.showLogin = showLogin;
+    window.showRegister = showRegister;
+    window.switchToLogin = switchToLogin;
+    window.switchToRegister = switchToRegister;
+    window.logout = logout;
+    window.showProfile = showProfile;
+    window.bookCurrentSpace = bookCurrentSpace;
+    window.shareSpace = shareSpace;
+    window.changeMainImage = changeMainImage;
 </script>
 </body>
 </html>

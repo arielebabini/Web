@@ -33,47 +33,40 @@ class EmailService {
     }
 
     /**
-     * Invia email di benvenuto
-     */
-    async sendWelcomeEmail(user) {
-        const html = this.getWelcomeTemplate(user);
-
-        const mailOptions = {
-            from: process.env.EMAIL_FROM,
-            to: user.email,
-            subject: '🎉 Benvenuto in CoWorkSpace!',
-            html: html
-        };
-
-        try {
-            const result = await this.transporter.sendMail(mailOptions);
-            logger.info(`Welcome email sent to ${user.email}`);
-            return result;
-        } catch (error) {
-            logger.error('Error sending welcome email:', error);
-            throw error;
-        }
-    }
-
-    /**
      * Invia email di conferma prenotazione
+     * @param {Object} user - Dati dell'utente
+     * @param {Object} booking - Dati della prenotazione
+     * @param {Object} space - Dati dello spazio
      */
-    async sendBookingConfirmation(user, booking) {
-        const html = this.getBookingConfirmationTemplate(user, booking);
-
-        const mailOptions = {
-            from: process.env.EMAIL_FROM,
-            to: user.email,
-            subject: `✅ Prenotazione Confermata - ${booking.space_name}`,
-            html: html
-        };
-
+    async sendBookingConfirmationEmail(user, booking, space) {
         try {
+            const html = this.getBookingConfirmationTemplate(user, booking, space);
+
+            const mailOptions = {
+                from: {
+                    name: 'CoWorkSpace',
+                    address: process.env.EMAIL_FROM || process.env.EMAIL_USER
+                },
+                to: user.email,
+                subject: `✅ Prenotazione Confermata #${booking.id} - CoWorkSpace`,
+                html: html
+            };
+
             const result = await this.transporter.sendMail(mailOptions);
-            logger.info(`Booking confirmation sent to ${user.email} for booking ${booking.id}`);
-            return result;
+
+            logger.info(`Booking confirmation email sent to ${user.email} for booking ${booking.id}`, {
+                bookingId: booking.id,
+                userEmail: user.email,
+                messageId: result.messageId
+            });
+
+            return {
+                success: true,
+                messageId: result.messageId
+            };
+
         } catch (error) {
-            logger.error('Error sending booking confirmation:', error);
+            logger.error('Error sending booking confirmation email:', error);
             throw error;
         }
     }
@@ -248,81 +241,125 @@ class EmailService {
         `;
     }
 
-    getBookingConfirmationTemplate(user, booking) {
-        const startDate = new Date(booking.start_date).toLocaleDateString('it-IT');
-        const endDate = new Date(booking.end_date).toLocaleDateString('it-IT');
-        const startTime = new Date(booking.start_date).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
-        const endTime = new Date(booking.end_date).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+    /**
+     * Template HTML per email conferma prenotazione - STESSO STILE DEL RESET PASSWORD
+     */
+    getBookingConfirmationTemplate(user, booking, space) {
+        const formatDate = (date) => {
+            return new Date(date).toLocaleDateString('it-IT', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        };
+
+        const formatTime = (time) => {
+            if (!time) return 'Giornata intera';
+            return time.substring(0, 5);
+        };
 
         return `
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="utf-8">
-            <title>Prenotazione Confermata</title>
-            <style>
-                body { font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #333; }
-                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                .header { background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-                .content { background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px; }
-                .booking-details { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #28a745; }
-                .detail-row { display: flex; justify-content: space-between; margin: 10px 0; padding: 8px 0; border-bottom: 1px solid #eee; }
-                .button { display: inline-block; background: #28a745; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 20px 0; }
-                .footer { text-align: center; color: #666; font-size: 14px; margin-top: 30px; }
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <div class="header">
-                    <h1>✅ Prenotazione Confermata!</h1>
-                    <p>Il pagamento è stato elaborato con successo</p>
-                </div>
-                <div class="content">
-                    <h2>Ciao ${user.first_name},</h2>
-                    <p>La tua prenotazione è stata confermata! Ecco i dettagli:</p>
-                    
-                    <div class="booking-details">
-                        <h3>📍 ${booking.space_name}</h3>
-                        <div class="detail-row">
-                            <strong>Data:</strong>
-                            <span>${startDate === endDate ? startDate : `${startDate} - ${endDate}`}</span>
-                        </div>
-                        <div class="detail-row">
-                            <strong>Orario:</strong>
-                            <span>${startTime} - ${endTime}</span>
-                        </div>
-                        <div class="detail-row">
-                            <strong>Prezzo Totale:</strong>
-                            <span>€${booking.total_price?.toFixed(2) || '0.00'}</span>
-                        </div>
-                        ${booking.booking_id ? `
-                        <div class="detail-row">
-                            <strong>ID Prenotazione:</strong>
-                            <span>#${booking.id || booking.booking_id}</span>
-                        </div>
-                        ` : ''}
-                    </div>
-                    
-                    <h3>📝 Cosa devi sapere:</h3>
-                    <ul>
-                        <li>Porta un documento d'identità valido</li>
-                        <li>Arriva 10 minuti prima dell'orario prenotato</li>
-                        <li>Rispetta le regole dello spazio</li>
-                        <li>Goditi la tua esperienza di coworking!</li>
-                    </ul>
-                    
-                    <div style="text-align: center;">
-                        <a href="${process.env.FRONTEND_URL}/bookings/${booking.id}" class="button">Visualizza Prenotazione</a>
-                    </div>
-                </div>
-                <div class="footer">
-                    <p>Grazie per aver scelto CoWorkSpace!<br>
-                    <small>ID Prenotazione: ${booking.id}</small></p>
-                </div>
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Conferma Prenotazione - CoWorkSpace</title>
+        <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8f9fa; }
+            .container { max-width: 600px; margin: 0 auto; background: white; }
+            .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 20px; text-align: center; }
+            .header h1 { color: white; font-size: 28px; margin-bottom: 10px; }
+            .header p { color: rgba(255,255,255,0.9); font-size: 16px; }
+            .content { padding: 40px; }
+            .greeting { font-size: 18px; color: #2c3e50; margin-bottom: 20px; }
+            .booking-card { background: #f8f9fa; border-left: 5px solid #28a745; padding: 20px; margin: 20px 0; border-radius: 5px; }
+            .booking-id { font-weight: bold; color: #28a745; font-size: 16px; margin-bottom: 5px; }
+            .booking-status { background: #28a745; color: white; padding: 5px 10px; border-radius: 15px; font-size: 12px; display: inline-block; }
+            .details-section { margin: 25px 0; }
+            .section-title { font-weight: bold; color: #495057; font-size: 16px; margin-bottom: 15px; border-bottom: 2px solid #e9ecef; padding-bottom: 5px; }
+            .detail-item { margin: 10px 0; }
+            .detail-label { font-size: 12px; color: #6c757d; text-transform: uppercase; font-weight: bold; }
+            .detail-value { font-size: 16px; color: #2c3e50; font-weight: 600; }
+            .space-info { background: #fff; border: 1px solid #dee2e6; border-radius: 8px; padding: 15px; }
+            .space-name { font-size: 20px; font-weight: bold; color: #2c3e50; margin-bottom: 8px; }
+            .space-address { color: #6c757d; margin-bottom: 10px; }
+            .price-summary { background: linear-gradient(135deg, #28a745, #20c997); color: white; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0; }
+            .total-price { font-size: 24px; font-weight: bold; }
+            .footer { background: #f8f9fa; padding: 30px; text-align: center; color: #6c757d; font-size: 14px; }
+            @media (max-width: 600px) {
+                .content { padding: 20px; }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>🎉 Prenotazione Confermata!</h1>
+                <p>La tua prenotazione è stata elaborata con successo</p>
             </div>
-        </body>
-        </html>
-        `;
+            
+            <div class="content">
+                <div class="greeting">
+                    Ciao ${user.first_name || user.name || 'Utente'},
+                </div>
+                
+                <p>Ottima notizia! La tua prenotazione è stata confermata con successo.</p>
+                
+                <!-- Booking Card -->
+                <div class="booking-card">
+                    <div class="booking-id">Prenotazione #${booking.id}</div>
+                    <div class="booking-status">✅ CONFERMATA</div>
+                </div>
+                
+                <!-- Space Information -->
+                <div class="details-section">
+                    <div class="section-title">📍 Spazio</div>
+                    <div class="space-info">
+                        <div class="space-name">${space.name}</div>
+                        <div class="space-address">📍 ${space.address}, ${space.city}</div>
+                    </div>
+                </div>
+                
+                <!-- Booking Details -->
+                <div class="details-section">
+                    <div class="section-title">📅 Dettagli</div>
+                    <div class="detail-item">
+                        <div class="detail-label">Data</div>
+                        <div class="detail-value">${formatDate(booking.start_date)} - ${formatDate(booking.end_date)}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Orario</div>
+                        <div class="detail-value">${formatTime(booking.start_time)} - ${formatTime(booking.end_time)}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Persone</div>
+                        <div class="detail-value">${booking.people_count}</div>
+                    </div>
+                </div>
+
+                ${booking.total_price ? `
+                <div class="price-summary">
+                    <div>Totale</div>
+                    <div class="total-price">€${booking.total_price}</div>
+                </div>
+                ` : ''}
+
+                <p style="margin: 30px 0; color: #6c757d;">
+                    Grazie per aver scelto CoWorkSpace!
+                </p>
+            </div>
+            
+            <div class="footer">
+                <p><strong>CoWorkSpace</strong> - La tua piattaforma di fiducia</p>
+                <p style="font-size: 12px; color: #95a5a6; margin-top: 20px;">
+                    © 2024 CoWorkSpace. Tutti i diritti riservati.
+                </p>
+            </div>
+        </div>
+    </body>
+    </html>`;
     }
 
     getBookingReminderTemplate(user, booking, hoursAhead) {

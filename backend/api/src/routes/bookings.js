@@ -124,24 +124,40 @@ router.get('/me', requireAuth, BookingController.getUserBookings);
 
 router.post('/check-availability', async (req, res) => {
     try {
-        const { space_id, startDate, endDate } = req.body;
+        const { space_id, startDate, endDate, startTime, endTime } = req.body;
+
+        // Costruisci la condizione di base per la data
+        const dateCondition = {
+            space_id: space_id,
+            status: { [Op.in]: ['confirmed', 'pending'] }, // Controlla solo prenotazioni attive
+            [Op.or]: [
+                {
+                    start_date: { [Op.lte]: endDate },
+                    end_date: { [Op.gte]: startDate }
+                }
+            ]
+        };
+
+        // Se sono forniti gli orari, aggiungi il controllo di sovrapposizione temporale
+        if (startTime && endTime) {
+            dateCondition[Op.and] = [
+                // La nuova prenotazione finisce dopo l'inizio di una esistente
+                { end_time: { [Op.gt]: startTime } },
+                // La nuova prenotazione inizia prima della fine di una esistente
+                { start_time: { [Op.lt]: endTime } }
+            ];
+        }
 
         const overlappingBookings = await Booking.findAll({
-            where: {
-                space_id: space_id,
-                [Op.or]: [ // Assicurati di aver importato { Op } from 'sequelize'
-                    {
-                        start_date: { [Op.lte]: endDate },
-                        end_date: { [Op.gte]: startDate }
-                    }
-                ]
-            }
+            where: dateCondition
         });
 
         if (overlappingBookings.length > 0) {
-            res.json({ isAvailable: false }); // Trovate prenotazioni in conflitto
+            // Se c'è sovrapposizione di date e orari (se forniti)
+            res.json({ isAvailable: false });
         } else {
-            res.json({ isAvailable: true }); // Nessuna prenotazione in conflitto
+            // Nessuna sovrapposizione trovata
+            res.json({ isAvailable: true });
         }
 
     } catch (error) {
@@ -288,6 +304,19 @@ router.post('/:bookingId/confirm',
     bookingIdValidation,
     requireManagerOwnership('booking'),
     BookingController.confirmBooking
+);
+
+/**
+ * @route   POST /api/bookings/:bookingId/send-confirmation-email
+ * @desc    Invia email di conferma per una prenotazione specifica
+ * @access  Private
+ */
+router.post('/:bookingId/send-confirmation-email',
+    requireAuth,
+    [
+        param('bookingId').isUUID().withMessage('ID prenotazione non valido')
+    ],
+    BookingController.sendConfirmationEmail
 );
 
 /**
